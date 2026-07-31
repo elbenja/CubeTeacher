@@ -1,0 +1,39 @@
+:root {
+  --space-0: 0px;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-7: 14px;
+  --space-8: 16px;
+  --space-9: 20px;
+  --space-10: 24px;
+  --space-11: 32px;
+  --space-12: 40px;
+  --space-13: 48px;
+  --space-14: 64px;
+
+  /* Control geometry lifted from the reference screens */
+  --control-h-sm: 28px;
+  --control-h-md: 34px;   /* Export / Share / segmented items */
+  --control-h-lg: 40px;
+  --icon-btn-sm: 28px;
+  --icon-btn-md: 36px;    /* toolbar + rail buttons */
+  --icon-btn-lg: 44px;
+
+  --icon-size-sm: 14px;
+  --icon-size-md: 18px;   /* default */
+  --icon-size-lg: 20px;
+  --icon-size-xl: 24px;
+
+  /* Floating-layer geometry */
+  --panel-pad: 16px;
+  --panel-gap: 20px;      /* gap between panel and viewport edge */
+  --panel-w-sm: 240px;
+  --panel-w-md: 288px;    /* right inspector */
+  --panel-w-lg: 328px;    /* left scene list */
+  --rail-w: 56px;
+  --row-h: 40px;          /* sidebar / layer row */
+}

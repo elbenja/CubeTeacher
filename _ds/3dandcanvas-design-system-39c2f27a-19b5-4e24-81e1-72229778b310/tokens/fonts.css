@@ -1,0 +1,12 @@
+/* 3DandCanvas typefaces.
+   SUBSTITUTION NOTE: no font binaries were supplied with the reference screenshots.
+   Geist / Geist Mono is the closest available match to the neutral geometric grotesk
+   in the source UI (tall x-height, flat terminals, tabular-feeling numerals). */
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap");
+/* System iconset: Hugeicons Stroke Rounded (free tier, 1.5px stroke, 24px grid). */
+@import url("https://cdn.hugeicons.com/font/hgi-stroke-rounded.css");
+
+:root {
+  --font-sans: "Geist", ui-sans-serif, -apple-system, "Segoe UI", Helvetica, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}

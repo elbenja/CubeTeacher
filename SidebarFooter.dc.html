@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
+<script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
+</helmet>
+
+<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-subtle)">
+  <a class="ct-link ct-hide" href="{{ emailHref }}"><i class="hgi-stroke hgi-mail-01" style="font-size:16px"></i>Email</a>
+  <a class="ct-link ct-hide" href="https://calendar.google.com/calendar/r/eventedit?text=Cube%20practice" target="_blank" rel="noopener"><i class="hgi-stroke hgi-calendar-03" style="font-size:16px"></i>Calendar</a>
+  <span class="ct-tip" data-tip="Move notation help" style="margin-left:auto">
+    <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="help-circle" label="Move notation help" size="sm" selected="{{ legendOpen }}" onClick="{{ toggleLegend }}" hint-size="30px,30px"></x-import>
+  </span>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:44},&quot;email&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;elbenja@gmail.com&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;legendOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;toggleLegend&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const email = this.props.email ?? "elbenja@gmail.com";
+    return {
+      emailHref: "mailto:" + email,
+      legendOpen: this.props.legendOpen,
+      toggleLegend: this.props.toggleLegend ?? (() => {})
+    };
+  }
+}
+</script>
+</body>
+</html>

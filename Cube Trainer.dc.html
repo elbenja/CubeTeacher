@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/typography.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/radius.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/elevation.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/motion.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/interactions.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
+<script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<style>
+html,body{margin:0;height:100%;background:var(--surface-canvas);overflow:hidden}
+a{color:var(--text-accent);text-decoration:none}
+a:hover{color:var(--blue-600);text-decoration:underline}
+.ct *{box-sizing:border-box}
+.ct{--m:1}
+
+/* ---- sidebar rows ---- */
+.ct-row{position:relative;display:flex;align-items:center;gap:8px;width:100%;height:34px;padding:0 8px 0 18px;border:0;border-radius:10px;background:none;cursor:pointer;text-align:left;color:var(--text-secondary);font:var(--type-label);white-space:nowrap;transition:background-color calc(130ms*var(--m)) var(--ease-out),color calc(130ms*var(--m)) var(--ease-out),transform calc(280ms*var(--m)) var(--ease-spring-out)}
+.ct-row:hover{background:var(--surface-hover);color:var(--text-primary)}
+.ct-row:active{transform:scale(.985)}
+.ct-row[data-active="true"]{background:var(--surface-selected);color:var(--text-primary);font-weight:var(--weight-semibold)}
+.ct-tick{position:absolute;left:7px;top:50%;width:2px;height:13px;margin-top:-6.5px;border-radius:2px;background:var(--border-strong);transform:scaleY(.4);transition:transform calc(190ms*var(--m)) var(--ease-out),background-color calc(130ms*var(--m)) var(--ease-out)}
+.ct-row:hover .ct-tick{transform:scaleY(.82)}
+.ct-row[data-active="true"] .ct-tick{background:var(--gray-900);transform:scaleY(1)}
+.ct-row[data-done="true"] .ct-tick{background:var(--green-500)}
+.ct-go{margin-left:auto;font-size:13px;color:var(--text-tertiary);opacity:0;transform:translateX(-4px);transition:opacity calc(130ms*var(--m)) var(--ease-out),transform calc(190ms*var(--m)) var(--ease-out)}
+.ct-row:hover .ct-go,.ct-row[data-active="true"] .ct-go{opacity:1;transform:none}
+
+.ct-grp{display:flex;align-items:center;gap:10px;width:100%;height:38px;padding:0 8px;border:0;border-radius:10px;background:none;cursor:pointer;color:var(--text-primary);font:var(--type-label);transition:background-color calc(130ms*var(--m)) var(--ease-out)}
+.ct-grp:hover{background:var(--surface-hover)}
+.ct-grp .ct-chev{margin-left:auto;font-size:14px;color:var(--icon-muted);transition:transform calc(280ms*var(--m)) var(--ease-out)}
+.ct-grp[data-open="true"] .ct-chev{transform:rotate(180deg)}
+.ct-acc{display:grid;grid-template-rows:0fr;transition:grid-template-rows calc(280ms*var(--m)) var(--ease-out),opacity calc(190ms*var(--m)) var(--ease-out);opacity:0}
+.ct-acc[data-open="true"]{grid-template-rows:1fr;opacity:1}
+.ct-acc>div{overflow:hidden;min-height:0}
+.ct-acc[data-open="true"] .ct-row{animation:ct-rise calc(300ms*var(--m)) var(--ease-out) backwards}
+.ct-acc[data-open="true"] .ct-row:nth-child(1){animation-delay:0ms}
+.ct-acc[data-open="true"] .ct-row:nth-child(2){animation-delay:20ms}
+.ct-acc[data-open="true"] .ct-row:nth-child(3){animation-delay:40ms}
+.ct-acc[data-open="true"] .ct-row:nth-child(4){animation-delay:60ms}
+.ct-acc[data-open="true"] .ct-row:nth-child(5){animation-delay:80ms}
+.ct-acc[data-open="true"] .ct-row:nth-child(6){animation-delay:100ms}
+.ct-acc[data-open="true"] .ct-row:nth-child(7){animation-delay:120ms}
+.ct-acc[data-open="true"] .ct-row:nth-child(n+8){animation-delay:140ms}
+@keyframes ct-rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* ---- move chips ---- */
+.ct-chip{position:relative;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px 0 9px;border:0;border-radius:var(--radius-full);background:var(--gray-100);color:var(--text-primary);font:var(--type-mono);font-size:var(--text-base);font-weight:var(--weight-semibold);cursor:pointer;transition:background-color calc(130ms*var(--m)) var(--ease-out),color calc(130ms*var(--m)) var(--ease-out),transform calc(280ms*var(--m)) var(--ease-spring-out),opacity calc(190ms*var(--m)) var(--ease-out)}
+.ct-chip:hover{background:var(--gray-200);transform:translateY(-2px) scale(1.05)}
+.ct-chip:active{transform:scale(.93)}
+.ct-chip[data-state="past"]{background:var(--surface-float);color:var(--text-secondary);box-shadow:inset 0 0 0 1px var(--border-subtle)}
+.ct-chip[data-state="past"] .ct-dot{opacity:.4}
+.ct-chip[data-state="past"]:hover{background:var(--gray-150);color:var(--text-primary)}
+.ct-chip[data-state="past"]:hover .ct-dot{opacity:1}
+.ct-chip[data-state="current"]{background:var(--surface-inverse);color:var(--text-inverse)}
+.ct-chip[data-state="current"]:hover{background:var(--gray-800)}
+.ct-dot{width:7px;height:7px;border-radius:50%;background:var(--gray-500);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2);flex:0 0 auto}
+.ct-chip[data-face="U"] .ct-dot{background:#ffffff}
+.ct-chip[data-face="D"] .ct-dot{background:#ffd500}
+.ct-chip[data-face="R"] .ct-dot{background:#ee2b2b}
+.ct-chip[data-face="L"] .ct-dot{background:#ff7a18}
+.ct-chip[data-face="F"] .ct-dot{background:#16c464}
+.ct-chip[data-face="B"] .ct-dot{background:#1e5fe0}
+.ct-strip[data-tint="true"] .ct-dot{display:none}
+.ct-strip[data-tint="true"] .ct-chip{padding:0 11px;color:#fff}
+.ct-strip[data-tint="true"] .ct-chip[data-face="U"]{background:#ffffff;color:var(--text-primary);box-shadow:inset 0 0 0 1px var(--border-default)}
+.ct-strip[data-tint="true"] .ct-chip[data-face="D"]{background:#ffd500;color:var(--text-primary)}
+.ct-strip[data-tint="true"] .ct-chip[data-face="R"]{background:#ee2b2b}
+.ct-strip[data-tint="true"] .ct-chip[data-face="L"]{background:#ff7a18}
+.ct-strip[data-tint="true"] .ct-chip[data-face="F"]{background:#16c464}
+.ct-strip[data-tint="true"] .ct-chip[data-face="B"]{background:#1e5fe0}
+.ct-strip[data-tint="true"] .ct-chip[data-state="past"]{opacity:.34}
+.ct-ring{position:absolute;left:0;top:0;border:2px solid var(--blue-500);border-radius:var(--radius-full);pointer-events:none;opacity:0;box-shadow:0 0 0 4px rgba(47,128,255,.13);transition:transform calc(340ms*var(--m)) var(--ease-out),width calc(340ms*var(--m)) var(--ease-out),height calc(340ms*var(--m)) var(--ease-out),opacity calc(190ms*var(--m)) var(--ease-out)}
+
+/* ---- mini chips (right panel) ---- */
+.ct-mini{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-full);background:var(--gray-0);box-shadow:inset 0 0 0 1px var(--border-default);font:var(--type-mono);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-primary)}
+
+/* ---- tooltips (400ms, token-built) ---- */
+.ct-tip{position:relative;display:inline-flex}
+.ct-tip::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(4px);padding:6px 9px;border-radius:var(--radius-md);background:var(--surface-inverse);color:var(--text-inverse);font:var(--type-caption);white-space:nowrap;box-shadow:var(--shadow-inverse);opacity:0;pointer-events:none;z-index:60;transition:opacity calc(130ms*var(--m)) var(--ease-out),transform calc(190ms*var(--m)) var(--ease-out)}
+.ct-tip:hover::after{opacity:1;transform:translateX(-50%);transition-delay:400ms}
+.ct-tip[data-side="right"]::after{left:calc(100% + 8px);bottom:auto;top:50%;transform:translate(-4px,-50%)}
+.ct-tip[data-side="right"]:hover::after{transform:translate(0,-50%)}
+.ct-tip[data-side="below"]::after{bottom:auto;top:calc(100% + 8px);transform:translateX(-50%) translateY(-4px)}
+
+/* ---- heart ---- */
+.ct-heart{position:relative;display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--icon-muted);cursor:pointer;transition:background-color calc(130ms*var(--m)) var(--ease-out),color calc(190ms*var(--m)) var(--ease-out),transform calc(280ms*var(--m)) var(--ease-spring-out)}
+.ct-heart:hover{background:var(--surface-hover);color:var(--text-primary)}
+.ct-heart:active{transform:scale(.93)}
+.ct-heart[data-on="true"]{color:var(--red-500)}
+.ct-heart[data-on="true"] i{animation:ct-pop calc(440ms*var(--m)) var(--ease-spring-out)}
+.ct-heart[data-on="true"]::before{content:"";position:absolute;inset:3px;border-radius:50%;border:2px solid var(--red-500);animation:ct-burst calc(560ms*var(--m)) var(--ease-out) forwards}
+@keyframes ct-pop{0%{transform:scale(.86)}45%{transform:scale(1.24)}100%{transform:scale(1)}}
+@keyframes ct-burst{0%{transform:scale(.45);opacity:.6}100%{transform:scale(1.9);opacity:0}}
+
+/* ---- variation cards ---- */
+.ct-var{position:relative;display:block;width:100%;padding:10px;border:0;border-radius:var(--radius-lg);background:var(--surface-sunken);cursor:pointer;text-align:left;transform:perspective(720px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:box-shadow calc(190ms*var(--m)) var(--ease-out),transform calc(340ms*var(--m)) var(--ease-spring-out),background-color calc(130ms*var(--m)) var(--ease-out)}
+.ct-var:hover{background:var(--gray-0);box-shadow:var(--shadow-float)}
+.ct-var[data-sel="true"]{background:var(--gray-0);box-shadow:0 0 0 2px var(--blue-500)}
+.ct-var canvas{display:block;width:100%;height:118px}
+
+/* ---- misc ---- */
+.ct-scrub{display:flex;align-items:center;justify-content:center;min-width:60px;height:32px;padding:0 10px;border:0;border-radius:10px;background:var(--gray-100);color:var(--text-primary);font:var(--type-mono);font-size:var(--text-base);font-variant-numeric:tabular-nums;cursor:ew-resize;transition:background-color calc(130ms*var(--m)) var(--ease-out)}
+.ct-scrub:hover{background:var(--gray-200)}
+.ct-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:var(--gray-100);color:var(--text-secondary);font:var(--type-mono);font-size:var(--text-xs);font-variant-numeric:tabular-nums}
+.ct-link{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;color:var(--text-secondary);font:var(--type-caption);transition:background-color calc(130ms*var(--m)) var(--ease-out),color calc(130ms*var(--m)) var(--ease-out)}
+.ct-link:hover{background:var(--surface-hover);color:var(--text-primary);text-decoration:none}
+.ct-scrim{position:fixed;inset:0;background:var(--surface-scrim);opacity:0;pointer-events:none;transition:opacity calc(280ms*var(--m)) var(--ease-out);z-index:50}
+.ct-burger,.ct-sheet-handle{display:none}
+
+/* ---- collapse states ---- */
+.ct-side[data-collapsed="true"]{width:76px!important;padding:16px 12px;align-items:center}
+.ct-side[data-collapsed="true"] .ct-hide{display:none!important}
+.ct-side[data-collapsed="true"] .ct-grp{justify-content:center;padding:0}
+.ct-side[data-collapsed="true"] nav{gap:6px;align-items:center}
+.ct[data-scol="true"] .ct-stage{left:116px!important}
+.ct-right[data-collapsed="true"]{width:56px!important;align-items:center}
+.ct-right[data-collapsed="true"] .ct-hide2{display:none!important}
+.ct-right[data-collapsed="true"] .ct-heart{display:none}
+.ct[data-rcol="true"] .ct-stage{right:96px!important}
+.ct-why{display:grid;grid-template-rows:0fr;transition:grid-template-rows calc(280ms*var(--m)) var(--ease-out),opacity calc(190ms*var(--m)) var(--ease-out);opacity:0}
+.ct-why[data-open="true"]{grid-template-rows:1fr;opacity:1}
+.ct-why>div{overflow:hidden;min-height:0}
+.ct-side::-webkit-scrollbar,.ct-right::-webkit-scrollbar{width:8px}
+.ct-side::-webkit-scrollbar-thumb,.ct-right::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:8px}
+
+@media (max-width:1180px){
+  .ct-right{width:296px!important}
+  .ct-stage{right:336px!important}
+}
+@media (max-width:1024px){
+  .ct-right{position:fixed!important;left:328px!important;right:12px!important;bottom:0!important;top:auto!important;width:auto!important;max-height:56vh;border-radius:20px 20px 0 0;transform:translateY(calc(100% - 54px));transition:transform calc(280ms*var(--m)) var(--ease-out)}
+  .ct-right[data-sheet="open"]{transform:none}
+  .ct-sheet-handle{display:flex!important}
+  .ct-stage{right:20px!important;bottom:54px!important}
+}
+@media (max-width:768px){
+  .ct-right{left:12px!important}
+  .ct-side{position:fixed!important;z-index:55;transform:translateX(calc(-100% - 28px));transition:transform calc(280ms*var(--m)) var(--ease-out)}
+  .ct-side[data-drawer="open"]{transform:none}
+  .ct-burger{display:grid!important}
+  .ct-stage{left:16px!important;right:16px!important}
+  .ct-scrim[data-on="true"]{opacity:1;pointer-events:auto}
+  .ct-teach{max-width:none!important}
+}
+@media (prefers-reduced-motion:reduce){
+  .ct{--m:0.001}
+}
+</style>
+</helmet>
+
+<div class="ct" ref="{{ rootRef }}" data-scol="{{ sideCollapsed }}" data-rcol="{{ rightCollapsed }}" style="position:fixed;inset:0;background:var(--surface-canvas);font-family:var(--font-sans);letter-spacing:var(--tracking-snug);color:var(--text-primary);overflow:hidden">
+
+  <div ref="{{ cubeRef }}" style="position:absolute;inset:0;z-index:0"></div>
+
+  <dc-import name="Sidebar" drawer-state="{{ drawerState }}" collapsed="{{ sideCollapsed }}" sidebar-tip="{{ sidebarTip }}" toggle-sidebar="{{ toggleSidebar }}" groups="{{ groups }}" start-beginner="{{ startBeginner }}" legend-open="{{ legendOpen }}" toggle-legend="{{ toggleLegend }}" hint-size="288px,100%"></dc-import>
+
+  <main class="ct-stage" style="pointer-events:none;position:absolute;left:328px;right:368px;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;transition:left 280ms var(--ease-out),right 280ms var(--ease-out)">
+
+    <div class="ct-teach" style="pointer-events:auto;width:100%;max-width:660px;margin-top:20px;padding:14px 18px">
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <span style="font:var(--type-mono);font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:var(--tracking-caps);color:var(--text-tertiary)">{{ cur.groupLabel }}</span>
+        <span style="font:var(--type-panel-title);letter-spacing:var(--tracking-tight)">{{ cur.name }}</span>
+      </div>
+      <p style="margin:8px 0 0;font:var(--type-body);color:var(--text-primary);text-wrap:pretty;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden">{{ cur.goal }} <span style="color:var(--text-tertiary)">When to use it &middot; </span><span style="color:var(--text-secondary)">{{ cur.whenToUse }}</span></p>
+      <sc-if value="{{ cur.hasCrossLink }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:10px;font:var(--type-caption);color:var(--text-tertiary)">Slower version: <a href="#" onClick="{{ goCrossLink }}">{{ cur.crossLinkName }}</a></div>
+      </sc-if>
+    </div>
+
+    <div style="position:relative;flex:1 1 auto;width:100%;min-height:0;pointer-events:none">
+      <div class="ct-tip" data-tip="Current cube orientation" data-side="below" ref="{{ guideRef }}" style="position:absolute;left:8px;bottom:8px;width:76px;height:76px;border-radius:var(--radius-lg);pointer-events:auto;background:var(--surface-glass);box-shadow:inset 0 0 0 1px var(--border-hairline)">
+        <span data-ax="U" style="position:absolute;left:50%;top:50%;font:var(--type-mono);font-size:var(--text-xs);color:var(--text-secondary)">U</span>
+        <span data-ax="F" style="position:absolute;left:50%;top:50%;font:var(--type-mono);font-size:var(--text-xs);color:var(--text-secondary)">F</span>
+        <span data-ax="R" style="position:absolute;left:50%;top:50%;font:var(--type-mono);font-size:var(--text-xs);color:var(--text-secondary)">R</span>
+        <span style="position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:var(--gray-400)"></span>
+      </div>
+
+      <sc-if value="{{ legendOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;right:8px;top:8px;bottom:8px;width:250px;display:flex;align-items:flex-start;justify-content:flex-end;pointer-events:none;z-index:20">
+          <div style="max-height:100%;overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;padding:12px;border-radius:var(--radius-xl);background:var(--surface-float);box-shadow:var(--shadow-pop),inset 0 0 0 1px var(--border-hairline)">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font:var(--type-section-label);flex:1 1 auto">Move notation</span>
+              <span class="ct-tip" data-tip="Dismiss" data-side="below">
+                <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="cancel-01" label="Dismiss notation help" size="sm" onClick="{{ dismissLegend }}" hint-size="28px,28px"></x-import>
+              </span>
+            </div>
+            <div style="display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px 7px;margin-top:10px;align-items:center">
+              <sc-for list="{{ legend }}" as="l" hint-placeholder-count="6">
+                <span class="ct-chip" data-face="{{ l.face }}" style="height:26px;pointer-events:none"><span class="ct-dot"></span>{{ l.face }}</span>
+                <span style="font:var(--type-caption);color:var(--text-secondary)">{{ l.text }}</span>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-subtle)">
+              <span class="ct-mini">X&prime;</span>
+              <span style="font:var(--type-caption);color:var(--text-secondary);flex:1 1 auto">anti-clockwise</span>
+              <span class="ct-mini">X2</span>
+              <span style="font:var(--type-caption);color:var(--text-secondary);flex:1 1 auto">half turn</span>
+            </div>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-subtle);align-items:center">
+              <sc-for list="{{ shortcuts }}" as="s" hint-placeholder-count="4">
+                <span style="font:var(--type-mono);font-size:var(--text-xs);color:var(--text-primary);white-space:nowrap">{{ s.k }}</span>
+                <span style="font:var(--type-caption);color:var(--text-secondary)">{{ s.t }}</span>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div class="ct-strip" data-tint="{{ tintState }}" ref="{{ stripRef }}" style="pointer-events:auto;position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:660px;padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
+      <div class="ct-ring" ref="{{ ringRef }}"></div>
+      <sc-for list="{{ chips }}" as="c" hint-placeholder-count="7">
+        <button class="ct-chip ct-tip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
+          <span class="ct-dot"></span>{{ c.label }}
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="pointer-events:auto;display:flex;align-items:center;gap:8px;margin:16px 0 22px;padding:8px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
+      <span class="ct-tip" data-tip="Reset to start (R)">
+        <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="refresh" label="Reset to start" onClick="{{ reset }}" hint-size="36px,36px"></x-import>
+      </span>
+      <span class="ct-tip" data-tip="Previous move (&larr;)">
+        <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="arrow-left-01" label="Previous move" onClick="{{ back }}" disabled="{{ atStart }}" hint-size="36px,36px"></x-import>
+      </span>
+      <button class="ct-scrub ct-tip" data-tip="Drag to scrub" ref="{{ scrubRef }}" onPointerDown="{{ scrubDown }}">{{ counter }}</button>
+      <span class="ct-tip" data-tip="Next move (&rarr;)">
+        <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="arrow-right-01" label="Next move" onClick="{{ fwd }}" disabled="{{ atEnd }}" hint-size="36px,36px"></x-import>
+      </span>
+      <span class="ct-tip" data-tip="{{ playTip }}">
+        <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ playIcon }}" label="{{ playTip }}" variant="solid" onClick="{{ play }}" hint-size="36px,36px"></x-import>
+      </span>
+      <div style="width:1px;height:22px;margin:0 2px;background:var(--border-default)"></div>
+      <span class="ct-tip" data-tip="Animation speed">
+        <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.SegmentedControl" options="{{ speedOptions }}" value="{{ speedValue }}" onChange="{{ setSpeed }}" size="sm" hint-size="150px,28px"></x-import>
+      </span>
+    </div>
+  </main>
+
+  <aside class="ct-right" data-sheet="{{ sheetState }}" data-collapsed="{{ rightCollapsed }}" style="position:absolute;right:20px;top:20px;bottom:20px;width:328px;display:flex;flex-direction:column;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-panel),inset 0 0 0 1px var(--border-hairline);overflow:hidden;transition:width 280ms var(--ease-out)">
+    <button class="ct-sheet-handle" onClick="{{ toggleSheet }}" style="align-items:center;justify-content:center;gap:8px;width:100%;height:54px;flex:0 0 auto;border:0;background:none;cursor:pointer;font:var(--type-label);color:var(--text-secondary)">
+      <span style="width:34px;height:4px;border-radius:2px;background:var(--gray-300)"></span>{{ variationsLabel }}
+    </button>
+    <div style="display:flex;align-items:center;gap:6px;padding:16px 16px 12px;flex:0 0 auto">
+      <span class="ct-hide2" style="flex:1 1 auto;min-width:0;font:var(--type-panel-title);letter-spacing:var(--tracking-tight);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ cur.name }}</span>
+      <button class="ct-heart ct-tip" data-on="{{ likedState }}" data-tip="{{ heartTip }}" data-side="below" onClick="{{ toggleLike }}" aria-label="{{ heartTip }}" aria-pressed="{{ likedState }}">
+        <i class="hgi-stroke hgi-favourite" style="font-size:19px"></i>
+      </button>
+      <span class="ct-tip" data-tip="{{ rightTip }}" data-side="below">
+        <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="sidebar-right" label="{{ rightTip }}" size="sm" onClick="{{ toggleRight }}" hint-size="30px,30px"></x-import>
+      </span>
+    </div>
+    <div class="ct-hide2" style="flex:1 1 auto;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:14px">
+      <sc-for list="{{ variations }}" as="v" hint-placeholder-count="3">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <span style="font:var(--type-section-label)">{{ v.label }}</span>
+            <span style="font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary);margin-left:auto">{{ v.count }}</span>
+          </div>
+          <button class="ct-var" data-sel="{{ v.sel }}" onClick="{{ v.select }}" onPointerMove="{{ v.tilt }}" onPointerLeave="{{ v.untilt }}" aria-pressed="{{ v.sel }}">
+            <canvas ref="{{ v.canvasRef }}" width="96" height="118"></canvas>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">
+              <sc-for list="{{ v.chips }}" as="mc" hint-placeholder-count="3">
+                <span class="ct-mini" data-face="{{ mc.face }}">{{ mc.label }}</span>
+              </sc-for>
+            </div>
+          </button>
+        </div>
+      </sc-for>
+    </div>
+  </aside>
+
+  <button class="ct-burger ct-tip" data-tip="{{ drawerTip }}" data-side="right" aria-label="{{ drawerTip }}" aria-expanded="{{ drawerExpanded }}" onClick="{{ toggleDrawer }}" style="position:fixed;left:16px;top:16px;z-index:58;place-items:center;width:40px;height:40px;border:0;border-radius:12px;background:var(--surface-float);box-shadow:var(--shadow-float);cursor:pointer;color:var(--icon-default)">
+    <i class="hgi-stroke hgi-menu-01" style="font-size:18px"></i>
+  </button>
+  <div class="ct-scrim" data-on="{{ drawerState2 }}" onClick="{{ closeDrawer }}"></div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;cubeFinish&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;flat&quot;,&quot;clay&quot;],&quot;default&quot;:&quot;flat&quot;,&quot;tsType&quot;:&quot;'flat' | 'clay'&quot;,&quot;section&quot;:&quot;Cube&quot;},&quot;chipTint&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Move strip&quot;},&quot;motionLevel&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:7,&quot;min&quot;:0,&quot;max&quot;:10,&quot;step&quot;:1,&quot;unit&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
+class Component extends DCLogic {
+  state = {
+    ready: false, algId: 'b-first-layer-corners', varIdx: 0,
+    index: 0, total: 0, playing: false, speed: 1,
+    open: { beginner: true, advanced: false, patterns: false, likes: false },
+    likes: [], viewed: [], legendOpen: false,
+    sideCollapsed: false, rightCollapsed: false, drawer: false, sheet: false
+  };
+
+  // ------------------------------------------------------------ lifecycle
+  async componentDidMount() {
+    this.varCanvas = [];
+    this._refs = {};
+    try {
+      const data = await import('./algorithms.js');
+      this.ALGORITHMS = data.ALGORITHMS;
+      this.GROUPS = data.GROUPS;
+      await this.waitFor(() => window.THREE);
+      const eng = await import('./cube-engine.js');
+      this.eng = eng;
+      this.engine = new eng.CubeEngine(this.cubeEl, {
+        finish: this.props.cubeFinish || 'flat',
+        onIndex: (index, total) => this.setState({ index, total })
+      });
+      if (this.guideEl) this.engine.attachGuide(this.guideEl);
+      this.pool = new eng.MiniPool(256);
+      const likes = this.read('cubetrainer.likes', []);
+      const viewed = this.read('cubetrainer.viewed', []);
+      const legend = this.read('cubetrainer.legend', null);
+      this.setState({ ready: true, likes, viewed, legendOpen: legend === null }, () => {
+        this.loadCurrent(true);
+      });
+    } catch (e) { console.error('[cube-trainer]', e); }
+    this.onKey = e => this.handleKey(e);
+    window.addEventListener('keydown', this.onKey);
+    this.applyMotion();
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this.onKey);
+    if (this.engine) this.engine.dispose();
+    if (this.pool) this.pool.dispose();
+    this._playing = false;
+  }
+
+  componentDidUpdate(prev) {
+    this.positionRing();
+    this.applyMotion();
+    if (this.engine && this.props.cubeFinish !== prev.cubeFinish) this.engine.setFinish(this.props.cubeFinish || 'flat');
+  }
+
+  waitFor(fn, ms = 15000) {
+    return new Promise((res, rej) => {
+      const t0 = Date.now();
+      const p = () => fn() ? res(fn()) : (Date.now() - t0 > ms ? rej(new Error('timeout')) : setTimeout(p, 40));
+      p();
+    });
+  }
+
+  read(k, fallback) {
+    try { const v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); } catch (_) { return fallback; }
+  }
+  write(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
+
+  applyMotion() {
+    if (!this.rootEl) return;
+    const lvl = this.props.motionLevel != null ? this.props.motionLevel : 7;
+    this.rootEl.style.setProperty('--m', String(Math.max(0.001, lvl / 7)));
+  }
+
+  // -------------------------------------------------------------- content
+  algs() { return this.ALGORITHMS || []; }
+  current() { return this.algs().find(a => a.id === this.state.algId) || this.algs()[0]; }
+  currentVar() {
+    const a = this.current();
+    if (!a) return null;
+    return a.variations[Math.min(this.state.varIdx, a.variations.length - 1)];
+  }
+
+  loadCurrent(markViewed) {
+    const v = this.currentVar();
+    if (!this.engine || !v) return;
+    this.stopPlay();
+    this.engine.load(v).then(() => { this.drawThumbs(); this.positionRing(); });
+    if (markViewed) {
+      const id = this.state.algId;
+      if (this.state.viewed.indexOf(id) === -1) {
+        const viewed = this.state.viewed.concat([id]);
+        this.write('cubetrainer.viewed', viewed);
+        this.setState({ viewed });
+      }
+    }
+  }
+
+  drawThumbs() {
+    const a = this.current();
+    if (!a || !this.pool) return;
+    a.variations.forEach((v, i) => {
+      const cv = this.varCanvas[i];
+      if (cv) this.pool.draw(cv, { moves: v.moves, setup: v.setup, theta: 0 });
+    });
+  }
+
+  selectAlg(id) {
+    if (id === this.state.algId) return;
+    this.setState({ algId: id, varIdx: 0 }, () => this.loadCurrent(true));
+  }
+
+  selectVar(i) {
+    if (i === this.state.varIdx) return;
+    this.setState({ varIdx: i }, () => this.loadCurrent(false));
+  }
+
+  // ------------------------------------------------------------ transport
+  stopPlay() { this._playing = false; if (this.state.playing) this.setState({ playing: false }); }
+
+  async play() {
+    if (!this.engine) return;
+    if (this._playing) { this.stopPlay(); return; }
+    if (this.engine.index >= this.engine.moves.length) await this.engine.reset();
+    this._playing = true;
+    this.setState({ playing: true });
+    while (this._playing && this.engine.index < this.engine.moves.length) {
+      await this.engine.step(1);
+    }
+    this._playing = false;
+    this.setState({ playing: false });
+  }
+
+  jump(n) { this.stopPlay(); if (this.engine) this.engine.goTo(n, true); }
+  step(d) { this.stopPlay(); if (this.engine) this.engine.step(d); }
+
+  handleKey(e) {
+    if (e.target && /input|textarea/i.test(e.target.tagName)) return;
+    const total = this.state.total;
+    if (e.key === 'ArrowRight') { e.preventDefault(); e.shiftKey ? this.jump(total) : this.step(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); e.shiftKey ? this.jump(0) : this.step(-1); }
+    else if (e.key === ' ') { e.preventDefault(); this.play(); }
+    else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); this.jump(0); }
+    else if (e.key === 'Escape') this.setState({ drawer: false, sheet: false, legendOpen: false });
+  }
+
+  scrubDown(e) {
+    if (!this.engine) return;
+    this.stopPlay();
+    const startX = e.clientX, start = this.engine.index, total = this.state.total;
+    const el = e.currentTarget;
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    const move = ev => {
+      const n = Math.max(0, Math.min(total, start + Math.round((ev.clientX - startX) / 22)));
+      if (n !== this.engine.index) this.engine.goTo(n, false);
+    };
+    const up = () => {
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+  }
+
+  // ----------------------------------------------------------------- ring
+  positionRing() {
+    const strip = this.stripEl, ring = this.ringEl;
+    if (!strip || !ring) return;
+    const i = Math.min(this.state.index, Math.max(0, this.state.total - 1));
+    const chip = strip.querySelector('[data-i="' + i + '"]');
+    if (!chip || !this.state.total) { ring.style.opacity = '0'; return; }
+    const sr = strip.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    ring.style.width = (cr.width + 8) + 'px';
+    ring.style.height = (cr.height + 8) + 'px';
+    ring.style.transform = 'translate(' + (cr.left - sr.left - 4) + 'px,' + (cr.top - sr.top - 4) + 'px)';
+    ring.style.opacity = '1';
+  }
+
+  // ---------------------------------------------------------------- likes
+  toggleLike() {
+    const id = this.state.algId;
+    const on = this.state.likes.indexOf(id) !== -1;
+    const likes = on ? this.state.likes.filter(x => x !== id) : this.state.likes.concat([id]);
+    this.write('cubetrainer.likes', likes);
+    this.setState({ likes }, () => this.bumpBadge());
+  }
+
+  bumpBadge() {
+    const el = this.badgeEl;
+    if (!el || !el.animate) return;
+    el.animate(
+      [{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-4px) scale(1.18)' }, { transform: 'translateY(0) scale(1)' }],
+      { duration: 420, easing: 'cubic-bezier(.22,1,.36,1)' }
+    );
+  }
+
+  // ----------------------------------------------------------------- tilt
+  tilt(e) {
+    const el = e.currentTarget, r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    el.style.setProperty('--ry', (x * 7).toFixed(2) + 'deg');
+    el.style.setProperty('--rx', (-y * 7).toFixed(2) + 'deg');
+  }
+  untilt(e) {
+    const el = e.currentTarget;
+    el.style.setProperty('--ry', '0deg');
+    el.style.setProperty('--rx', '0deg');
+  }
+
+  cache(key, make) {
+    this._refs = this._refs || {};
+    if (!this._refs[key]) this._refs[key] = make();
+    return this._refs[key];
+  }
+
+  // ------------------------------------------------------------ renderVals
+  renderVals() {
+    const S = this.state;
+    const P = this.eng || {};
+    const pretty = P.prettyMove || (t => t);
+    const describe = P.describeMove || (t => t);
+    const parse = P.parseMoves || (m => (Array.isArray(m) ? m : String(m || '').split(/\s+/)).filter(Boolean));
+
+    const alg = this.current();
+    const groupLabels = { beginner: "Beginner's Method", advanced: 'Advanced Method', patterns: 'Fun Patterns' };
+    const liked = S.likes.indexOf(S.algId) !== -1;
+
+    const groups = (this.GROUPS || []).map(g => {
+      const items = g.key === 'likes'
+        ? this.algs().filter(a => S.likes.indexOf(a.id) !== -1)
+        : this.algs().filter(a => a.group === g.key);
+      const viewedCount = items.filter(a => S.viewed.indexOf(a.id) !== -1).length;
+      return {
+        key: g.key, name: g.name, icon: g.icon,
+        count: String(items.length),
+        open: S.open[g.key] ? 'true' : 'false',
+        showProgress: !!(g.ordered && S.open[g.key]),
+        progress: items.length ? Math.round(viewedCount / items.length * 100) : 0,
+        progressLabel: viewedCount + '/' + items.length,
+        empty: g.key === 'likes' && items.length === 0 && S.open.likes,
+        badgeRef: g.key === 'likes' ? this.cache('badge', () => el => { this.badgeEl = el; }) : null,
+        toggle: this.cache('tg-' + g.key, () => () => this.setState(s => ({ open: Object.assign({}, s.open, { [g.key]: !s.open[g.key] }) }))),
+        items: items.map(a => ({
+          key: a.id, name: a.name,
+          active: a.id === S.algId ? 'true' : 'false',
+          done: S.viewed.indexOf(a.id) !== -1 ? 'true' : 'false',
+          select: this.cache('sel-' + g.key + '-' + a.id, () => () => this.selectAlg(a.id))
+        }))
+      };
+    });
+
+    const cv = this.currentVar();
+    const moves = cv ? parse(cv.moves) : [];
+    const chips = moves.map((t, i) => ({
+      key: i + ':' + t, i: String(i), face: t[0], label: pretty(t),
+      state: i < S.index ? 'past' : i === S.index ? 'current' : 'future',
+      tip: describe(t),
+      jump: this.cache('jump-' + i, () => () => this.jump(i))
+    }));
+
+    const variations = (alg ? alg.variations : []).map((v, i) => ({
+      key: alg.id + ':' + i, label: v.label,
+      count: parse(v.moves).length + ' moves',
+      sel: i === S.varIdx ? 'true' : 'false',
+      chips: parse(v.moves).map((t, j) => ({ key: j + t, face: t[0], label: pretty(t) })),
+      canvasRef: this.cache('cv-' + i, () => el => { this.varCanvas[i] = el; if (el && this.pool) requestAnimationFrame(() => this.drawThumbs()); }),
+      select: this.cache('var-' + i, () => () => this.selectVar(i)),
+      tilt: this.cache('tilt', () => e => this.tilt(e)),
+      untilt: this.cache('untilt', () => e => this.untilt(e))
+    }));
+
+    const crossAlg = alg && alg.crossLink ? this.algs().find(a => a.id === alg.crossLink) : null;
+
+    return {
+      rootRef: this.cache('root', () => el => { this.rootEl = el; }),
+      cubeRef: this.cache('cube', () => el => { this.cubeEl = el; }),
+      guideRef: this.cache('guide', () => el => { this.guideEl = el; }),
+      stripRef: this.cache('strip', () => el => { this.stripEl = el; }),
+      ringRef: this.cache('ring', () => el => { this.ringEl = el; }),
+      scrubRef: this.cache('scrub', () => el => { this.scrubEl = el; }),
+
+      groups,
+      cur: {
+        name: alg ? alg.name : 'Loading',
+        goal: alg ? alg.goal : '',
+        whenToUse: alg ? alg.whenToUse : '',
+        whyItWorks: alg ? alg.whyItWorks : '',
+        groupLabel: alg ? (groupLabels[alg.group] || '') : '',
+        hasCrossLink: !!crossAlg,
+        crossLinkName: crossAlg ? crossAlg.name : ''
+      },
+      goCrossLink: e => { e.preventDefault(); if (crossAlg) this.selectAlg(crossAlg.id); },
+      startBeginner: e => { e.preventDefault(); this.setState(s => ({ open: Object.assign({}, s.open, { beginner: true }) }), () => this.selectAlg('b-first-layer-edges')); },
+
+      chips,
+      variations,
+      variationsLabel: variations.length + ' case variations',
+
+      counter: Math.min(S.index + 1, Math.max(1, S.total)) + ' / ' + Math.max(1, S.total),
+      atStart: S.index === 0,
+      atEnd: S.index >= S.total,
+      playIcon: S.playing ? 'pause' : S.index >= S.total && S.total > 0 ? 'refresh' : 'play',
+      playTip: S.playing ? 'Pause (Space)' : S.index >= S.total && S.total > 0 ? 'Replay (Space)' : 'Play (Space)',
+      play: () => this.play(),
+      back: () => this.step(-1),
+      fwd: () => this.step(1),
+      reset: () => this.jump(0),
+      scrubDown: e => this.scrubDown(e),
+
+      speedOptions: [{ value: '0.5', label: '0.5×' }, { value: '1', label: '1×' }, { value: '2', label: '2×' }],
+      speedValue: String(S.speed),
+      setSpeed: v => { const n = parseFloat(v); if (this.engine) this.engine.speed = n; this.setState({ speed: n }); },
+
+      likedState: liked ? 'true' : 'false',
+      heartTip: liked ? 'Remove from Likes' : 'Save to Likes',
+      toggleLike: () => this.toggleLike(),
+
+
+      legend: [
+        { key: 'F', face: 'F', text: 'Front' },
+        { key: 'B', face: 'B', text: 'Back' },
+        { key: 'U', face: 'U', text: 'Up' },
+        { key: 'D', face: 'D', text: 'Down' },
+        { key: 'L', face: 'L', text: 'Left' },
+        { key: 'R', face: 'R', text: 'Right' }
+      ],
+      shortcuts: [
+        { key: 'a', k: '← →', t: 'Step one move' },
+        { key: 'b', k: 'Space', t: 'Play / pause' },
+        { key: 'c', k: 'R', t: 'Reset to start' },
+        { key: 'd', k: '⇧ ← →', t: 'Jump to start / end' }
+      ],
+      legendOpen: S.legendOpen,
+      toggleLegend: () => this.setState(s => ({ legendOpen: !s.legendOpen })),
+      dismissLegend: () => { this.write('cubetrainer.legend', 'seen'); this.setState({ legendOpen: false }); },
+
+      tintState: this.props.chipTint ? 'true' : 'false',
+      sideCollapsed: S.sideCollapsed ? 'true' : 'false',
+      sidebarTip: S.sideCollapsed ? 'Expand sidebar' : 'Collapse sidebar',
+      toggleSidebar: () => this.setState(s => ({ sideCollapsed: !s.sideCollapsed })),
+      rightCollapsed: S.rightCollapsed ? 'true' : 'false',
+      rightTip: S.rightCollapsed ? 'Expand variations' : 'Collapse variations',
+      toggleRight: () => this.setState(s => ({ rightCollapsed: !s.rightCollapsed })),
+      drawerTip: S.drawer ? 'Close menu' : 'Open menu',
+      drawerExpanded: S.drawer ? 'true' : 'false',
+      drawerState: S.drawer ? 'open' : 'closed',
+      drawerState2: S.drawer ? 'true' : 'false',
+      toggleDrawer: () => this.setState(s => ({ drawer: !s.drawer })),
+      closeDrawer: () => this.setState({ drawer: false }),
+      sheetState: S.sheet ? 'open' : 'closed',
+      toggleSheet: () => this.setState(s => ({ sheet: !s.sheet }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>

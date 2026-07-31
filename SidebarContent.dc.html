@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
+<script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
+</helmet>
+
+<nav style="margin-top:22px;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:2px">
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+    <div style="display:flex;flex-direction:column">
+      <button class="ct-grp" data-open="{{ g.open }}" onClick="{{ g.toggle }}" aria-expanded="{{ g.open }}">
+        <i class="hgi-stroke hgi-{{ g.icon }}" style="font-size:18px;color:var(--icon-default)"></i>
+        <span class="ct-hide">{{ g.name }}</span>
+        <span class="ct-hide ct-badge" ref="{{ g.badgeRef }}">{{ g.count }}</span>
+        <i class="ct-hide ct-chev hgi-stroke hgi-arrow-down-01"></i>
+      </button>
+      <sc-if value="{{ g.showProgress }}" hint-placeholder-val="{{ true }}">
+        <div class="ct-hide" style="display:flex;align-items:center;gap:8px;padding:2px 10px 8px 40px">
+          <div style="flex:1 1 auto;min-width:0"><x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.ProgressBar" value="{{ g.progress }}" hint-size="100%,6px"></x-import></div>
+          <span style="font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary);font-variant-numeric:tabular-nums">{{ g.progressLabel }}</span>
+        </div>
+      </sc-if>
+      <div class="ct-acc" data-open="{{ g.open }}">
+        <div>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="0">
+            <button class="ct-row ct-hide" data-active="{{ it.active }}" data-done="{{ it.done }}" onClick="{{ it.select }}">
+              <span class="ct-tick"></span>
+              <span style="overflow:hidden;text-overflow:ellipsis">{{ it.name }}</span>
+              <i class="ct-go hgi-stroke hgi-arrow-right-01"></i>
+            </button>
+          </sc-for>
+          <sc-if value="{{ g.empty }}" hint-placeholder-val="{{ false }}">
+            <div class="ct-hide" style="padding:4px 10px 10px 18px;font:var(--type-caption);color:var(--text-tertiary);white-space:normal;text-wrap:pretty">Nothing saved yet. <a href="#" onClick="{{ startBeginner }}">Start with Beginner</a> and tap the heart on anything worth keeping.</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</nav>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;GroupData[]&quot;},&quot;startBeginner&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      groups: this.props.groups ?? [],
+      startBeginner: this.props.startBeginner ?? (() => {})
+    };
+  }
+}
+</script>
+</body>
+</html>

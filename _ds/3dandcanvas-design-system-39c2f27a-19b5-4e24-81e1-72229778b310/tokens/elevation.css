@@ -1,0 +1,19 @@
+:root {
+  /* Elevation is the whole idiom: white chrome hovering over a light canvas.
+     Every float pairs a wide soft ambient shadow with a 1px light ring so the
+     panel still reads against near-white pixels. */
+  --ring-hairline: 0 0 0 1px rgba(0, 0, 0, 0.04);
+
+  --shadow-flat: 0 1px 1px rgba(0, 0, 0, 0.03);
+  --shadow-pill: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -6px rgba(0, 0, 0, 0.10), var(--ring-hairline);
+  --shadow-panel: 0 2px 4px rgba(0, 0, 0, 0.03), 0 18px 44px -10px rgba(0, 0, 0, 0.12), var(--ring-hairline);
+  --shadow-pop: 0 8px 16px -4px rgba(0, 0, 0, 0.08), 0 24px 48px -12px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  --shadow-inverse: 0 6px 16px -4px rgba(13, 13, 13, 0.28);
+  --shadow-window: 0 2px 6px rgba(0, 0, 0, 0.04), 0 48px 96px -24px rgba(0, 0, 0, 0.18);
+
+  --shadow-track: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
+  --shadow-focus: 0 0 0 3px rgba(47, 128, 255, 0.22);
+
+  --blur-glass: saturate(140%) blur(20px); /* @kind other */
+}

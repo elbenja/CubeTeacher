@@ -1,0 +1,34 @@
+:root {
+  --ease-spring-out: cubic-bezier(0.16, 1.3, 0.36, 1); /* @kind other */ /* press release + magnetic return */
+  --dur-ripple: 560ms; /* @kind other */
+  --dur-sheen: 640ms; /* @kind other */
+  --press-scale-sm: 0.93; /* @kind other */ /* icon buttons + small chips */
+  --mi-tilt-max: 4deg; /* @kind other */ /* asset card pointer tilt */
+  --mi-magnet: 4px; /* @kind other */ /* magnetic button travel */
+}
+
+/* Ripple: mounted by useRipple() from components/core/motion.jsx. Host needs position:relative + overflow:hidden. */
+.dc-mi-ripples{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:0}
+.dc-mi-ripple{position:absolute;border-radius:var(--radius-full);background:currentColor;transform:translate(-50%,-50%) scale(0);animation:dc-mi-ripple var(--dur-ripple) var(--ease-out) forwards}
+
+/* Utilities for UI kits and templates. */
+.dc-mi-press{transition:transform var(--dur-slow) var(--ease-spring-out)}
+.dc-mi-press:active{transform:scale(var(--press-scale));transition-duration:var(--dur-instant)}
+.dc-mi-lift{transition:transform var(--dur-base) var(--ease-out),box-shadow var(--dur-base) var(--ease-out)}
+.dc-mi-lift:hover{transform:translateY(-2px);box-shadow:var(--shadow-pop)}
+.dc-mi-nudge{transition:transform var(--dur-base) var(--ease-spring-out)}
+:hover > .dc-mi-nudge{transform:translateX(2px)}
+
+@keyframes dc-mi-ripple{from{transform:translate(-50%,-50%) scale(0);opacity:.16}to{transform:translate(-50%,-50%) scale(1);opacity:0}}
+@keyframes dc-mi-sheen{from{transform:translateX(-180%) skewX(-16deg)}to{transform:translateX(320%) skewX(-16deg)}}
+@keyframes dc-mi-pop{0%{transform:scale(1)}38%{transform:scale(.86)}100%{transform:scale(1)}}
+@keyframes dc-mi-ring{from{opacity:.38;transform:scale(.55)}to{opacity:0;transform:scale(1.2)}}
+@keyframes dc-mi-item-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@keyframes dc-mi-bob-x{0%,100%{transform:translateX(0)}50%{transform:translateX(2px)}}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-mi-ripples{display:none}
+  .dc-mi-lift:hover{transform:none}
+  .dc-ac{transform:none !important}
+  .dc-btn__sheen::after,.dc-dd__menu>*,.dc-ib__i,.dc-sw__thumb::after{animation:none !important}
+}

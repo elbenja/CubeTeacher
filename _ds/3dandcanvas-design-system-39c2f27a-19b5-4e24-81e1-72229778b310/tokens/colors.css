@@ -1,0 +1,80 @@
+:root {
+  /* ---- Neutral ramp (pure, untinted grays — the whole UI lives here) ---- */
+  --gray-0: #ffffff;
+  --gray-25: #fcfcfc;
+  --gray-50: #fafafa;
+  --gray-75: #f7f7f7;
+  --gray-100: #f4f4f4;
+  --gray-150: #efefef;
+  --gray-200: #e8e8e8;
+  --gray-300: #dedede;
+  --gray-400: #c4c4c4;
+  --gray-500: #9b9b9b;
+  --gray-600: #757575;
+  --gray-700: #4f4f4f;
+  --gray-800: #2e2e2e;
+  --gray-900: #1a1a1a;
+  --gray-950: #0d0d0d;
+
+  /* ---- Functional accents (used sparingly, one per meaning) ---- */
+  --blue-50: #eaf2ff;
+  --blue-500: #2f80ff;   /* active value / slider fill / focus */
+  --blue-600: #1a6bf0;
+  --green-50: #e9fbed;
+  --green-500: #3ecf5c;  /* generative + ready */
+  --green-600: #2fb44b;
+  --orange-50: #feede6;
+  --orange-500: #f4622a; /* brand spark, folders, avatar ring */
+  --orange-600: #dd4f18;
+  --red-50: #feece9;
+  --red-500: #f0432c;    /* notification, destructive */
+  --red-600: #d8351f;
+  --amber-50: #fff6e0;
+  --amber-400: #ffc93d;  /* canvas annotation / labels */
+
+  /* ---- Surfaces: the interface floats above the canvas ---- */
+  --canvas-desk: #ebebeb;     /* space outside the app window */
+  --surface-canvas: #f4f4f4;  /* the 3D viewport itself */
+  --surface-app: #ffffff;     /* app shell / sidebar */
+  --surface-float: #ffffff;   /* floating panels, toolbars, popovers */
+  --surface-sunken: #f7f7f7;  /* thumbnails, slider tracks, input wells */
+  --surface-hover: #f4f4f4;
+  --surface-active: #efefef;
+  --surface-selected: #f0f0f0;
+  --surface-inverse: #1a1a1a; /* tooltips, selected tool chip */
+  --surface-scrim: rgba(13, 13, 13, 0.36);
+  --surface-glass: rgba(255, 255, 255, 0.72);
+
+  /* ---- Text ---- */
+  --text-primary: #1a1a1a;
+  --text-secondary: #757575;
+  --text-tertiary: #9b9b9b;
+  --text-disabled: #c4c4c4;
+  --text-inverse: #ffffff;
+  --text-accent: #2f80ff;
+  --text-danger: #f0432c;
+
+  /* ---- Borders / hairlines ---- */
+  --border-hairline: rgba(0, 0, 0, 0.06);
+  --border-subtle: #efefef;
+  --border-default: #e8e8e8;
+  --border-strong: #dedede;
+  --border-focus: #2f80ff;
+
+  /* ---- Icon ---- */
+  --icon-default: #1a1a1a;
+  --icon-muted: #757575;
+  --icon-disabled: #c4c4c4;
+  --icon-inverse: #ffffff;
+
+  /* ---- Control fills ---- */
+  --control-quiet: transparent;
+  --control-neutral: #f0f0f0;      /* Export / Share style buttons */
+  --control-neutral-hover: #e8e8e8;
+  --control-neutral-active: #dedede;
+  --control-solid: #1a1a1a;        /* selected tool, primary action */
+  --control-solid-hover: #2e2e2e;
+  --control-track: #f0f0f0;
+  --control-fill: #2f80ff;
+  --control-thumb: #ffffff;
+}

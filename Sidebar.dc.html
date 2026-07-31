@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
+<script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
+<style>
+aside.ct-side>[data-sc-name="SidebarContent"]{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+aside.ct-side>[data-sc-name="SidebarFooter"]{flex-shrink:0}
+</style>
+</helmet>
+
+<aside class="ct-side" data-drawer="{{ drawerState }}" data-collapsed="{{ collapsed }}" style="position:absolute;left:20px;top:20px;bottom:20px;width:288px;display:flex;flex-direction:column;padding:16px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-panel),inset 0 0 0 1px var(--border-hairline);transition:width 280ms var(--ease-out)">
+
+  <div style="padding:2px 2px 0">
+    <dc-import name="SidebarHeader" title="Silverdesk" badge="Lab" email="elbenja@gmail.com" tip="{{ sidebarTip }}" on-toggle="{{ toggleSidebar }}" hint-size="100%,72px"></dc-import>
+  </div>
+
+  <dc-import name="SidebarContent" groups="{{ groups }}" start-beginner="{{ startBeginner }}" style="flex:1 1 auto;min-height:0;width:100%" hint-size="100%,100%"></dc-import>
+
+  <dc-import name="SidebarFooter" email="elbenja@gmail.com" legend-open="{{ legendOpen }}" toggle-legend="{{ toggleLegend }}" style="flex-shrink:0;width:100%" hint-size="100%,44px"></dc-import>
+</aside>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;drawerState&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;sidebarTip&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Collapse sidebar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;toggleSidebar&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;GroupData[]&quot;},&quot;startBeginner&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;legendOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;toggleLegend&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      drawerState: this.props.drawerState,
+      collapsed: this.props.collapsed,
+      sidebarTip: this.props.sidebarTip,
+      toggleSidebar: this.props.toggleSidebar ?? (() => {}),
+      groups: this.props.groups ?? [],
+      startBeginner: this.props.startBeginner ?? (() => {}),
+      legendOpen: this.props.legendOpen,
+      toggleLegend: this.props.toggleLegend ?? (() => {})
+    };
+  }
+}
+</script>
+</body>
+</html>

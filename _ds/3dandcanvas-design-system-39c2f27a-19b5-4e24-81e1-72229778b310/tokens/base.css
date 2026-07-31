@@ -1,0 +1,29 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: var(--type-body);
+  letter-spacing: var(--tracking-snug);
+  color: var(--text-primary);
+  background: var(--canvas-desk);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: var(--text-primary); text-decoration: none; text-decoration-color: var(--border-strong); }
+a:hover { color: var(--blue-600); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+button, input, textarea, select { font: inherit; letter-spacing: inherit; color: inherit; }
+button { border: 0; background: none; cursor: pointer; }
+:focus { outline: none; }
+:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+
+::selection { background: var(--blue-50); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--gray-300); border: 3px solid transparent; background-clip: content-box; border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-400); border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Hugeicons stroke-rounded is the system iconset; normalize its metrics. */
+i[class*="hgi-"] { font-size: var(--icon-size-md); line-height: 1; display: inline-flex; }

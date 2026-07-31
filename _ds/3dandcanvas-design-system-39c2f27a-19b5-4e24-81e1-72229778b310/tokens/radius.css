@@ -1,0 +1,11 @@
+:root {
+  --radius-xs: 6px;    /* kbd chips, tiny tags */
+  --radius-sm: 8px;    /* tooltips, small chips */
+  --radius-md: 10px;   /* buttons, list rows */
+  --radius-lg: 12px;   /* icon buttons, thumbnails */
+  --radius-xl: 14px;   /* cards, tool chips */
+  --radius-2xl: 16px;  /* toolbars, popovers */
+  --radius-3xl: 20px;  /* floating panels, composer */
+  --radius-4xl: 24px;  /* app window */
+  --radius-full: 999px;
+}
