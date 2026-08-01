@@ -244,10 +244,6 @@ a:hover{color:var(--blue-600);text-decoration:underline}
       <span class="ct-tip" data-tip="{{ playTip }}">
         <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ playIcon }}" label="{{ playTip }}" variant="solid" onClick="{{ play }}" hint-size="36px,36px"></x-import>
       </span>
-      <div style="width:1px;height:22px;margin:0 2px;background:var(--border-default)"></div>
-      <span class="ct-tip" data-tip="Animation speed">
-        <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.SegmentedControl" options="{{ speedOptions }}" value="{{ speedValue }}" onChange="{{ setSpeed }}" size="sm" hint-size="150px,28px"></x-import>
-      </span>
     </div>
   </main>
 
@@ -295,7 +291,7 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 class Component extends DCLogic {
   state = {
     ready: false, algId: 'b-first-layer-corners', varIdx: 0,
-    index: 0, total: 0, playing: false, speed: 1,
+    index: 0, total: 0, playing: false,
     open: { beginner: true, advanced: false, patterns: false, likes: false },
     likes: [], viewed: [], legendOpen: false,
     sideCollapsed: false, rightCollapsed: false, drawer: false, sheet: false
@@ -598,10 +594,6 @@ class Component extends DCLogic {
       fwd: () => this.step(1),
       reset: () => this.jump(0),
       scrubDown: e => this.scrubDown(e),
-
-      speedOptions: [{ value: '0.5', label: '0.5×' }, { value: '1', label: '1×' }, { value: '2', label: '2×' }],
-      speedValue: String(S.speed),
-      setSpeed: v => { const n = parseFloat(v); if (this.engine) this.engine.speed = n; this.setState({ speed: n }); },
 
       likedState: liked ? 'true' : 'false',
       heartTip: liked ? 'Remove from Likes' : 'Save to Likes',
