@@ -258,8 +258,17 @@ export class CubeEngine {
       this._zoomed = true;
       this.want.r = Math.min(34, Math.max(6.4, this.want.r + e.deltaY * 0.006));
     }, { passive: false });
-    cv.addEventListener('dblclick', () => { this._zoomed = false; this.want.theta = this.home.theta; this.want.phi = this.home.phi; this.want.r = this.home.r; });
+    cv.addEventListener('dblclick', () => this.resetView());
     this._cv = cv;
+  }
+
+  // Send the camera back to its default angle and distance. tick() eases
+  // `sph` toward `want`, so the view glides home instead of snapping.
+  resetView() {
+    this._zoomed = false;
+    this.want.theta = this.home.theta;
+    this.want.phi = this.home.phi;
+    this.want.r = this.home.r;
   }
 
   tick() {
