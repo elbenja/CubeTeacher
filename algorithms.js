@@ -152,9 +152,12 @@ export const ALGORITHMS = [
   }))
 ];
 
+// Icon slugs are Hugeicons Stroke Rounded names. The graduation cap ships as
+// `mortarboard-01` and the hat-and-glasses as `incognito`; the newer
+// `graduation-cap` / `hat-glasses` slugs are not in the released font yet.
 export const GROUPS = [
-  { key: 'beginner', name: "Beginner's Method", icon: 'graduation-scroll', ordered: true },
-  { key: 'advanced', name: 'Advanced Method', icon: 'rocket-01', ordered: false },
+  { key: 'beginner', name: "Beginner's Method", icon: 'mortarboard-01', ordered: true },
+  { key: 'advanced', name: 'Advanced Method', icon: 'incognito', ordered: false },
   { key: 'patterns', name: 'Fun Patterns', icon: 'geometric-shapes-01', ordered: false },
   { key: 'likes', name: 'Likes', icon: 'favourite', ordered: false }
 ];
