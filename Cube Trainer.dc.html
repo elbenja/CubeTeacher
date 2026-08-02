@@ -174,16 +174,9 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
     <dc-import name="TeachCard" group-label="{{ cur.groupLabel }}" title="{{ cur.name }}" goal="{{ cur.goal }}" when-to-use="{{ cur.whenToUse }}" has-cross-link="{{ cur.hasCrossLink }}" cross-link-name="{{ cur.crossLinkName }}" go-cross-link="{{ goCrossLink }}" hint-size="660px,160px"></dc-import>
 
     <div style="position:relative;flex:1 1 auto;width:100%;min-height:0;pointer-events:none">
-      <div class="ct-tip" data-tip="Current cube orientation" data-side="below" ref="{{ guideRef }}" style="position:absolute;left:8px;bottom:8px;width:76px;height:76px;border-radius:var(--radius-lg);pointer-events:auto;background:var(--surface-glass);box-shadow:inset 0 0 0 1px var(--border-hairline)">
-        <span data-ax="U" style="position:absolute;left:50%;top:50%;font:var(--type-mono);font-size:var(--text-xs);color:var(--text-secondary)">U</span>
-        <span data-ax="F" style="position:absolute;left:50%;top:50%;font:var(--type-mono);font-size:var(--text-xs);color:var(--text-secondary)">F</span>
-        <span data-ax="R" style="position:absolute;left:50%;top:50%;font:var(--type-mono);font-size:var(--text-xs);color:var(--text-secondary)">R</span>
-        <span style="position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:var(--gray-400)"></span>
-      </div>
-
       <sc-if value="{{ legendOpen }}" hint-placeholder-val="{{ false }}">
         <div style="position:absolute;right:8px;top:8px;bottom:8px;width:250px;display:flex;align-items:flex-start;justify-content:flex-end;pointer-events:none;z-index:20">
-          <div style="max-height:100%;overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;padding:12px;border-radius:var(--radius-xl);background:var(--surface-float);box-shadow:var(--shadow-pop),inset 0 0 0 1px var(--border-hairline)">
+          <div style="pointer-events:auto;padding:12px;border-radius:var(--radius-xl);background:var(--surface-float);box-shadow:var(--shadow-pop),inset 0 0 0 1px var(--border-hairline)">
             <div style="display:flex;align-items:center;gap:6px">
               <span style="font:var(--type-section-label);flex:1 1 auto">Move notation</span>
               <span class="ct-tip" data-tip="Dismiss" data-side="below">
@@ -304,7 +297,6 @@ class Component extends DCLogic {
         finish: this.props.cubeFinish || 'flat',
         onIndex: (index, total) => this.setState({ index, total })
       });
-      if (this.guideEl) this.engine.attachGuide(this.guideEl);
       this.pool = new eng.MiniPool(256);
       const likes = this.read('cubetrainer.likes', []);
       const viewed = this.read('cubetrainer.viewed', []);
@@ -559,7 +551,6 @@ class Component extends DCLogic {
     return {
       rootRef: this.cache('root', () => el => { this.rootEl = el; }),
       cubeRef: this.cache('cube', () => el => { this.cubeEl = el; }),
-      guideRef: this.cache('guide', () => el => { this.guideEl = el; }),
       stripRef: this.cache('strip', () => el => { this.stripEl = el; }),
       ringRef: this.cache('ring', () => el => { this.ringEl = el; }),
       scrubRef: this.cache('scrub', () => el => { this.scrubEl = el; }),
