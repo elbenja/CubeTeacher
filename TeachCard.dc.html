@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
+<script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
+</helmet>
+
+<div class="ct-teach" style="pointer-events:auto;width:100%;margin-top:20px;padding:14px 18px;font-family:var(--font-sans);letter-spacing:var(--tracking-snug)">
+  <div style="font:var(--type-mono);font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:var(--tracking-caps);color:var(--text-tertiary)">{{ groupLabel }}</div>
+  <div style="margin-top:6px;font:var(--type-panel-title);letter-spacing:var(--tracking-tight);color:var(--text-primary)">{{ title }}</div>
+  <p style="margin:10px 0 0;font:var(--type-body);color:var(--text-primary);text-wrap:pretty">{{ goal }}</p>
+  <p style="margin:2px 0 0;font:var(--type-body);color:var(--text-primary);text-wrap:pretty"><span style="font-weight:var(--weight-semibold)">When to use it</span> <span style="color:var(--text-tertiary)">&middot;</span> {{ whenToUse }}</p>
+  <sc-if value="{{ hasCrossLink }}" hint-placeholder-val="{{ false }}">
+    <div style="margin-top:10px;font:var(--type-caption);color:var(--text-tertiary)">Slower version: <a href="#" onClick="{{ goCrossLink }}">{{ crossLinkName }}</a></div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:660,&quot;height&quot;:160},&quot;groupLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Beginner&#39;s Method&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;First Layer Corners&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;goal&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Drop each white corner under its slot and screw it up into the first layer.&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;whenToUse&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;The white cross is done and a white corner sits in the bottom layer.&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;hasCrossLink&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;crossLinkName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;goCrossLink&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(e: any) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      groupLabel: this.props.groupLabel ?? "",
+      title: this.props.title ?? "",
+      goal: this.props.goal ?? "",
+      whenToUse: this.props.whenToUse ?? "",
+      hasCrossLink: this.props.hasCrossLink,
+      crossLinkName: this.props.crossLinkName ?? "",
+      goCrossLink: this.props.goCrossLink ?? (e => e.preventDefault())
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -120,6 +120,7 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-link:hover{background:var(--surface-hover);color:var(--text-primary);text-decoration:none}
 .ct-scrim{position:fixed;inset:0;background:var(--surface-scrim);opacity:0;pointer-events:none;transition:opacity calc(280ms*var(--m)) var(--ease-out);z-index:50}
 .ct-burger,.ct-sheet-handle{display:none}
+main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 auto}
 
 /* ---- collapse states ---- */
 .ct-side[data-collapsed="true"]{width:76px!important;padding:16px 12px;align-items:center}
@@ -154,7 +155,7 @@ a:hover{color:var(--blue-600);text-decoration:underline}
   .ct-burger{display:grid!important}
   .ct-stage{left:16px!important;right:16px!important}
   .ct-scrim[data-on="true"]{opacity:1;pointer-events:auto}
-  .ct-teach{max-width:none!important}
+  main.ct-stage>[data-sc-name="TeachCard"]{max-width:none!important}
 }
 @media (prefers-reduced-motion:reduce){
   .ct{--m:0.001}
@@ -170,16 +171,7 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 
   <main class="ct-stage" style="pointer-events:none;position:absolute;left:328px;right:368px;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;transition:left 280ms var(--ease-out),right 280ms var(--ease-out)">
 
-    <div class="ct-teach" style="pointer-events:auto;width:100%;max-width:660px;margin-top:20px;padding:14px 18px">
-      <div style="display:flex;align-items:baseline;gap:10px">
-        <span style="font:var(--type-mono);font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:var(--tracking-caps);color:var(--text-tertiary)">{{ cur.groupLabel }}</span>
-        <span style="font:var(--type-panel-title);letter-spacing:var(--tracking-tight)">{{ cur.name }}</span>
-      </div>
-      <p style="margin:8px 0 0;font:var(--type-body);color:var(--text-primary);text-wrap:pretty;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden">{{ cur.goal }} <span style="color:var(--text-tertiary)">When to use it &middot; </span><span style="color:var(--text-secondary)">{{ cur.whenToUse }}</span></p>
-      <sc-if value="{{ cur.hasCrossLink }}" hint-placeholder-val="{{ false }}">
-        <div style="margin-top:10px;font:var(--type-caption);color:var(--text-tertiary)">Slower version: <a href="#" onClick="{{ goCrossLink }}">{{ cur.crossLinkName }}</a></div>
-      </sc-if>
-    </div>
+    <dc-import name="TeachCard" group-label="{{ cur.groupLabel }}" title="{{ cur.name }}" goal="{{ cur.goal }}" when-to-use="{{ cur.whenToUse }}" has-cross-link="{{ cur.hasCrossLink }}" cross-link-name="{{ cur.crossLinkName }}" go-cross-link="{{ goCrossLink }}" hint-size="660px,160px"></dc-import>
 
     <div style="position:relative;flex:1 1 auto;width:100%;min-height:0;pointer-events:none">
       <div class="ct-tip" data-tip="Current cube orientation" data-side="below" ref="{{ guideRef }}" style="position:absolute;left:8px;bottom:8px;width:76px;height:76px;border-radius:var(--radius-lg);pointer-events:auto;background:var(--surface-glass);box-shadow:inset 0 0 0 1px var(--border-hairline)">
