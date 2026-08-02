@@ -446,8 +446,9 @@ class Component extends DCLogic {
   positionRing() {
     const strip = this.stripEl, ring = this.ringEl;
     if (!strip || !ring) return;
-    const i = Math.min(this.state.index, Math.max(0, this.state.total - 1));
-    const chip = strip.querySelector('[data-i="' + i + '"]');
+    // No clamp: once index reaches total every move is done, so there is no
+    // current chip to ring — the lookup misses and the ring hides itself.
+    const chip = strip.querySelector('[data-i="' + this.state.index + '"]');
     if (!chip || !this.state.total) { ring.style.opacity = '0'; return; }
     const sr = strip.getBoundingClientRect(), cr = chip.getBoundingClientRect();
     ring.style.width = (cr.width + 8) + 'px';
