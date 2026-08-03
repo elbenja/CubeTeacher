@@ -14,6 +14,9 @@
 // out, by the slot each one occupies in the case position (after `setup` has
 // run). `D*` means the whole D layer. `dim: false` keeps the whole cube in
 // colour. Ruwix does the same thing with its roofpig `colored=` lists.
+//
+// `view: 'left'` mirrors the camera to the front-left corner, for cases whose
+// slot sits on the left face and would otherwise be hidden behind the cube.
 
 const CROSS_AND_CENTRES = ['U', 'UR', 'UB', 'UL', 'F', 'R', 'B', 'L', 'D'];
 const WHITE_LAYER = ['U', 'UF', 'UR', 'UB', 'UL', 'UFL', 'UBR', 'UBL', 'F', 'R', 'B', 'L', 'D'];
@@ -94,6 +97,7 @@ export const ALGORITHMS = [
       { label: 'Insert to the left', moves: ["U'", "L'", 'U', 'L', 'U', 'F', "U'", "F'"],
         setup: ['z2', 'y', 'F', 'U', "F'", "U'", "L'", "U'", 'L', 'U'],
         keep: FIRST_LAYER.concat(['UF']),
+        view: 'left',
         source: 'ruwix-step3#left-algorithm' },
       { label: 'Edge flipped in its slot', moves: ['U', 'R', "U'", "R'", "U'", "F'", 'U', 'F', "U'", 'R', "U'", "R'", "U'", "F'", 'U', 'F'],
         setup: ['z2', 'y', "F'", "U'", 'F', 'U', 'R', 'U', "R'", 'U', "F'", "U'", 'F', 'U', 'R', 'U', "R'", "U'"],

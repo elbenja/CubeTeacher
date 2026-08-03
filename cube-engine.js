@@ -216,6 +216,12 @@ function relevantFor(model, alg) {
   return touchedIds(model, alg.moves);
 }
 
+// Default camera swing: the front-right corner faces the viewer. A case whose
+// action happens on the left face asks for the mirror of it (`view: 'left'`),
+// so the slot being filled is in sight from the first move to the last.
+const HOME_THETA = 0.68;
+const viewTheta = alg => (alg && alg.view === 'left' ? -HOME_THETA : HOME_THETA);
+
 // ------------------------------------------------------------------- engine
 export class CubeEngine {
   constructor(host, opts = {}) {
@@ -239,7 +245,7 @@ export class CubeEngine {
     this.scene.add(d1, d2);
 
     this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
-    this.home = { theta: 0.68, phi: 1.03, r: 9.6 };
+    this.home = { theta: HOME_THETA, phi: 1.03, r: 9.6 };
     this.sph = Object.assign({}, this.home);
     this.want = Object.assign({}, this.home);
 
@@ -420,6 +426,8 @@ export class CubeEngine {
       this.setup = parseMoves(alg.setup != null ? alg.setup : invertMoves(alg.moves));
       resetModel(this.model);
       applyInstant(this.model, this.setup);
+      this.home.theta = viewTheta(alg);
+      this.want.theta = this.home.theta;
       this.index = 0;
       this.setRelevant(relevantFor(this.model, alg));
       this.emit();
@@ -502,7 +510,7 @@ export class MiniPool {
       const on = !rel || rel.size >= 27 || rel.has(m.userData.cubie);
       m.material.color.copy(on ? m.userData.base : dim);
     });
-    const theta = 0.68 + (spec.theta || 0), phi = 1.0;
+    const theta = HOME_THETA + (spec.theta || 0), phi = 1.0;
     const r = 10.4;
     this.camera.position.set(r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.cos(theta));
     this.camera.lookAt(0, 0, 0);
