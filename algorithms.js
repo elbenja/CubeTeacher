@@ -23,6 +23,41 @@ const WHITE_LAYER = ['U', 'UF', 'UR', 'UB', 'UL', 'UFL', 'UBR', 'UBL', 'F', 'R',
 const FIRST_LAYER = ['D*', 'F', 'R', 'B', 'L', 'U'];
 const F2L_AND_LL_EDGES = ['D*', 'FR', 'FL', 'BR', 'BL', 'F', 'R', 'B', 'L', 'U', 'UF', 'UR', 'UB', 'UL'];
 
+// A variation is authored either as a flat `moves` list or as a `loop` block
+// plus a `run`: numbers repeat the block, strings are literal spacer moves
+// between blocks. Expanding here keeps `moves` the single thing every consumer
+// reads, so the engine, the thumbnails and the validator need no special case.
+export function expandRun(v) {
+  const moves = [], entries = [], map = [];
+  if (!v.run) {
+    (v.moves || []).forEach((m, i) => {
+      moves.push(m);
+      entries.push({ kind: 'spacer', move: m });
+      map.push({ entry: i });
+    });
+    return { moves, entries, map };
+  }
+  for (const item of v.run) {
+    const entry = entries.length;
+    if (typeof item === 'string') {
+      entries.push({ kind: 'spacer', move: item });
+      moves.push(item);
+      map.push({ entry });
+      continue;
+    }
+    const block = { kind: 'block', repeat: item, moves: v.loop.slice() };
+    if (v.until != null) block.until = v.until;
+    entries.push(block);
+    for (let iteration = 0; iteration < item; iteration++) {
+      v.loop.forEach((m, offset) => {
+        moves.push(m);
+        map.push({ entry, iteration, offset });
+      });
+    }
+  }
+  return { moves, entries, map };
+}
+
 export const ALGORITHMS = [
   // ---------------------------------------------------------------- Beginner
   {

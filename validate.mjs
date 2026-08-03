@@ -11,7 +11,7 @@
 globalThis.window = { THREE: {}, matchMedia: () => ({ matches: false }) };
 
 const { parseMoves, invertMoves, moveSpec } = await import('./cube-engine.js');
-const { ALGORITHMS } = await import('./algorithms.js');
+const { ALGORITHMS, expandRun } = await import('./algorithms.js');
 
 // --------------------------------------------------------------- cubie model
 // A cubie is a position vector plus an integer rotation matrix. `bake()` in the
@@ -191,6 +191,80 @@ const INVARIANTS = [
   ["U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2", 2] // superflip
 ];
 
+// ---- expansion tests -----------------------------------------------------
+// expandRun is the single source of truth for a variation's move list, so a
+// silent change here would rewrite algorithms without touching their text.
+const EXPANSION_TESTS = [
+  {
+    name: 'block, spacer, block',
+    input: { loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up', run: [2, 'U', 1] },
+    moves: ["R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', 'U', "R'", "D'", 'R', 'D'],
+    entries: [
+      { kind: 'block', repeat: 2, moves: ["R'", "D'", 'R', 'D'], until: 'yellow points up' },
+      { kind: 'spacer', move: 'U' },
+      { kind: 'block', repeat: 1, moves: ["R'", "D'", 'R', 'D'], until: 'yellow points up' }
+    ],
+    map: [
+      { entry: 0, iteration: 0, offset: 0 }, { entry: 0, iteration: 0, offset: 1 },
+      { entry: 0, iteration: 0, offset: 2 }, { entry: 0, iteration: 0, offset: 3 },
+      { entry: 0, iteration: 1, offset: 0 }, { entry: 0, iteration: 1, offset: 1 },
+      { entry: 0, iteration: 1, offset: 2 }, { entry: 0, iteration: 1, offset: 3 },
+      { entry: 1 },
+      { entry: 2, iteration: 0, offset: 0 }, { entry: 2, iteration: 0, offset: 1 },
+      { entry: 2, iteration: 0, offset: 2 }, { entry: 2, iteration: 0, offset: 3 }
+    ]
+  },
+  {
+    // A flat variation must come out byte-identical to what it is today, with
+    // every move its own spacer -- that is what keeps untouched cards rendering
+    // exactly as before.
+    name: 'flat moves pass through',
+    input: { moves: ['F', "U'", 'R', 'U'] },
+    moves: ['F', "U'", 'R', 'U'],
+    entries: [
+      { kind: 'spacer', move: 'F' }, { kind: 'spacer', move: "U'" },
+      { kind: 'spacer', move: 'R' }, { kind: 'spacer', move: 'U' }
+    ],
+    map: [{ entry: 0 }, { entry: 1 }, { entry: 2 }, { entry: 3 }]
+  },
+  {
+    name: 'leading spacer',
+    input: { loop: ['R', 'U'], run: ['U', 1, 'y2', 1] },
+    moves: ['U', 'R', 'U', 'y2', 'R', 'U'],
+    entries: [
+      { kind: 'spacer', move: 'U' },
+      { kind: 'block', repeat: 1, moves: ['R', 'U'] },
+      { kind: 'spacer', move: 'y2' },
+      { kind: 'block', repeat: 1, moves: ['R', 'U'] }
+    ],
+    map: [
+      { entry: 0 },
+      { entry: 1, iteration: 0, offset: 0 }, { entry: 1, iteration: 0, offset: 1 },
+      { entry: 2 },
+      { entry: 3, iteration: 0, offset: 0 }, { entry: 3, iteration: 0, offset: 1 }
+    ]
+  }
+];
+
+function expansionTest() {
+  let bad = 0;
+  console.log('Expansion self-test');
+  for (const t of EXPANSION_TESTS) {
+    const got = expandRun(t.input);
+    const checks = [
+      ['moves', JSON.stringify(got.moves) === JSON.stringify(t.moves)],
+      ['entries', JSON.stringify(got.entries) === JSON.stringify(t.entries)],
+      ['map', JSON.stringify(got.map) === JSON.stringify(t.map)]
+    ];
+    for (const [what, ok] of checks) {
+      if (!ok) { bad++; console.error(`  FAIL ${t.name}: ${what}\n    got  ${JSON.stringify(got[what])}\n    want ${JSON.stringify(t[what])}`); }
+    }
+    if (checks.every(c => c[1])) console.log(`  ok   ${t.name}`);
+  }
+  if (bad) { console.error('\nExpansion is wrong. Stopping.'); process.exit(1); }
+  console.log('');
+}
+
 function selfTest() {
   const rows = INVARIANTS.map(([seq, want]) => {
     const got = order(seq);
@@ -345,6 +419,7 @@ function twistCase(c) {
 
 // --------------------------------------------------------------------- main
 function main() {
+  expansionTest();
   selfTest();
   const dump = process.argv.includes('--dump');
   const rows = [];
