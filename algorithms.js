@@ -1,6 +1,24 @@
 // Cube Trainer content. One place to edit every algorithm.
-// variations[].setup omitted => the engine uses the inverse of the moves,
-// so the case is guaranteed to be solved on the last move.
+//
+// Every beginner variation carries an explicit `setup`. Do not drop it: when
+// `setup` is missing the engine falls back to the inverse of the moves, which
+// makes the case solve itself by construction and hides a wrong algorithm.
+//
+// The beginner entries are checked against ruwix.com by `node validate.mjs`.
+// Ruwix holds the cube white-up for steps 1-2 and yellow-up from step 3 on, so
+// those setups open with `z2 y` — that lands yellow on top with the same side
+// colours Ruwix shows (green left, orange front). `z2` on its own would put red
+// and orange on the wrong sides.
+//
+// `keep` names the pieces that stay in full colour while everything else greys
+// out, by the slot each one occupies in the case position (after `setup` has
+// run). `D*` means the whole D layer. `dim: false` keeps the whole cube in
+// colour. Ruwix does the same thing with its roofpig `colored=` lists.
+
+const CROSS_AND_CENTRES = ['U', 'UR', 'UB', 'UL', 'F', 'R', 'B', 'L', 'D'];
+const WHITE_LAYER = ['U', 'UF', 'UR', 'UB', 'UL', 'UFL', 'UBR', 'UBL', 'F', 'R', 'B', 'L', 'D'];
+const FIRST_LAYER = ['D*', 'F', 'R', 'B', 'L', 'U'];
+const F2L_AND_LL_EDGES = ['D*', 'FR', 'FL', 'BR', 'BL', 'F', 'R', 'B', 'L', 'U', 'UF', 'UR', 'UB', 'UL'];
 
 export const ALGORITHMS = [
   // ---------------------------------------------------------------- Beginner
@@ -8,75 +26,161 @@ export const ALGORITHMS = [
     id: 'b-first-layer-edges', group: 'beginner', name: 'First Layer Edges',
     goal: 'Get the four white edges into a cross on the top face, each matching its side colour.',
     whenToUse: 'Very first step. The cube is scrambled and nothing is built yet.',
-    whyItWorks: 'The daisy parks all four white edges on the yellow face first, so each one can drop straight down into place with a single half turn — no piece you already placed ever gets disturbed.',
+    whyItWorks: 'Each white edge is worked straight into the cross one at a time. The tricks below all do the same thing: swing the edge out through the front or the equator, spin the top to open the gap it needs, and bring it back the right way up.',
     variations: [
-      { label: 'Petal above its face', moves: ['F2'] },
-      { label: 'Edge flipped in place', moves: ['F', 'U', "R'", "U'"] },
-      { label: 'Edge stuck in middle layer', moves: ['R', 'U', "R'", "U'"] }
+      { label: 'Flip the last edge', moves: ['F', "U'", 'R', 'U'],
+        setup: ["U'", "R'", 'U', "F'"],
+        keep: CROSS_AND_CENTRES.concat(['UF']),
+        source: 'ruwix-step-1#flipping-an-edge',
+        note: 'Three edges are done and the fourth is in its slot upside down. F drops it to the equator, U′ opens the gap, R lifts it back, U puts the top back.' },
+      { label: 'Edge on the front face', moves: ["F'", "U'", 'R', 'U'],
+        setup: ["U'", "R'", 'U', 'F'],
+        keep: CROSS_AND_CENTRES.concat(['DF']),
+        source: 'ruwix-step-1#from-the-bottom-layer',
+        note: 'Ruwix writes this as F2 then (F U′ R U); three quarter turns of F in a row collapse to the single F′ shown here.' },
+      { label: 'Edge in the middle layer', moves: ["U'", 'R', 'U'],
+        setup: ["U'", "R'", 'U'],
+        keep: CROSS_AND_CENTRES.concat(['FR']),
+        source: 'ruwix-step-1#from-the-middle-layer' },
+      { label: 'Same case mirrored', moves: ['U', "L'", "U'"],
+        setup: ['U', 'L', "U'"],
+        keep: CROSS_AND_CENTRES.concat(['FL']),
+        source: 'ruwix-step-1#from-the-middle-layer' },
+      { label: 'Edge stuck in the equator', moves: ["U'", "R'", 'U'],
+        setup: ["U'", 'R', 'U'],
+        keep: CROSS_AND_CENTRES.concat(['BR']),
+        source: 'ruwix-step-1#from-the-middle-layer',
+        note: 'The last white edge is in the equator but behind the slot, not beside it.' }
     ]
   },
   {
     id: 'b-first-layer-corners', group: 'beginner', name: 'First Layer Corners',
     goal: 'Drop each white corner under its slot and screw it up into the first layer.',
     whenToUse: 'The white cross is done and a white corner sits in the bottom layer.',
-    whyItWorks: "R' D' R D is a three-move loop that lifts the corner out, spins the bottom, and puts it back rotated. Repeat it and the corner walks around until white points up.",
+    whyItWorks: "R' D' R D is a four-move loop that lifts the corner out, spins the bottom, and puts it back rotated. Repeat it and the corner walks around until white points up.",
     variations: [
-      { label: 'White faces right', moves: ["R'", "D'", 'R'] },
-      { label: 'White faces you', moves: ['F', 'D', "F'"] },
-      { label: 'White faces down', moves: ["R'", 'D2', 'R', 'D', "R'", "D'", 'R'] }
+      { label: 'White faces right', moves: ["R'", "D'", 'R'],
+        setup: ["R'", 'D', 'R'],
+        keep: WHITE_LAYER.concat(['DFR']),
+        source: 'ruwix-step-2#white-sticker-to-the-right',
+        note: "Ruwix also solves this with the single loop R' D' R D applied once." },
+      { label: 'White faces you', moves: ['F', 'D', "F'"],
+        setup: ['F', "D'", "F'"],
+        keep: WHITE_LAYER.concat(['DFR']),
+        source: 'ruwix-step-2#white-facing-you',
+        note: "With the one-algorithm approach this is R' D' R D five times, or its inverse D' R' D R once." },
+      { label: 'White points down', moves: ["R'", 'D2', 'R', 'D', "R'", "D'", 'R'],
+        setup: ["R'", 'D', 'R', "D'", "R'", 'D2', 'R'],
+        keep: WHITE_LAYER.concat(['DFR']),
+        source: 'ruwix-step-2#white-pointing-down',
+        note: "Ruwix gives a five-turn shortcut for the same case: R2 D' R2 D R2. With the one-algorithm approach it is R' D' R D three times." },
+      { label: 'Right layer, wrong slot', moves: ['L', 'D', "L'", "R'", "D'", 'R'],
+        setup: ["R'", 'D', 'R', 'L', "D'", "L'"],
+        keep: WHITE_LAYER,
+        source: 'ruwix-step-2#good-layer-wrong-position',
+        note: 'The corner is already in the white layer but in the wrong slot. The first three moves drop it out to the bottom, the last three screw it back into the right one.' }
     ]
   },
   {
     id: 'b-second-layer', group: 'beginner', name: 'Second Layer (F2L)',
     goal: 'Place the four middle-layer edges without breaking the finished first layer.',
-    whenToUse: 'First layer complete. An edge with no yellow sits in the top layer.',
+    whenToUse: 'First layer complete. Turn the cube over so yellow is up. An edge with no yellow sits in the top layer.',
     whyItWorks: 'You push the edge down into the wrong slot, restore the corner that was living there, then bring the pair back — a setup, a repair, and an undo.',
     variations: [
-      { label: 'Insert to the right', moves: ['U', 'R', "U'", "R'", "U'", "F'", 'U', 'F'] },
-      { label: 'Insert to the left', moves: ["U'", "L'", 'U', 'L', 'U', 'F', "U'", "F'"] },
-      { label: 'Edge flipped in slot', moves: ['R', 'U', "R'", "U'", 'R', 'U', "R'"] }
+      { label: 'Insert to the right', moves: ['U', 'R', "U'", "R'", "U'", "F'", 'U', 'F'],
+        setup: ['z2', 'y', "F'", "U'", 'F', 'U', 'R', 'U', "R'", "U'"],
+        keep: FIRST_LAYER.concat(['UF']),
+        source: 'ruwix-step3#right-algorithm' },
+      { label: 'Insert to the left', moves: ["U'", "L'", 'U', 'L', 'U', 'F', "U'", "F'"],
+        setup: ['z2', 'y', 'F', 'U', "F'", "U'", "L'", "U'", 'L', 'U'],
+        keep: FIRST_LAYER.concat(['UF']),
+        source: 'ruwix-step3#left-algorithm' },
+      { label: 'Edge flipped in its slot', moves: ['U', 'R', "U'", "R'", "U'", "F'", 'U', 'F', "U'", 'R', "U'", "R'", "U'", "F'", 'U', 'F'],
+        setup: ['z2', 'y', "F'", "U'", 'F', 'U', 'R', 'U', "R'", 'U', "F'", "U'", 'F', 'U', 'R', 'U', "R'", "U'"],
+        keep: FIRST_LAYER.concat(['FR']),
+        source: 'ruwix-step3#wrong-orientation',
+        note: 'Ruwix writes this as the Right algorithm, U2, then the Right algorithm again: the first run kicks the flipped edge up to the top, the second puts it back the right way round. The U2 and the U that opens the second run are merged into the single U′ here.' }
     ]
   },
   {
     id: 'b-yellow-cross', group: 'beginner', name: 'Yellow Cross',
     goal: 'Make a yellow plus sign on the top face. Corners can stay wrong.',
     whenToUse: 'Two layers done. The top face shows a dot, an L, or a line.',
-    whyItWorks: 'F R U R′ U′ F′ flips exactly two top edges at a time. A line needs it once, an L needs it once from the right angle, a dot needs it twice.',
+    whyItWorks: 'F R U R′ U′ F′ flips exactly two top edges at a time. A line needs it once, an L needs it once from the right angle, a dot needs three runs with the cube turned round between them.',
     variations: [
-      { label: 'Line (hold horizontal)', moves: ['F', 'R', 'U', "R'", "U'", "F'"] },
-      { label: 'L-shape (hook top-left)', moves: ['F', 'U', 'R', "U'", "R'", "F'"] },
-      { label: 'Dot (run it twice)', moves: ['F', 'R', 'U', "R'", "U'", "F'", 'F', 'U', 'R', "U'", "R'", "F'"] }
+      { label: 'Line (hold horizontal)', moves: ['F', 'R', 'U', "R'", "U'", "F'"],
+        setup: ['z2', 'y', 'F', 'U', 'R', "U'", "R'", "F'"],
+        keep: F2L_AND_LL_EDGES,
+        source: 'ruwix-step-4#line' },
+      { label: 'L-shape (hook back-left)', moves: ['F', 'U', 'R', "U'", "R'", "F'"],
+        setup: ['z2', 'y', 'F', 'R', 'U', "R'", "U'", "F'"],
+        keep: F2L_AND_LL_EDGES,
+        source: 'ruwix-step-4#l-shape-shortcut',
+        note: 'This is the inverse of F R U R′ U′ F′ and takes the L straight to the cross in one run instead of two.' },
+      { label: 'Dot (three runs)', moves: ['F', 'R', 'U', "R'", "U'", "F'", 'y2', 'F', 'R', 'U', "R'", "U'", "F'", 'y2', 'F', 'R', 'U', "R'", "U'", "F'"],
+        setup: ['z2', 'y', 'F', 'U', 'R', "U'", "R'", "F'", 'y2', 'F', 'U', 'R', "U'", "R'", "F'", 'y2', 'F', 'U', 'R', "U'", "R'", "F'"],
+        keep: F2L_AND_LL_EDGES,
+        source: 'ruwix-step-4#dot',
+        note: 'Ruwix runs the algorithm three times from a dot, turning the whole cube 180° between runs. Dot to L, L to line, line to cross.' }
     ]
   },
   {
     id: 'b-swap-yellow-edges', group: 'beginner', name: 'Swap The Yellow Edges',
     goal: 'Line up the yellow cross edges with their side colours.',
     whenToUse: 'The yellow cross exists but the edge colours do not match the sides.',
-    whyItWorks: 'The sequence cycles three top edges and leaves the rest alone, so you can rotate mismatched edges into place one triple at a time.',
+    whyItWorks: 'The sequence swaps the front and left top edges and leaves everything below untouched, so you can rotate mismatched edges into place one pair at a time.',
     variations: [
-      { label: 'Two adjacent edges', moves: ['R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U'] },
-      { label: 'Two opposite edges', moves: ['R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U', 'R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U'] }
+      { label: 'Two adjacent edges', moves: ['R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U'],
+        setup: ['z2', 'y', "U'", 'R', 'U2', "R'", "U'", 'R', "U'", "R'"],
+        keep: F2L_AND_LL_EDGES,
+        source: 'ruwix-step-5#switch-two-edges',
+        note: 'Hold the two edges that need swapping at the front and the left.' },
+      { label: 'Two opposite edges', moves: ['U', 'R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U', 'y2', 'R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U'],
+        setup: ['z2', 'y', "U'", 'R', 'U2', "R'", "U'", 'R', "U'", "R'", 'y2', "U'", 'R', 'U2', "R'", "U'", 'R', "U'", "R'", "U'"],
+        keep: F2L_AND_LL_EDGES,
+        source: 'ruwix-step-5#applied-twice',
+        note: 'Edges facing each other cannot be swapped directly. Ruwix sets up with a U, runs the algorithm, turns the whole cube 180°, and runs it again.' }
     ]
   },
   {
     id: 'b-position-yellow-corners', group: 'beginner', name: 'Position Yellow Corners',
     goal: 'Get every yellow corner to its correct corner slot. Twist comes later.',
     whenToUse: 'Yellow cross is matched and at least one corner is already home.',
-    whyItWorks: 'This is a pure three-corner cycle. Hold the already-correct corner in the front-right and the other three rotate around it.',
+    whyItWorks: 'This is a pure three-corner cycle. Hold the already-correct corner in the front-right and the other three rotate around it counter-clockwise.',
     variations: [
-      { label: 'Correct corner front-right', moves: ['U', 'R', "U'", "L'", 'U', "R'", "U'", 'L'] },
-      { label: 'No corner correct yet', moves: ['U', 'R', "U'", "L'", 'U', "R'", "U'", 'L', 'U', 'R', "U'", "L'", 'U', "R'", "U'", 'L'] }
+      { label: 'One corner already home', moves: ['U', 'R', "U'", "L'", 'U', "R'", "U'", 'L'],
+        setup: ['z2', 'y', "L'", 'U', 'R', "U'", 'L', 'U', "R'", "U'"],
+        dim: false,
+        source: 'ruwix-step-6#cycle-three-corners',
+        note: 'The front-right corner stays put; the other three move round it. Orientation is ignored at this stage.' },
+      { label: 'Run it again', moves: ['U', 'R', "U'", "L'", 'U', "R'", "U'", 'L', 'U', 'R', "U'", "L'", 'U', "R'", "U'", 'L'],
+        setup: ['z2', 'y', "L'", 'U', 'R', "U'", 'L', 'U', "R'", "U'", "L'", 'U', 'R', "U'", 'L', 'U', "R'", "U'"],
+        dim: false,
+        source: 'ruwix-step-6#cycle-three-corners',
+        note: "Ruwix: \"if the pieces didn't get where they belong do the algorithm one more time\" — the three corners cycle the other way round. If no corner is home at all, run it once from any angle to create one, then re-hold with that corner front-right; Ruwix does not animate that setup case." }
     ]
   },
   {
     id: 'b-orient-last-corners', group: 'beginner', name: 'Orient Last Layer Corners',
     goal: 'Twist each yellow corner so yellow points up. This finishes the cube.',
     whenToUse: 'Every corner is in the right slot but some are twisted.',
-    whyItWorks: "Same R' D' R D loop as the first layer, applied to a corner held front-right. Two loops twist it one way, four twist it the other. Never rotate the cube between corners — only U.",
+    whyItWorks: "Same R' D' R D loop as the first layer, applied to a corner held front-right. Two loops twist it one way, four twist it the other. The loop has order six, so the two layers below only come back together once the counts across every corner you fix add up to six — which is why the cube looks wrecked in between and why the examples run 2+4 or 2+2+2. Never rotate the cube between corners — only U.",
     variations: [
-      { label: 'Twisted clockwise', moves: ["R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D'] },
-      { label: 'Twisted counter-clockwise', moves: ["R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D'] },
-      { label: 'Then U to the next corner', moves: ["R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', 'U'] }
+      { label: 'Twist one corner (two loops)', moves: ["R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D'],
+        setup: ['z2', 'y', "U'", "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', 'U', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R'],
+        dim: false,
+        source: 'ruwix-step-7#example-1',
+        note: "Two of the four corners are twisted here. This run fixes the front-right one and deliberately leaves the layers below open — U′ then brings the other corner round and its four loops settle everything. Run each loop to the end: stopping when you see yellow, before the final D, is the classic way to wreck the cube." },
+      { label: 'Twist one corner (four loops)', moves: ["R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D'],
+        setup: ['z2', 'y', "U'", "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', 'U', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R'],
+        dim: false,
+        source: 'ruwix-step-7#example-1-reversed',
+        note: 'Same two-corner case as above with the yellow stickers facing the other way, so the order flips: four loops on this corner, two on the next.' },
+      { label: 'Two corners, start to finish', moves: ["R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "U'", "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', 'U'],
+        setup: ['z2', 'y', "U'", "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', 'U', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R'],
+        dim: false,
+        source: 'ruwix-step-7#example-1',
+        note: 'The whole of Ruwix example 1: two loops, U′ to bring the next corner round, four loops, then U to put the top layer back. Ends on a solved cube.' }
     ]
   },
 

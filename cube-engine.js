@@ -177,6 +177,45 @@ export function touchedIds(model, tokens) {
   return touched;
 }
 
+// Which cubies did the author single out? `tokens` name slots — 'UF', 'DFR',
+// 'R' — as they stand in the case position, i.e. after the setup has run, which
+// is what an author reads off the screen. A trailing '*' means the whole layer
+// of that face, so 'D*' is the nine bottom cubies. Resolution happens once, on
+// load, and yields cubie ids, so a piece stays lit while it travels.
+const SLOT_VEC = { U: [0, 1, 0], D: [0, -1, 0], R: [1, 0, 0], L: [-1, 0, 0], F: [0, 0, 1], B: [0, 0, -1] };
+
+export function keepIds(model, tokens) {
+  const want = (tokens || []).map(tok => {
+    const layer = tok.indexOf('*') !== -1;
+    const v = [0, 0, 0];
+    for (const ch of tok) {
+      const a = SLOT_VEC[ch];
+      if (a) { v[0] += a[0]; v[1] += a[1]; v[2] += a[2]; }
+    }
+    return { v, layer, axis: layer ? v.findIndex(n => n !== 0) : -1 };
+  });
+  const out = new Set();
+  model.userData.cubies.forEach(c => {
+    const p = [Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z)];
+    want.forEach(w => {
+      const hit = w.layer
+        ? p[w.axis] === w.v[w.axis]
+        : p[0] === w.v[0] && p[1] === w.v[1] && p[2] === w.v[2];
+      if (hit) out.add(c.userData.id);
+    });
+  });
+  return out;
+}
+
+// What stays in colour: an explicit `keep` list if the algorithm has one,
+// nothing dimmed at all when `dim` is false, otherwise the pieces the moves
+// physically touch.
+function relevantFor(model, alg) {
+  if (alg.dim === false) return null;
+  if (alg.keep) return keepIds(model, alg.keep);
+  return touchedIds(model, alg.moves);
+}
+
 // ------------------------------------------------------------------- engine
 export class CubeEngine {
   constructor(host, opts = {}) {
@@ -382,7 +421,7 @@ export class CubeEngine {
       resetModel(this.model);
       applyInstant(this.model, this.setup);
       this.index = 0;
-      this.setRelevant(touchedIds(this.model, this.moves));
+      this.setRelevant(relevantFor(this.model, alg));
       this.emit();
     });
   }
@@ -457,7 +496,7 @@ export class MiniPool {
     const setup = spec.setup != null ? spec.setup : invertMoves(spec.moves);
     resetModel(this.model);
     applyInstant(this.model, setup);
-    const rel = spec.dim === false ? null : touchedIds(this.model, spec.moves);
+    const rel = relevantFor(this.model, spec);
     const dim = new THREE.Color(DIM_COLOR);
     this.model.userData.stickers.forEach(m => {
       const on = !rel || rel.size >= 27 || rel.has(m.userData.cubie);

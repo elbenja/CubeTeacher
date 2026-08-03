@@ -371,7 +371,7 @@ class Component extends DCLogic {
     if (!a || !this.pool) return;
     a.variations.forEach((v, i) => {
       const cv = this.varCanvas[i];
-      if (cv) this.pool.draw(cv, { moves: v.moves, setup: v.setup, theta: 0 });
+      if (cv) this.pool.draw(cv, { moves: v.moves, setup: v.setup, keep: v.keep, dim: v.dim, theta: 0 });
     });
   }
 
