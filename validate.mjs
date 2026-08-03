@@ -496,20 +496,17 @@ const CHECKS = {
 
   // ---- step 7 : yellow up. Everything placed, corners need twisting.
   // R' D' R D wrecks F2L while you work and only restores it once the loop
-  // counts across every corner total six, so a single-corner drill legitimately
-  // ends on a broken-looking cube. Only the endpoint of each run is asserted,
-  // and what counts as the endpoint differs per variation.
+  // counts across every corner total a multiple of six, so the cube looks broken
+  // part-way through. Each card runs the whole arrangement, so every one of them
+  // ends on a solved cube.
   'b-orient-last-corners': {
     goal: c => solved(c),
     goalName: 'cube solved',
     cases: {
-      'Twist one corner (two loops)': { name: 'URF twisted, F2L intact', test: twistCase,
-        goal: c => sticker(c, vecOf('UFR'), 'U') === centre(c, 'U') && cornersPositioned(c, UP),
-        goalName: 'front-right corner now yellow-up (F2L still open — two more loops owed)' },
-      'Twist one corner (four loops)': { name: 'URF twisted the other way, F2L intact', test: twistCase,
-        goal: c => sticker(c, vecOf('UFR'), 'U') === centre(c, 'U') && cornersPositioned(c, UP),
-        goalName: 'front-right corner now yellow-up (F2L still open — two more loops owed)' },
-      'Two corners, start to finish': { name: 'two adjacent corners twisted, F2L intact', test: twistCase }
+      'Two corners twisted, side by side': { name: 'two adjacent corners twisted, F2L intact', test: twistCase },
+      'Two corners twisted, diagonal': { name: 'two diagonal corners twisted, F2L intact', test: twistCase },
+      'Three corners twisted': { name: 'three corners twisted, F2L intact', test: twistCase },
+      'All four corners twisted': { name: 'all four corners twisted, F2L intact', test: twistCase }
     }
   }
 };
@@ -559,6 +556,18 @@ function main() {
       let verdict = 'match';
 
       if (v.setup == null) { notes.push('NO EXPLICIT SETUP'); verdict = 'mismatch'; }
+
+      // Spelling the setup out as the inverse of the moves makes the case solve
+      // itself by construction. Steps 1-2 do that on purpose -- their case *is*
+      // "the position this algorithm undoes", and the start predicate pins the
+      // exact sticker layout, so the inverse is still checked content. Step 7 is
+      // different: its cases are twist arrangements picked independently of the
+      // run, and an inverted setup would erase the only claim being tested --
+      // that this run of loop counts solves that arrangement.
+      if (alg.id === 'b-orient-last-corners' && v.setup
+        && JSON.stringify(parseMoves(v.setup)) === JSON.stringify(invertMoves(v.moves))) {
+        notes.push('setup is the inverse of moves'); verdict = 'mismatch';
+      }
 
       const start = stateOf(v.setup != null ? v.setup : invertMoves(v.moves));
       const end = applyMoves(stateOf(v.setup != null ? v.setup : invertMoves(v.moves)), v.moves);
