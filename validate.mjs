@@ -300,10 +300,13 @@ function selfTest() {
 }
 
 // ------------------------------------------------------------- case checks
-// Keyed by `${id}#${index}`. Each entry says what Ruwix's picture claims the
-// start state is, and what the step is supposed to have achieved at the end.
-// The goal is the *step* goal, not "solved" -- step 4 ends with a yellow cross
-// and unsolved corners, and asserting "solved" there would be wrong.
+// `cases` is keyed by the variation's exact `label` string from algorithms.js,
+// not by array position -- a positional index silently misaligns the moment a
+// variation list is reordered or resized. Each entry says what Ruwix's picture
+// claims the start state is, and what the step is supposed to have achieved at
+// the end. The goal is the *step* goal, not "solved" -- step 4 ends with a
+// yellow cross and unsolved corners, and asserting "solved" there would be
+// wrong.
 
 const UP = 'U', DN = 'D';
 const twoOriented = (c, pair) => {
@@ -316,79 +319,91 @@ const CHECKS = {
   'b-first-layer-edges': {
     goal: c => crossSolved(c, UP),
     goalName: 'white cross on U, side colours matched',
-    cases: [
-      { name: 'UF flipped in place',
-        test: c => solvedExcept(c, ['UF']) && sticker(c, vecOf('UF'), 'U') === centre(c, 'F') && sticker(c, vecOf('UF'), 'F') === centre(c, 'U') },
-      { name: 'edge at DF, white on F',
-        test: c => solvedExcept(c, ['UF']) && sticker(c, vecOf('DF'), 'F') === centre(c, 'U') && sticker(c, vecOf('DF'), 'D') === centre(c, 'F') },
-      { name: 'edge at FR, white on F',
-        test: c => solvedExcept(c, ['UF']) && sticker(c, vecOf('FR'), 'F') === centre(c, 'U') && sticker(c, vecOf('FR'), 'R') === centre(c, 'F') },
-      { name: 'edge at FL, white on F',
-        test: c => solvedExcept(c, ['UF']) && sticker(c, vecOf('FL'), 'F') === centre(c, 'U') && sticker(c, vecOf('FL'), 'L') === centre(c, 'F') },
-      { name: 'edge at BR, white on B',
-        test: c => solvedExcept(c, ['UF']) && sticker(c, vecOf('BR'), 'B') === centre(c, 'U') && sticker(c, vecOf('BR'), 'R') === centre(c, 'F') }
-    ]
+    cases: {
+      'Flip the last edge':
+        { name: 'UF flipped in place',
+          test: c => solvedExcept(c, ['UF']) && sticker(c, vecOf('UF'), 'U') === centre(c, 'F') && sticker(c, vecOf('UF'), 'F') === centre(c, 'U') },
+      'Edge on the front face':
+        { name: 'edge at DF, white on F',
+          test: c => solvedExcept(c, ['UF']) && sticker(c, vecOf('DF'), 'F') === centre(c, 'U') && sticker(c, vecOf('DF'), 'D') === centre(c, 'F') },
+      'Edge in the middle layer':
+        { name: 'edge at FR, white on F',
+          test: c => solvedExcept(c, ['UF']) && sticker(c, vecOf('FR'), 'F') === centre(c, 'U') && sticker(c, vecOf('FR'), 'R') === centre(c, 'F') },
+      'Same case mirrored':
+        { name: 'edge at FL, white on F',
+          test: c => solvedExcept(c, ['UF']) && sticker(c, vecOf('FL'), 'F') === centre(c, 'U') && sticker(c, vecOf('FL'), 'L') === centre(c, 'F') },
+      'Edge stuck in the equator':
+        { name: 'edge at BR, white on B',
+          test: c => solvedExcept(c, ['UF']) && sticker(c, vecOf('BR'), 'B') === centre(c, 'U') && sticker(c, vecOf('BR'), 'R') === centre(c, 'F') }
+    }
   },
 
   // ---- step 2 : white up. Cross plus three corners done, UFR is the case.
   'b-first-layer-corners': {
     goal: c => layerSolved(c, UP),
     goalName: 'whole white layer solved',
-    cases: [
-      { name: 'corner at DFR, white facing R', test: c => cornerCase(c, 'DFR', 'R') },
-      { name: 'corner at DFR, white facing F', test: c => cornerCase(c, 'DFR', 'F') },
-      { name: 'corner at DFR, white facing D', test: c => cornerCase(c, 'DFR', 'D') },
-      { name: 'UFR corner sitting in the UFL slot', test: c => cornerTop(c) }
-    ]
+    cases: {
+      'White faces right': { name: 'corner at DFR, white facing R', test: c => cornerCase(c, 'DFR', 'R') },
+      'White faces you': { name: 'corner at DFR, white facing F', test: c => cornerCase(c, 'DFR', 'F') },
+      'White points down': { name: 'corner at DFR, white facing D', test: c => cornerCase(c, 'DFR', 'D') },
+      'Right layer, wrong slot': { name: 'UFR corner sitting in the UFL slot', test: c => cornerTop(c) }
+    }
   },
 
   // ---- step 3 : yellow up (z2 y). First layer done, one middle edge to place.
   'b-second-layer': {
     goal: c => f2lSolved(c, DN),
     goalName: 'first two layers solved',
-    cases: [
-      { name: 'edge at UF, F-colour on F (goes right)',
-        test: c => layerSolved(c, DN) && sticker(c, vecOf('UF'), 'F') === centre(c, 'F') && sticker(c, vecOf('UF'), 'U') === centre(c, 'R') },
-      { name: 'edge at UF, F-colour on F (goes left)',
-        test: c => layerSolved(c, DN) && sticker(c, vecOf('UF'), 'F') === centre(c, 'F') && sticker(c, vecOf('UF'), 'U') === centre(c, 'L') },
-      { name: 'edge in the FR slot, flipped',
-        test: c => layerSolved(c, DN) && sticker(c, vecOf('FR'), 'F') === centre(c, 'R') && sticker(c, vecOf('FR'), 'R') === centre(c, 'F') }
-    ]
+    cases: {
+      'Insert to the right':
+        { name: 'edge at UF, F-colour on F (goes right)',
+          test: c => layerSolved(c, DN) && sticker(c, vecOf('UF'), 'F') === centre(c, 'F') && sticker(c, vecOf('UF'), 'U') === centre(c, 'R') },
+      'Insert to the left':
+        { name: 'edge at UF, F-colour on F (goes left)',
+          test: c => layerSolved(c, DN) && sticker(c, vecOf('UF'), 'F') === centre(c, 'F') && sticker(c, vecOf('UF'), 'U') === centre(c, 'L') },
+      'Edge flipped in its slot':
+        { name: 'edge in the FR slot, flipped',
+          test: c => layerSolved(c, DN) && sticker(c, vecOf('FR'), 'F') === centre(c, 'R') && sticker(c, vecOf('FR'), 'R') === centre(c, 'F') }
+    }
   },
 
   // ---- step 4 : yellow up. F2L intact, top edges make dot / L / line.
   'b-yellow-cross': {
     goal: c => faceCross(c, UP) && f2lSolved(c, DN),
     goalName: 'yellow cross on top, F2L untouched',
-    cases: [
-      { name: 'horizontal line (UL/UR up)', test: c => f2lSolved(c, DN) && twoOriented(c, ['UL', 'UR']) },
-      { name: 'L-shape hooked back-left (UL/UB up)', test: c => f2lSolved(c, DN) && twoOriented(c, ['UL', 'UB']) },
-      { name: 'dot (no top edge up)', test: c => f2lSolved(c, DN) && edgesOriented(c, UP).length === 0 }
-    ]
+    cases: {
+      'Line (hold horizontal)': { name: 'horizontal line (UL/UR up)', test: c => f2lSolved(c, DN) && twoOriented(c, ['UL', 'UR']) },
+      'L-shape (hook back-left)': { name: 'L-shape hooked back-left (UL/UB up)', test: c => f2lSolved(c, DN) && twoOriented(c, ['UL', 'UB']) },
+      'Dot (three runs)': { name: 'dot (no top edge up)', test: c => f2lSolved(c, DN) && edgesOriented(c, UP).length === 0 }
+    }
   },
 
   // ---- step 5 : yellow up. Cross made, edges need permuting.
   'b-swap-yellow-edges': {
     goal: c => crossSolved(c, UP) && f2lSolved(c, DN),
     goalName: 'top edges matched to their centres, F2L untouched',
-    cases: [
-      { name: 'two adjacent edges swapped (UF/UL)',
-        test: c => f2lSolved(c, DN) && faceCross(c, UP) && swapped(c, 'UF', 'UL') },
-      { name: 'two opposite edges swapped (UL/UR)',
-        test: c => f2lSolved(c, DN) && faceCross(c, UP) && swapped(c, 'UL', 'UR') }
-    ]
+    cases: {
+      'Two adjacent edges':
+        { name: 'two adjacent edges swapped (UF/UL)',
+          test: c => f2lSolved(c, DN) && faceCross(c, UP) && swapped(c, 'UF', 'UL') },
+      'Two opposite edges':
+        { name: 'two opposite edges swapped (UL/UR)',
+          test: c => f2lSolved(c, DN) && faceCross(c, UP) && swapped(c, 'UL', 'UR') }
+    }
   },
 
   // ---- step 6 : yellow up. Corners into their slots, twist ignored.
   'b-position-yellow-corners': {
     goal: c => cornersPositioned(c, UP) && crossSolved(c, UP) && f2lSolved(c, DN),
     goalName: 'all four top corners in their slots, F2L untouched',
-    cases: [
-      { name: 'one corner home (URF), other three cycled',
-        test: c => f2lSolved(c, DN) && crossSolved(c, UP) && cornersPlaced(c, UP).join() === 'URF' },
-      { name: 'one corner home (URF), cycled the other way',
-        test: c => f2lSolved(c, DN) && crossSolved(c, UP) && cornersPlaced(c, UP).join() === 'URF' }
-    ]
+    cases: {
+      'One corner already home':
+        { name: 'one corner home (URF), other three cycled',
+          test: c => f2lSolved(c, DN) && crossSolved(c, UP) && cornersPlaced(c, UP).join() === 'URF' },
+      'Run it again':
+        { name: 'one corner home (URF), cycled the other way',
+          test: c => f2lSolved(c, DN) && crossSolved(c, UP) && cornersPlaced(c, UP).join() === 'URF' }
+    }
   },
 
   // ---- step 7 : yellow up. Everything placed, corners need twisting.
@@ -399,15 +414,15 @@ const CHECKS = {
   'b-orient-last-corners': {
     goal: c => solved(c),
     goalName: 'cube solved',
-    cases: [
-      { name: 'URF twisted, F2L intact', test: twistCase,
+    cases: {
+      'Twist one corner (two loops)': { name: 'URF twisted, F2L intact', test: twistCase,
         goal: c => sticker(c, vecOf('UFR'), 'U') === centre(c, 'U') && cornersPositioned(c, UP),
         goalName: 'front-right corner now yellow-up (F2L still open — two more loops owed)' },
-      { name: 'URF twisted the other way, F2L intact', test: twistCase,
+      'Twist one corner (four loops)': { name: 'URF twisted the other way, F2L intact', test: twistCase,
         goal: c => sticker(c, vecOf('UFR'), 'U') === centre(c, 'U') && cornersPositioned(c, UP),
         goalName: 'front-right corner now yellow-up (F2L still open — two more loops owed)' },
-      { name: 'two adjacent corners twisted, F2L intact', test: twistCase }
-    ]
+      'Two corners, start to finish': { name: 'two adjacent corners twisted, F2L intact', test: twistCase }
+    }
   }
 };
 
@@ -459,7 +474,7 @@ function main() {
       const start = stateOf(v.setup != null ? v.setup : invertMoves(v.moves));
       const end = applyMoves(stateOf(v.setup != null ? v.setup : invertMoves(v.moves)), v.moves);
 
-      const c = spec && spec.cases[i];
+      const c = spec && spec.cases[v.label];
       if (!c) { notes.push('no case predicate'); verdict = 'unchecked'; }
       else if (!c.test(start)) { notes.push(`start is not "${c.name}"`); verdict = 'mismatch'; }
 
@@ -498,6 +513,19 @@ function main() {
           ' faceCrossU=', faceCross(end, UP), ' cornersPos=', cornersPositioned(end, UP), ' solved=', solved(end));
       }
     });
+  }
+
+  // A predicate keyed to a label that no longer exists is a silent hole: the
+  // variation it guarded would report "no case predicate" and still pass.
+  for (const [algId, spec] of Object.entries(CHECKS)) {
+    const alg = ALGORITHMS.find(a => a.id === algId);
+    const labels = alg ? alg.variations.map(v => v.label) : [];
+    for (const key of Object.keys(spec.cases)) {
+      if (labels.indexOf(key) === -1) {
+        console.error(`orphan case predicate: ${algId} -> "${key}"`);
+        fails++;
+      }
+    }
   }
 
   const w = [22, 34, 26, 10];
