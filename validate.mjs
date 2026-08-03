@@ -299,6 +299,94 @@ function selfTest() {
   console.log('');
 }
 
+// -------------------------------------------------- corner-orientation cases
+// Four cards cover seven cases, which is only defensible if the procedure they
+// teach -- loop until yellow is up, U to the next twisted corner -- provably
+// solves every one. So it is asserted here rather than asserted in prose.
+
+const TWIST_SLOTS = ['UFR', 'UFL', 'UBL', 'UBR'];   // U maps UFR -> UFL
+const TWIST_LOOP = ["R'", "D'", 'R', 'D'];
+const TWIST_BASE = [[0, 0, 1], [1, 0, 0], [0, 1, 0]];
+
+// Rotation by 120 degrees about the body diagonal through a corner. diag(p) is a
+// reflection when the sign parity is negative, which silently flips the turn
+// direction, so transpose it back -- otherwise "twist 1" means opposite things
+// at different corners and the class count comes out wrong.
+function twistMat(p) {
+  const T = [0, 1, 2].map(i => [0, 1, 2].map(j => p[i] * TWIST_BASE[i][j] * p[j]));
+  return p[0] * p[1] * p[2] > 0 ? T : [0, 1, 2].map(i => [0, 1, 2].map(j => T[j][i]));
+}
+
+function twistedCube(counts) {
+  const cube = solvedCube();
+  TWIST_SLOTS.forEach((tok, i) => {
+    const p = vecOf(tok);
+    const c = cube.find(x => x.pos.every((v, k) => v === p[k]));
+    const T = twistMat(p);
+    for (let n = 0; n < ((counts[i] % 3) + 3) % 3; n++) c.m = mulMat(T, c.m);
+  });
+  return cube;
+}
+
+const cornerUp = (cube, tok) => sticker(cube, vecOf(tok), 'U') === centre(cube, 'U');
+const allCornersUp = cube => TWIST_SLOTS.every(t => cornerUp(cube, t));
+
+export const TWIST_CLASSES = (() => {
+  const canon = v => {
+    let best = null;
+    for (let r = 0; r < 4; r++) {
+      const k = v.slice(r).concat(v.slice(0, r)).join('');
+      if (best === null || k < best) best = k;
+    }
+    return best;
+  };
+  const seen = new Map();
+  for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) for (let c = 0; c < 3; c++) for (let d = 0; d < 3; d++) {
+    if ((a + b + c + d) % 3 !== 0) continue;          // corner twists must sum to 0 mod 3
+    const key = canon([a, b, c, d]);
+    if (!seen.has(key) && key !== '0000') seen.set(key, [a, b, c, d]);
+  }
+  return [...seen].map(([key, counts]) => ({ key, counts }));
+})();
+
+// Run the beginner procedure from a given hold. Returns the loop/spacer shape,
+// or null if it failed to terminate.
+export function runProcedure(counts, hold) {
+  const cube = twistedCube(counts);
+  applyMoves(cube, Array(hold).fill('U'));
+  const shape = [];
+  let uTurns = hold, guard = 0;
+  while (!allCornersUp(cube)) {
+    if (++guard > 20) return null;
+    let k = 0;
+    while (cornerUp(cube, 'UFR')) { applyMoves(cube, ['U']); k++; uTurns++; }
+    if (k) shape.push(k === 1 ? 'U' : k === 2 ? 'U2' : "U'");
+    let n = 0;
+    while (!cornerUp(cube, 'UFR')) { applyMoves(cube, TWIST_LOOP); n++; if (n > 6) return null; }
+    shape.push(n);
+  }
+  const fin = (4 - (uTurns % 4)) % 4;
+  if (fin) { applyMoves(cube, Array(fin).fill('U')); shape.push(fin === 1 ? 'U' : fin === 2 ? 'U2' : "U'"); }
+  return { shape, solved: solved(cube) };
+}
+
+function procedureTest() {
+  console.log('Corner-orientation procedure');
+  let bad = 0;
+  if (TWIST_CLASSES.length !== 7) {
+    console.error(`  FAIL expected 7 non-solved classes, got ${TWIST_CLASSES.length}`);
+    bad++;
+  }
+  for (const { key, counts } of TWIST_CLASSES) {
+    const runs = [0, 1, 2, 3].map(h => runProcedure(counts, h));
+    const ok = runs.every(r => r && r.solved);
+    if (!ok) { bad++; console.error(`  FAIL [${key}] procedure did not solve from every hold`); }
+    else console.log(`  ok   [${key}] ${runs[1].shape.map(s => (typeof s === 'number' ? '×' + s : s)).join(' ')}`);
+  }
+  if (bad) { console.error('\nProcedure is wrong. Stopping.'); process.exit(1); }
+  console.log('');
+}
+
 // ------------------------------------------------------------- case checks
 // `cases` is keyed by the variation's exact `label` string from algorithms.js,
 // not by array position -- a positional index silently misaligns the moment a
@@ -458,6 +546,7 @@ function twistCase(c) {
 function main() {
   expansionTest();
   selfTest();
+  procedureTest();
   const dump = process.argv.includes('--dump');
   const rows = [];
   let fails = 0;
