@@ -351,6 +351,63 @@ class Component extends DCLogic {
     return a.variations[Math.min(this.state.varIdx, a.variations.length - 1)];
   }
 
+  // The header badge reports structure, not a move total. A 51-move card is the
+  // easiest kind of case -- three identical corners -- and a raw count says the
+  // opposite.
+  structureLabel(v) {
+    const blocks = (v.entries || []).filter(e => e.kind === 'block');
+    const total = (v.moves || []).length + ' moves';
+    if (!blocks.length) return total;
+    const reps = blocks.map(b => b.repeat);
+    if (blocks.length === 1) return reps[0] > 1 ? '×' + reps[0] : total;
+    const unit = this.current() && this.current().unit ? this.current().unit : 'run';
+    const head = blocks.length + ' ' + unit + 's';
+    if (reps.every(r => r === 1)) return head;
+    return head + ' · ' + (reps.every(r => r === reps[0]) ? '×' + reps[0] + ' each' : reps.map(r => '×' + r).join(', '));
+  }
+
+  // One render item per run entry. `index` is the current flat move index, used
+  // to fill the tally and mark the live chip; pass -1 for a static card.
+  renderEntries(v, opts) {
+    // Same fallback idiom renderVals() uses for these two helpers -- pretty/describe
+    // live on this.eng, not at module scope, so a sibling method re-derives them.
+    const P = this.eng || {};
+    const pretty = P.prettyMove || (t => t);
+    const describe = P.describeMove || (t => t);
+    const entries = v.entries || [], map = v.runMap || [];
+    const at = opts.index >= 0 && opts.index < map.length ? map[opts.index] : null;
+    let flat = 0;
+    return entries.map((e, ei) => {
+      if (e.kind === 'spacer') {
+        const i = flat++;
+        return {
+          key: ei + ':s', kind: 'spacer', i, face: e.move[0], label: pretty(e.move),
+          state: i < opts.index ? 'past' : i === opts.index ? 'current' : 'future',
+          tip: describe(e.move),
+          jump: opts.interactive ? this.cache('jump-' + i, () => () => this.jump(i)) : null
+        };
+      }
+      const first = flat;
+      flat += e.repeat * e.moves.length;
+      const live = at && at.entry === ei;
+      const iteration = live ? at.iteration : (opts.index >= first ? e.repeat : 0);
+      return {
+        key: ei + ':b', kind: 'block', until: e.until || null,
+        badge: e.until ? null : (e.repeat > 1 ? '×' + e.repeat : null),
+        dots: Array.from({ length: e.repeat }, (_, k) => ({ key: k, on: k < iteration ? 'true' : 'false' })),
+        chips: e.moves.map((m, off) => {
+          const target = first + (live ? at.iteration : 0) * e.moves.length + off;
+          return {
+            key: ei + ':' + off, i: target, face: m[0], label: pretty(m),
+            state: live && off < at.offset ? 'past' : live && off === at.offset ? 'current' : 'future',
+            tip: describe(m),
+            jump: opts.interactive ? this.cache('jump-' + ei + '-' + off, () => () => this.jump(target)) : null
+          };
+        })
+      };
+    });
+  }
+
   loadCurrent(markViewed) {
     const v = this.currentVar();
     if (!this.engine || !v) return;
