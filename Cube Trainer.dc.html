@@ -111,6 +111,11 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-var:hover{background:var(--gray-0);box-shadow:var(--shadow-float)}
 .ct-var[data-sel="true"]{background:var(--gray-0);box-shadow:0 0 0 2px var(--blue-500)}
 .ct-var canvas{display:block;width:100%;height:118px}
+.ct-loop{display:inline-flex;align-items:center;gap:5px;padding:5px 7px;border-radius:10px;background:var(--gray-0);box-shadow:inset 0 0 0 1px var(--border-default)}
+.ct-until{font:var(--type-caption);color:var(--text-secondary);padding-left:4px;white-space:nowrap}
+.ct-tally{display:inline-flex;align-items:center;gap:4px}
+.ct-pip{width:7px;height:7px;border-radius:50%;background:var(--gray-300)}
+.ct-pip[data-on="true"]{background:var(--text-primary)}
 
 /* ---- misc ---- */
 .ct-scrub{display:flex;align-items:center;justify-content:center;min-width:60px;height:32px;padding:0 10px;border:0;border-radius:10px;background:var(--gray-100);color:var(--text-primary);font:var(--type-mono);font-size:var(--text-base);font-variant-numeric:tabular-nums;cursor:ew-resize;transition:background-color calc(130ms*var(--m)) var(--ease-out)}
@@ -250,13 +255,28 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
             <span style="font:var(--type-section-label)">{{ v.label }}</span>
-            <span style="font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary);margin-left:auto">{{ v.count }}</span>
+            <span style="font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary);margin-left:auto">{{ v.structure }}</span>
           </div>
           <button class="ct-var" data-sel="{{ v.sel }}" onClick="{{ v.select }}" onPointerMove="{{ v.tilt }}" onPointerLeave="{{ v.untilt }}" aria-pressed="{{ v.sel }}">
             <canvas ref="{{ v.canvasRef }}" width="96" height="118"></canvas>
-            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">
-              <sc-for list="{{ v.chips }}" as="mc" hint-placeholder-count="3">
-                <span class="ct-mini" data-face="{{ mc.face }}">{{ mc.label }}</span>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px">
+              <sc-for list="{{ v.items }}" as="it" hint-placeholder-count="3">
+                <sc-if value="{{ it.isBlock }}">
+                  <span class="ct-loop">
+                    <sc-for list="{{ it.chips }}" as="mc" hint-placeholder-count="4">
+                      <span class="ct-mini" data-face="{{ mc.face }}">{{ mc.label }}</span>
+                    </sc-for>
+                    <span class="ct-until">{{ it.untilText }}</span>
+                  </span>
+                  <span class="ct-tally">
+                    <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
+                      <span class="ct-pip" data-on="{{ d.on }}"></span>
+                    </sc-for>
+                  </span>
+                </sc-if>
+                <sc-if value="{{ it.isSpacer }}">
+                  <span class="ct-mini" data-face="{{ it.face }}">{{ it.label }}</span>
+                </sc-if>
               </sc-for>
             </div>
           </button>
@@ -590,9 +610,13 @@ class Component extends DCLogic {
 
     const variations = (alg ? alg.variations : []).map((v, i) => ({
       key: alg.id + ':' + i, label: v.label,
-      count: parse(v.moves).length + ' moves',
+      structure: this.structureLabel(v),
       sel: i === S.varIdx ? 'true' : 'false',
-      chips: parse(v.moves).map((t, j) => ({ key: j + t, face: t[0], label: pretty(t) })),
+      items: this.renderEntries(v, { index: -1, interactive: false }).map(it => ({
+        key: it.key, isBlock: it.kind === 'block', isSpacer: it.kind === 'spacer',
+        face: it.face, label: it.label, chips: it.chips, dots: it.dots,
+        untilText: it.until ? '↻ until ' + it.until : (it.badge || '')
+      })),
       canvasRef: this.cache('cv-' + i, () => el => { this.varCanvas[i] = el; if (el && this.pool) requestAnimationFrame(() => this.drawThumbs()); }),
       select: this.cache('var-' + i, () => () => this.selectVar(i)),
       tilt: this.cache('tilt', () => e => this.tilt(e)),
