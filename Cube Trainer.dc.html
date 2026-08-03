@@ -506,14 +506,10 @@ class Component extends DCLogic {
       const items = g.key === 'likes'
         ? this.algs().filter(a => S.likes.indexOf(a.id) !== -1)
         : this.algs().filter(a => a.group === g.key);
-      const viewedCount = items.filter(a => S.viewed.indexOf(a.id) !== -1).length;
       return {
         key: g.key, name: g.name, icon: g.icon,
         count: String(items.length),
         open: S.open[g.key] ? 'true' : 'false',
-        showProgress: !!(g.ordered && S.open[g.key]),
-        progress: items.length ? Math.round(viewedCount / items.length * 100) : 0,
-        progressLabel: viewedCount + '/' + items.length,
         empty: g.key === 'likes' && items.length === 0 && S.open.likes,
         badgeRef: g.key === 'likes' ? this.cache('badge', () => el => { this.badgeEl = el; }) : null,
         toggle: this.cache('tg-' + g.key, () => () => this.setState(s => ({ open: Object.assign({}, s.open, { [g.key]: !s.open[g.key] }) }))),
