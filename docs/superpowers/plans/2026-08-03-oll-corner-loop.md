@@ -521,8 +521,10 @@ Setups must not be the inverse of their own moves. Search `⟨R, U⟩` instead �
 Create `scratchpad/find-setups.mjs`:
 
 ```js
-const V = await import('../algorithms.js') && await import('../validate.mjs');
-const { stateOf, applyMoves, solvedCube, sticker, vecOf, centre, f2lSolved, crossSolved, cornersPositioned } = V;
+// validate.mjs installs the window stub and re-exports the headless model.
+// Its main() is guarded, so importing it here runs nothing.
+const { stateOf, applyMoves, sticker, vecOf, centre, f2lSolved, crossSolved, cornersPositioned }
+  = await import('../validate.mjs');
 
 const SLOTS = ['UFR', 'UFL', 'UBL', 'UBR'];
 const BASE = ['R', 'U'];
@@ -556,8 +558,9 @@ function search(target, maxLen) {
     }
     return false;
   };
-  for (let d = 1; d <= maxLen; d++) { out.length = 0; if (walk([], null) && out.length) return out[0]; }
-  return null;
+  // Depth-first to maxLen, returning the first hit. Any valid setup works, so
+  // there is no need to find the shortest one.
+  return walk([], null) && out.length ? out[0] : null;
 }
 
 // Targets: the exact twist vector each card's run is authored against.
