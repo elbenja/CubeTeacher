@@ -243,6 +243,28 @@ const EXPANSION_TESTS = [
       { entry: 2 },
       { entry: 3, iteration: 0, offset: 0 }, { entry: 3, iteration: 0, offset: 1 }
     ]
+  },
+  {
+    name: 'yellow cross dot, three runs',
+    input: { loop: ['F', 'R', 'U', "R'", "U'", "F'"], run: [1, 'y2', 1, 'y2', 1] },
+    moves: ['F', 'R', 'U', "R'", "U'", "F'", 'y2', 'F', 'R', 'U', "R'", "U'", "F'", 'y2', 'F', 'R', 'U', "R'", "U'", "F'"],
+    entries: [
+      { kind: 'block', repeat: 1, moves: ['F', 'R', 'U', "R'", "U'", "F'"] },
+      { kind: 'spacer', move: 'y2' },
+      { kind: 'block', repeat: 1, moves: ['F', 'R', 'U', "R'", "U'", "F'"] },
+      { kind: 'spacer', move: 'y2' },
+      { kind: 'block', repeat: 1, moves: ['F', 'R', 'U', "R'", "U'", "F'"] }
+    ],
+    map: [
+      { entry: 0, iteration: 0, offset: 0 }, { entry: 0, iteration: 0, offset: 1 }, { entry: 0, iteration: 0, offset: 2 },
+      { entry: 0, iteration: 0, offset: 3 }, { entry: 0, iteration: 0, offset: 4 }, { entry: 0, iteration: 0, offset: 5 },
+      { entry: 1 },
+      { entry: 2, iteration: 0, offset: 0 }, { entry: 2, iteration: 0, offset: 1 }, { entry: 2, iteration: 0, offset: 2 },
+      { entry: 2, iteration: 0, offset: 3 }, { entry: 2, iteration: 0, offset: 4 }, { entry: 2, iteration: 0, offset: 5 },
+      { entry: 3 },
+      { entry: 4, iteration: 0, offset: 0 }, { entry: 4, iteration: 0, offset: 1 }, { entry: 4, iteration: 0, offset: 2 },
+      { entry: 4, iteration: 0, offset: 3 }, { entry: 4, iteration: 0, offset: 4 }, { entry: 4, iteration: 0, offset: 5 }
+    ]
   }
 ];
 

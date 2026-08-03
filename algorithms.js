@@ -156,7 +156,8 @@ export const ALGORITHMS = [
         keep: F2L_AND_LL_EDGES,
         source: 'ruwix-step-4#l-shape-shortcut',
         note: 'This is the inverse of F R U R′ U′ F′ and takes the L straight to the cross in one run instead of two.' },
-      { label: 'Dot (three runs)', moves: ['F', 'R', 'U', "R'", "U'", "F'", 'y2', 'F', 'R', 'U', "R'", "U'", "F'", 'y2', 'F', 'R', 'U', "R'", "U'", "F'"],
+      { label: 'Dot (three runs)',
+        loop: ['F', 'R', 'U', "R'", "U'", "F'"], run: [1, 'y2', 1, 'y2', 1],
         setup: ['z2', 'y', 'F', 'U', 'R', "U'", "R'", "F'", 'y2', 'F', 'U', 'R', "U'", "R'", "F'", 'y2', 'F', 'U', 'R', "U'", "R'", "F'"],
         keep: F2L_AND_LL_EDGES,
         source: 'ruwix-step-4#dot',
@@ -174,7 +175,8 @@ export const ALGORITHMS = [
         keep: F2L_AND_LL_EDGES,
         source: 'ruwix-step-5#switch-two-edges',
         note: 'Hold the two edges that need swapping at the front and the left.' },
-      { label: 'Two opposite edges', moves: ['U', 'R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U', 'y2', 'R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U'],
+      { label: 'Two opposite edges',
+        loop: ['R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U'], run: ['U', 1, 'y2', 1],
         setup: ['z2', 'y', "U'", 'R', 'U2', "R'", "U'", 'R', "U'", "R'", 'y2', "U'", 'R', 'U2', "R'", "U'", 'R', "U'", "R'", "U'"],
         keep: F2L_AND_LL_EDGES,
         source: 'ruwix-step-5#applied-twice',
@@ -192,7 +194,8 @@ export const ALGORITHMS = [
         dim: false,
         source: 'ruwix-step-6#cycle-three-corners',
         note: 'The front-right corner stays put; the other three move round it. Orientation is ignored at this stage.' },
-      { label: 'Run it again', moves: ['U', 'R', "U'", "L'", 'U', "R'", "U'", 'L', 'U', 'R', "U'", "L'", 'U', "R'", "U'", 'L'],
+      { label: 'Run it again',
+        loop: ['U', 'R', "U'", "L'", 'U', "R'", "U'", 'L'], run: [2],
         setup: ['z2', 'y', "L'", 'U', 'R', "U'", 'L', 'U', "R'", "U'", "L'", 'U', 'R', "U'", 'L', 'U', "R'", "U'"],
         dim: false,
         source: 'ruwix-step-6#cycle-three-corners',
@@ -294,6 +297,18 @@ export const ALGORITHMS = [
     variations: [{ label: 'From solved', moves: seq.split(/\s+/), setup: [] }]
   }))
 ];
+
+// Authoring a repeat is only half of it -- every variation is normalised here so
+// that `moves`, `entries` and `runMap` are always present, whichever form was
+// used. Consumers never have to ask which.
+for (const alg of ALGORITHMS) {
+  for (const v of alg.variations) {
+    const { moves, entries, map } = expandRun(v);
+    v.moves = moves;
+    v.entries = entries;
+    v.runMap = map;
+  }
+}
 
 // Icon slugs are Hugeicons Stroke Rounded names. The graduation cap ships as
 // `mortarboard-01` and the hat-and-glasses as `incognito`; the newer
