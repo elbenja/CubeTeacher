@@ -122,10 +122,10 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-var:hover{background:var(--gray-0);box-shadow:var(--shadow-float)}
 .ct-var[data-sel="true"]{background:var(--gray-0);box-shadow:0 0 0 2px var(--blue-500)}
 .ct-var canvas{display:block;width:100%;height:118px;object-fit:contain}
-/* A loop block stacks its moves over its stop condition, and spans the full row
-   so the spacer after it always lands on its own line. The strip has room to put
-   both on one line, so it opts back into a row below. */
-.ct-loop{display:flex;flex-direction:column;gap:5px;width:100%;padding:7px 9px;border-radius:10px;background:var(--gray-0);box-shadow:inset 0 0 0 1px var(--border-default)}
+/* Moves and the repeat tally on one row. This used to be a column so a block
+   could stack its stop condition underneath; that string now renders once per
+   variation, so there is nothing left to stack and both surfaces agree. */
+.ct-loop{display:flex;align-items:center;flex-wrap:nowrap;gap:6px;padding:7px 9px;border-radius:10px;background:var(--gray-0);box-shadow:inset 0 0 0 1px var(--border-default)}
 .ct-loop-moves{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .ct-loop-meta{display:flex;align-items:center;gap:8px;min-width:0}
 .ct-until{font:var(--type-caption);color:var(--text-secondary)}
@@ -140,9 +140,6 @@ a:hover{color:var(--blue-600);text-decoration:underline}
    variation actually has blocks -- on a flat variation every move would
    otherwise read as a separator, which separates nothing. */
 .ct-mini[data-sep="true"]{background:var(--gray-150);box-shadow:none}
-/* The strip has 660px to work with, so a block keeps its moves and its stop
-   condition on one line rather than stacking them. */
-.ct-strip .ct-loop{flex-direction:row;align-items:center;flex-wrap:wrap;width:auto;gap:8px}
 .ct-strip .ct-chip[data-spacer="true"][data-state="future"]{background:var(--gray-150);box-shadow:none}
 
 /* ---- misc ---- */
@@ -705,7 +702,9 @@ class Component extends DCLogic {
       i: it.i != null ? String(it.i) : '',
       isSep: it.kind === 'spacer' && cvHasBlocks ? 'true' : 'false',
       chips: it.chips, dots: it.dots, hasTally: !!(it.dots && it.dots.length),
-      untilText: it.until ? 'repeat loop until ' + it.until : (it.badge || '')
+      // The stop condition is a property of the variation, not of each block --
+      // expandRun copies it onto all of them. It renders once, above the track.
+      untilText: it.badge || ''
     })) : [];
 
     const variations = (alg ? alg.variations : []).map((v, i) => ({
@@ -716,7 +715,7 @@ class Component extends DCLogic {
         key: it.key, isBlock: it.kind === 'block', isSpacer: it.kind === 'spacer',
         isSep: it.kind === 'spacer' && hasBlocks(v) ? 'true' : 'false',
         face: it.face, label: it.label, chips: it.chips, dots: it.dots, hasTally: !!(it.dots && it.dots.length),
-        untilText: it.until ? 'repeat loop until ' + it.until : (it.badge || '')
+        untilText: it.badge || ''
       })),
       canvasRef: this.cache('cv-' + i, () => el => { this.varCanvas[i] = el; if (el && this.pool) requestAnimationFrame(() => this.drawThumbs()); }),
       select: this.cache('var-' + i, () => () => this.selectVar(i)),
