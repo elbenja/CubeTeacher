@@ -213,10 +213,27 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
 
     <div class="ct-strip" data-tint="{{ tintState }}" ref="{{ stripRef }}" style="pointer-events:auto;position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:660px;padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
       <div class="ct-ring" ref="{{ ringRef }}"></div>
-      <sc-for list="{{ chips }}" as="c" hint-placeholder-count="7">
-        <button class="ct-chip ct-tip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
-          <span class="ct-dot"></span>{{ c.label }}
-        </button>
+      <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
+        <sc-if value="{{ it.isBlock }}">
+          <span class="ct-loop">
+            <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="4">
+              <button class="ct-chip ct-tip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
+                <span class="ct-dot"></span>{{ c.label }}
+              </button>
+            </sc-for>
+            <span class="ct-until">{{ it.untilText }}</span>
+            <span class="ct-tally">
+              <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
+                <span class="ct-pip" data-on="{{ d.on }}"></span>
+              </sc-for>
+            </span>
+          </span>
+        </sc-if>
+        <sc-if value="{{ it.isSpacer }}">
+          <button class="ct-chip ct-tip" data-face="{{ it.face }}" data-state="{{ it.state }}" data-i="{{ it.i }}" data-tip="{{ it.tip }}" onClick="{{ it.jump }}" aria-label="{{ it.tip }}">
+            <span class="ct-dot"></span>{{ it.label }}
+          </button>
+        </sc-if>
       </sc-for>
     </div>
 
@@ -421,7 +438,11 @@ class Component extends DCLogic {
             key: ei + ':' + off, i: target, face: m[0], label: pretty(m),
             state: live && off < at.offset ? 'past' : live && off === at.offset ? 'current' : 'future',
             tip: describe(m),
-            jump: opts.interactive ? this.cache('jump-' + ei + '-' + off, () => () => this.jump(target)) : null
+            // Keyed by the flat target, not position (ei+off): a block chip's target
+            // shifts as the live iteration advances, and this.cache() is a permanent
+            // memo, so a position-keyed closure would freeze on whichever iteration
+            // first rendered it. Matches the spacer's 'jump-' + i scheme above.
+            jump: opts.interactive ? this.cache('jump-' + target, () => () => this.jump(target)) : null
           };
         })
       };
@@ -570,10 +591,6 @@ class Component extends DCLogic {
   // ------------------------------------------------------------ renderVals
   renderVals() {
     const S = this.state;
-    const P = this.eng || {};
-    const pretty = P.prettyMove || (t => t);
-    const describe = P.describeMove || (t => t);
-    const parse = P.parseMoves || (m => (Array.isArray(m) ? m : String(m || '').split(/\s+/)).filter(Boolean));
 
     const alg = this.current();
     const groupLabels = { beginner: "Beginner's Method", advanced: 'Advanced Method', patterns: 'Fun Patterns' };
@@ -600,13 +617,13 @@ class Component extends DCLogic {
     });
 
     const cv = this.currentVar();
-    const moves = cv ? parse(cv.moves) : [];
-    const chips = moves.map((t, i) => ({
-      key: i + ':' + t, i: String(i), face: t[0], label: pretty(t),
-      state: i < S.index ? 'past' : i === S.index ? 'current' : 'future',
-      tip: describe(t),
-      jump: this.cache('jump-' + i, () => () => this.jump(i))
-    }));
+    const stripItems = cv ? this.renderEntries(cv, { index: S.index, interactive: true }).map(it => ({
+      key: it.key, isBlock: it.kind === 'block', isSpacer: it.kind === 'spacer',
+      face: it.face, label: it.label, state: it.state, tip: it.tip, jump: it.jump,
+      i: it.i != null ? String(it.i) : '',
+      chips: it.chips, dots: it.dots,
+      untilText: it.until ? '↻ until ' + it.until : (it.badge || '')
+    })) : [];
 
     const variations = (alg ? alg.variations : []).map((v, i) => ({
       key: alg.id + ':' + i, label: v.label,
@@ -645,7 +662,7 @@ class Component extends DCLogic {
       goCrossLink: e => { e.preventDefault(); if (crossAlg) this.selectAlg(crossAlg.id); },
       startBeginner: e => { e.preventDefault(); this.setState(s => ({ open: Object.assign({}, s.open, { beginner: true }) }), () => this.selectAlg('b-first-layer-edges')); },
 
-      chips,
+      stripItems,
       variations,
       variationsLabel: variations.length + ' case variations',
 
