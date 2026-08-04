@@ -510,7 +510,9 @@ export class MiniPool {
       const on = !rel || rel.size >= 27 || rel.has(m.userData.cubie);
       m.material.color.copy(on ? m.userData.base : dim);
     });
-    const theta = HOME_THETA + (spec.theta || 0), phi = 1.0;
+    // Honour `view` here too, or a mirrored case shows its slot from one side on
+    // the thumbnail and the other on the stage.
+    const theta = viewTheta(spec) + (spec.theta || 0), phi = 1.0;
     const r = 10.4;
     this.camera.position.set(r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.cos(theta));
     this.camera.lookAt(0, 0, 0);
