@@ -132,6 +132,29 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 /* One per variation, above the moves, so it stays put while the track scrolls.
    --gray-700 on --amber-50 is 7.61:1, which clears AA for caption text. */
 .ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
+/* One line, scrolled rather than wrapped: during playback the strip's job is
+   "where am I", which one line answers. Whole-shape scanning belongs to the
+   variation panel. `safe center` and not `center` -- plain centring overflows
+   both ends and puts the first chip out of reach of any scroll. */
+.ct-strip-track{position:relative;display:flex;align-items:center;gap:8px;justify-content:safe center;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.ct-strip-track::-webkit-scrollbar{display:none}
+/* Nothing shrinks: a nowrap flex line squashes its items by default, which
+   would compress chips instead of overflowing them. */
+.ct-strip-track>*{flex:0 0 auto}
+/* The panel can wrap a long block's moves internally; the track never can, or a
+   block would grow a second row and undo the whole point. `.ct-loop` itself is
+   already nowrap from its base rule -- only its moves list needs overriding. */
+.ct-strip-track .ct-loop-moves{flex-wrap:nowrap}
+/* Each chip's hover-tooltip (`.ct-tip::after`) is invisible but still laid out at
+   full nowrap text width, centred on a much narrower chip -- without this, that
+   phantom width leaks into the track's own scrollable-overflow size, so a row
+   that visually fits on one line reports as scrollable anyway. `contain:layout`
+   keeps the tooltip's box out of the track's size math without affecting where
+   it paints on hover. */
+.ct-strip-track .ct-tip{contain:layout}
+.ct-strip-track[data-fade="start"]{mask-image:linear-gradient(90deg,transparent 0,#000 24px)}
+.ct-strip-track[data-fade="end"]{mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent 100%)}
+.ct-strip-track[data-fade="both"]{mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
 .ct-tally{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
 /* Filled grey, going black as each loop completes: readable as a count while
    idle, and as progress while playing. Cards render statically, so their pips
@@ -275,39 +298,41 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       </sc-if>
     </div>
 
-    <div class="ct-strip" data-tint="{{ tintState }}" ref="{{ stripRef }}" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:660px;padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
+    <div class="ct-strip" data-tint="{{ tintState }}" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:660px;padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
       <sc-if value="{{ stripUntil }}">
         <span class="ct-strip-until">{{ stripUntil }}</span>
       </sc-if>
-      <div class="ct-ring" ref="{{ ringRef }}"></div>
-      <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
-        <sc-if value="{{ it.isBlock }}">
-          <span class="ct-loop">
-            <span class="ct-loop-moves">
-              <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="4">
-                <button class="ct-chip ct-tip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
-                  <span class="ct-dot"></span>{{ c.label }}
-                </button>
-              </sc-for>
+      <div class="ct-strip-track" data-fade="none" ref="{{ stripRef }}">
+        <div class="ct-ring" ref="{{ ringRef }}"></div>
+        <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
+          <sc-if value="{{ it.isBlock }}">
+            <span class="ct-loop">
+              <span class="ct-loop-moves">
+                <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="4">
+                  <button class="ct-chip ct-tip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
+                    <span class="ct-dot"></span>{{ c.label }}
+                  </button>
+                </sc-for>
+              </span>
+              <span class="ct-loop-meta">
+                <span class="ct-until">{{ it.untilText }}</span>
+                <sc-if value="{{ it.hasTally }}">
+                  <span class="ct-tally">
+                    <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
+                      <span class="ct-pip" data-on="{{ d.on }}"></span>
+                    </sc-for>
+                  </span>
+                </sc-if>
+              </span>
             </span>
-            <span class="ct-loop-meta">
-              <span class="ct-until">{{ it.untilText }}</span>
-              <sc-if value="{{ it.hasTally }}">
-                <span class="ct-tally">
-                  <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
-                    <span class="ct-pip" data-on="{{ d.on }}"></span>
-                  </sc-for>
-                </span>
-              </sc-if>
-            </span>
-          </span>
-        </sc-if>
-        <sc-if value="{{ it.isSpacer }}">
-          <button class="ct-chip ct-tip" data-spacer="{{ it.isSep }}" data-face="{{ it.face }}" data-state="{{ it.state }}" data-i="{{ it.i }}" data-tip="{{ it.tip }}" onClick="{{ it.jump }}" aria-label="{{ it.tip }}">
-            <span class="ct-dot"></span>{{ it.label }}
-          </button>
-        </sc-if>
-      </sc-for>
+          </sc-if>
+          <sc-if value="{{ it.isSpacer }}">
+            <button class="ct-chip ct-tip" data-spacer="{{ it.isSep }}" data-face="{{ it.face }}" data-state="{{ it.state }}" data-i="{{ it.i }}" data-tip="{{ it.tip }}" onClick="{{ it.jump }}" aria-label="{{ it.tip }}">
+              <span class="ct-dot"></span>{{ it.label }}
+            </button>
+          </sc-if>
+        </sc-for>
+      </div>
     </div>
 
     <div style="pointer-events:auto;display:flex;align-items:center;gap:8px;margin:16px 0 22px;padding:8px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
@@ -619,16 +644,20 @@ class Component extends DCLogic {
 
   // ----------------------------------------------------------------- ring
   positionRing() {
-    const strip = this.stripEl, ring = this.ringEl;
-    if (!strip || !ring) return;
+    const track = this.stripEl, ring = this.ringEl;
+    if (!track || !ring) return;
     // No clamp: once index reaches total every move is done, so there is no
     // current chip to ring — the lookup misses and the ring hides itself.
-    const chip = strip.querySelector('[data-i="' + this.state.index + '"]');
+    const chip = track.querySelector('[data-i="' + this.state.index + '"]');
     if (!chip || !this.state.total) { ring.style.opacity = '0'; return; }
-    const sr = strip.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    const tr = track.getBoundingClientRect(), cr = chip.getBoundingClientRect();
     ring.style.width = (cr.width + 8) + 'px';
     ring.style.height = (cr.height + 8) + 'px';
-    ring.style.transform = 'translate(' + (cr.left - sr.left - 4) + 'px,' + (cr.top - sr.top - 4) + 'px)';
+    // Content coordinates, not viewport: adding scrollLeft back cancels the
+    // shift getBoundingClientRect() reports, so this value is the same whether
+    // it is read before, during, or after a smooth scroll. That is what lets
+    // followChip() and this run in either order.
+    ring.style.transform = 'translate(' + (cr.left - tr.left + track.scrollLeft - 4) + 'px,' + (cr.top - tr.top - 4) + 'px)';
     ring.style.opacity = '1';
   }
 
