@@ -95,6 +95,17 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-tip[data-side="right"]::after{left:calc(100% + 8px);bottom:auto;top:50%;transform:translate(-4px,-50%)}
 .ct-tip[data-side="right"]:hover::after{transform:translate(0,-50%)}
 .ct-tip[data-side="below"]::after{bottom:auto;top:calc(100% + 8px);transform:translateX(-50%) translateY(-4px)}
+/* Anchored to the control's right edge instead of centred on it. For anything
+   flush with the right panel's edge there is only 20px of window left, so a
+   centred tip runs off-screen no matter how wide the panel is. */
+.ct-tip[data-align="end"]::after{left:auto;right:0;transform:translateY(-4px)}
+.ct-tip[data-align="end"]:hover::after{transform:translateY(0)}
+
+/* ---- panel chrome icon buttons ---- */
+/* The design system's icon button is 28px with a 12px radius, which next to the
+   34px heart reads as both smaller and circular. Size the box to the heart so
+   the two hover pills are identical; the icon stays at the DS medium 18px. */
+.ct-ib .dc-ib{width:34px;height:34px;border-radius:10px}
 
 /* ---- heart ---- */
 .ct-heart{position:relative;display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--icon-muted);cursor:pointer;transition:background-color calc(130ms*var(--m)) var(--ease-out),color calc(190ms*var(--m)) var(--ease-out),transform calc(280ms*var(--m)) var(--ease-spring-out)}
@@ -139,6 +150,7 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-scrub:hover{background:var(--gray-200)}
 .ct-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:var(--gray-100);color:var(--text-secondary);font:var(--type-mono);font-size:var(--text-xs);font-variant-numeric:tabular-nums}
 .ct-link{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;color:var(--text-secondary);font:var(--type-caption);transition:background-color calc(130ms*var(--m)) var(--ease-out),color calc(130ms*var(--m)) var(--ease-out)}
+.ct-fend{margin-left:auto}
 .ct-link:hover{background:var(--surface-hover);color:var(--text-primary);text-decoration:none}
 .ct-scrim{position:fixed;inset:0;background:var(--surface-scrim);opacity:0;pointer-events:none;transition:opacity calc(280ms*var(--m)) var(--ease-out);z-index:50}
 .ct-burger,.ct-sheet-handle{display:none}
@@ -149,6 +161,12 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
 .ct-side[data-collapsed="true"] .ct-hide{display:none!important}
 .ct-side[data-collapsed="true"] .ct-grp{justify-content:center;padding:0}
 .ct-side[data-collapsed="true"] nav{gap:6px;align-items:center}
+/* Collapsed, the header and footer rows are down to a single icon button each.
+   Centre the row and drop the footer's push-right so they line up with the nav
+   rail below them instead of hugging the panel edge. */
+.ct-side[data-collapsed="true"] .ct-hrow,
+.ct-side[data-collapsed="true"] .ct-frow{justify-content:center}
+.ct-side[data-collapsed="true"] .ct-fend{margin-left:0}
 .ct[data-scol="true"] .ct-stage{left:116px!important}
 .ct-right[data-collapsed="true"]{width:56px!important;align-items:center}
 .ct-right[data-collapsed="true"] .ct-hide2{display:none!important}
@@ -277,7 +295,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
     </div>
   </main>
 
-  <aside class="ct-right" data-sheet="{{ sheetState }}" data-collapsed="{{ rightCollapsed }}" style="position:absolute;right:20px;top:20px;bottom:20px;width:328px;display:flex;flex-direction:column;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-panel),inset 0 0 0 1px var(--border-hairline);overflow:hidden;transition:width 280ms var(--ease-out)">
+  <aside class="ct-right" data-sheet="{{ sheetState }}" data-collapsed="{{ rightCollapsed }}" style="position:absolute;right:20px;top:20px;bottom:20px;width:328px;display:flex;flex-direction:column;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-panel),inset 0 0 0 1px var(--border-hairline);transition:width 280ms var(--ease-out)">
     <button class="ct-sheet-handle" onClick="{{ toggleSheet }}" style="align-items:center;justify-content:center;gap:8px;width:100%;height:54px;flex:0 0 auto;border:0;background:none;cursor:pointer;font:var(--type-label);color:var(--text-secondary)">
       <span style="width:34px;height:4px;border-radius:2px;background:var(--gray-300)"></span>{{ variationsLabel }}
     </button>
@@ -286,11 +304,11 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       <button class="ct-heart ct-tip" data-on="{{ likedState }}" data-tip="{{ heartTip }}" data-side="below" onClick="{{ toggleLike }}" aria-label="{{ heartTip }}" aria-pressed="{{ likedState }}">
         <i class="hgi-stroke hgi-favourite" style="font-size:19px"></i>
       </button>
-      <span class="ct-tip" data-tip="{{ rightTip }}" data-side="below">
-        <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="sidebar-right" label="{{ rightTip }}" size="sm" onClick="{{ toggleRight }}" hint-size="30px,30px"></x-import>
+      <span class="ct-tip ct-ib" data-tip="{{ rightTip }}" data-side="below" data-align="end">
+        <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="sidebar-right" label="{{ rightTip }}" onClick="{{ toggleRight }}" hint-size="34px,34px"></x-import>
       </span>
     </div>
-    <div class="ct-hide2" style="flex:1 1 auto;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:14px">
+    <div class="ct-hide2" style="flex:1 1 auto;overflow-y:auto;border-radius:0 0 var(--radius-2xl) var(--radius-2xl);padding:0 16px 16px;display:flex;flex-direction:column;gap:14px">
       <sc-for list="{{ variations }}" as="v" hint-placeholder-count="3">
         <div>
           <div style="margin-bottom:7px">

@@ -16,8 +16,8 @@
 <script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
 </helmet>
 
-<div style="display:flex;align-items:flex-start;gap:10px;padding:2px 2px 0;font-family:var(--font-sans)">
-  <a href="https://silverdesk.com" target="_blank" rel="noopener" style="display:flex;align-items:flex-start;gap:10px;min-width:0;flex:1 1 auto;text-decoration:none">
+<div class="ct-hrow" style="display:flex;align-items:flex-start;gap:10px;width:100%;padding:2px 2px 0;font-family:var(--font-sans)">
+  <a class="ct-hide" href="https://silverdesk.com" target="_blank" rel="noopener" style="display:flex;align-items:flex-start;gap:10px;min-width:0;flex:1 1 auto;text-decoration:none">
     <span class="ct-hide" style="flex:0 0 auto;width:34px;height:34px;border-radius:11px;overflow:hidden">
       <img src="uploads/Logo.svg" alt="" style="width:34px;height:34px;display:block">
     </span>
@@ -29,8 +29,8 @@
       <span style="display:block;margin-top:1px;font:var(--type-caption);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis">{{ subtitle }}</span>
     </span>
   </a>
-  <span class="ct-tip" data-tip="{{ tip }}" data-side="below">
-    <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="sidebar-left" label="{{ tip }}" size="sm" onClick="{{ onToggle }}" hint-size="30px,30px"></x-import>
+  <span class="ct-tip ct-ib" data-tip="{{ tip }}" data-side="below">
+    <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="sidebar-left" label="{{ tip }}" onClick="{{ onToggle }}" hint-size="34px,34px"></x-import>
   </span>
 </div>
 
