@@ -11,7 +11,8 @@
 ## Global Constraints
 
 - No new dependencies. No build step. Single file changed: `Cube Trainer.dc.html`.
-- Only design-system tokens for colour and type. Do not invent token names. The tokens this plan uses and their values: `--amber-50: #fff6e0`, `--text-secondary: #757575`, `--type-caption`, `--radius-full`, `--gray-0`, `--border-default`.
+- Only design-system tokens for colour and type. Do not invent token names. The tokens this plan uses and their values: `--amber-50: #fff6e0`, `--gray-700: #4f4f4f`, `--type-caption`, `--radius-full`, `--gray-0`, `--border-default`.
+- **Corrected during execution:** the caption originally specified `--text-secondary` (`#757575`) on `--amber-50` with a comment claiming 4.6:1. The real ratio is **4.28:1**, and `--type-caption` is 12px regular, so the AA threshold is 4.5:1 — it failed. The caption uses `--gray-700` (`#4f4f4f`, **7.61:1**). Do not reintroduce `--text-secondary` on the amber pill.
 - The literal `#000` inside a `mask-image` gradient is the exception, and is not a token violation: a mask reads only the alpha channel, so the value is opacity, not colour. There is no token for it and none should be added.
 - Match existing style: two-space indent, single quotes in JS, comments that explain *why* rather than *what*.
 - `node validate.mjs` must exit 0 at the end of every task.
