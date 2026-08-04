@@ -100,6 +100,16 @@ a:hover{color:var(--blue-600);text-decoration:underline}
    centred tip runs off-screen no matter how wide the panel is. */
 .ct-tip[data-align="end"]::after{left:auto;right:0;transform:translateY(-4px)}
 .ct-tip[data-align="end"]:hover::after{transform:translateY(0)}
+/* Hoisted, JS-positioned twin of `.ct-tip::after` for chips inside
+   `.ct-strip-track`: that track clips overflow on both axes (`overflow-x:auto`
+   computes `overflow-y` to `auto` too, CSS Overflow 3 3.3), so a chip's own
+   ::after -- anchored above the chip -- would never be visible there. This
+   span lives in `.ct-strip`, outside the clipped track, and showTip()/
+   hideTip() position it from the hovered chip's data-tip via the --tip-x/
+   --tip-y custom properties. Same look and reveal delay as `.ct-tip::after`
+   by design, reusing the same tokens. */
+.ct-strip-tip{position:absolute;left:0;top:0;padding:6px 9px;border-radius:var(--radius-md);background:var(--surface-inverse);color:var(--text-inverse);font:var(--type-caption);white-space:nowrap;box-shadow:var(--shadow-inverse);opacity:0;pointer-events:none;z-index:60;transform:translate(var(--tip-x,0),var(--tip-y,0)) translate(-50%,-100%) translateY(4px);transition:opacity calc(130ms*var(--m)) var(--ease-out),transform calc(190ms*var(--m)) var(--ease-out)}
+.ct-strip-tip[data-show="true"]{opacity:1;transform:translate(var(--tip-x,0),var(--tip-y,0)) translate(-50%,-100%);transition-delay:400ms}
 
 /* ---- panel chrome icon buttons ---- */
 /* The design system's icon button is 28px with a 12px radius, which next to the
@@ -145,13 +155,6 @@ a:hover{color:var(--blue-600);text-decoration:underline}
    block would grow a second row and undo the whole point. `.ct-loop` itself is
    already nowrap from its base rule -- only its moves list needs overriding. */
 .ct-strip-track .ct-loop-moves{flex-wrap:nowrap}
-/* Each chip's hover-tooltip (`.ct-tip::after`) is invisible but still laid out at
-   full nowrap text width, centred on a much narrower chip -- without this, that
-   phantom width leaks into the track's own scrollable-overflow size, so a row
-   that visually fits on one line reports as scrollable anyway. `contain:layout`
-   keeps the tooltip's box out of the track's size math without affecting where
-   it paints on hover. */
-.ct-strip-track .ct-tip{contain:layout}
 .ct-strip-track[data-fade="start"]{mask-image:linear-gradient(90deg,transparent 0,#000 24px)}
 .ct-strip-track[data-fade="end"]{mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent 100%)}
 .ct-strip-track[data-fade="both"]{mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
@@ -302,14 +305,14 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       <sc-if value="{{ stripUntil }}">
         <span class="ct-strip-until">{{ stripUntil }}</span>
       </sc-if>
-      <div class="ct-strip-track" data-fade="none" ref="{{ stripRef }}">
+      <div class="ct-strip-track" data-fade="none" ref="{{ stripRef }}" onPointerOver="{{ tipOver }}" onPointerOut="{{ tipOut }}">
         <div class="ct-ring" ref="{{ ringRef }}"></div>
         <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
           <sc-if value="{{ it.isBlock }}">
             <span class="ct-loop">
               <span class="ct-loop-moves">
                 <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="4">
-                  <button class="ct-chip ct-tip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
+                  <button class="ct-chip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
                     <span class="ct-dot"></span>{{ c.label }}
                   </button>
                 </sc-for>
@@ -327,12 +330,13 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
             </span>
           </sc-if>
           <sc-if value="{{ it.isSpacer }}">
-            <button class="ct-chip ct-tip" data-spacer="{{ it.isSep }}" data-face="{{ it.face }}" data-state="{{ it.state }}" data-i="{{ it.i }}" data-tip="{{ it.tip }}" onClick="{{ it.jump }}" aria-label="{{ it.tip }}">
+            <button class="ct-chip" data-spacer="{{ it.isSep }}" data-face="{{ it.face }}" data-state="{{ it.state }}" data-i="{{ it.i }}" data-tip="{{ it.tip }}" onClick="{{ it.jump }}" aria-label="{{ it.tip }}">
               <span class="ct-dot"></span>{{ it.label }}
             </button>
           </sc-if>
         </sc-for>
       </div>
+      <span class="ct-strip-tip" ref="{{ tipRef }}"></span>
     </div>
 
     <div style="pointer-events:auto;display:flex;align-items:center;gap:8px;margin:16px 0 22px;padding:8px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
@@ -661,6 +665,43 @@ class Component extends DCLogic {
     ring.style.opacity = '1';
   }
 
+  // ------------------------------------------------------------ strip tip
+  // Delegated, since chips are re-rendered on every move -- one listener on
+  // the track outlives all of them instead of rebinding per chip.
+  tipOver(e) {
+    const chip = e.target.closest('.ct-chip');
+    if (!chip || this._tipChip === chip) return;
+    this.showTip(chip);
+  }
+
+  tipOut(e) {
+    const chip = e.target.closest('.ct-chip');
+    // relatedTarget is where the pointer went; still inside the same chip
+    // (e.g. crossing from the dot to the label) isn't a real exit.
+    if (!chip || chip.contains(e.relatedTarget)) return;
+    this.hideTip();
+  }
+
+  showTip(chip) {
+    const tip = this.tipEl, text = chip.getAttribute('data-tip');
+    if (!tip || !text) return;
+    tip.textContent = text;
+    // Positioned relative to `.ct-strip` (the tip's own parent, already
+    // position:relative) rather than the track, so scrolling the track
+    // doesn't need to re-run this -- the tip is anchored for the duration
+    // of one hover, same as the pseudo-element it replaces.
+    const stripRect = tip.parentElement.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    tip.style.setProperty('--tip-x', (cr.left - stripRect.left + cr.width / 2) + 'px');
+    tip.style.setProperty('--tip-y', (cr.top - stripRect.top - 8) + 'px');
+    tip.setAttribute('data-show', 'true');
+    this._tipChip = chip;
+  }
+
+  hideTip() {
+    if (this.tipEl) this.tipEl.removeAttribute('data-show');
+    this._tipChip = null;
+  }
+
   // ---------------------------------------------------------------- likes
   toggleLike() {
     const id = this.state.algId;
@@ -765,6 +806,7 @@ class Component extends DCLogic {
       cubeRef: this.cache('cube', () => el => { this.cubeEl = el; }),
       stripRef: this.cache('strip', () => el => { this.stripEl = el; }),
       ringRef: this.cache('ring', () => el => { this.ringEl = el; }),
+      tipRef: this.cache('striptip', () => el => { this.tipEl = el; }),
       scrubRef: this.cache('scrub', () => el => { this.scrubEl = el; }),
 
       groups,
@@ -782,6 +824,8 @@ class Component extends DCLogic {
 
       stripItems,
       stripUntil: cv && cv.until ? 'repeat loop until ' + cv.until : '',
+      tipOver: e => this.tipOver(e),
+      tipOut: e => this.tipOut(e),
       variations,
       variationsLabel: variations.length + ' case variations',
 
