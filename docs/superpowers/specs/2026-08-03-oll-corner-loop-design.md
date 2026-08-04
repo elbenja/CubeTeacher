@@ -8,7 +8,7 @@ generally.
 The last-layer corner step is a four-move loop, `R' D' R D`, repeated at one
 corner until yellow points up, then `U` to bring the next twisted corner round.
 The move strip renders it as a flat run of identical chips — 26 for the
-two-corner cases, 51 for the four-corner ones. Nothing in that display says the
+two-corner cases, 52 for the four-corner ones. Nothing in that display says the
 block repeats, and nothing says where the repeat count comes from.
 
 The count is not something a learner selects. It is read off the cube: the loop
@@ -58,8 +58,8 @@ Every case below was confirmed to end on a solved cube.
 | 2 | diagonal | ×2, ×4 | 26 |
 | 3 | — | ×4, ×4, ×4 | 51 |
 | 3 | — | ×2, ×2, ×2 | 27 |
-| 4 | — | ×2, ×2, ×4, ×4 | 51 |
-| 4 | — | ×2, ×4, ×2, ×4 | 51 |
+| 4 | — | ×2, ×2, ×4, ×4 | 52 |
+| 4 | — | ×2, ×4, ×2, ×4 | 52 |
 
 Rows 1–2 differ only in which adjacent corner carries which twist; rows 4–5 and
 6–7 likewise. Hence four cards.
@@ -109,7 +109,7 @@ The strip renders one element per `run` entry.
 
 The card's count badge stops reporting move totals. It reports structure, built
 from `run` and `unit`: `3 corners · ×4 each` when every repeat count is equal,
-`2 corners · ×2, ×4` when they differ. A 51-move card is the easiest kind of
+`2 corners · ×2, ×4` when they differ. A 52-move card is the easiest kind of
 case, and a raw move count says the opposite.
 
 The 3D render stays as the card thumbnail. It is directly manipulable, so a
@@ -160,13 +160,18 @@ are taken from the enumeration:
 
 | Card | `run` | Moves |
 | --- | --- | --- |
-| Two corners twisted, side by side | `[2, 'U', 4, 'U2']` | 26 |
-| Two corners twisted, diagonal | `[2, 'U2', 4, 'U']` | 26 |
-| Three corners twisted | `[2, 'U', 2, 'U', 2, 'U']` | 27 |
-| All four corners twisted | `[2, 'U', 2, 'U', 4, 'U', 4]` | 51 |
+| Two corners twisted, side by side | `[2, 'U', 4, "U'"]` | 26 |
+| Two corners twisted, diagonal | `[2, 'U2', 4, 'U2']` | 26 |
+| Three corners twisted | `[2, 'U', 2, 'U', 2, 'U2']` | 27 |
+| All four corners twisted | `[2, 'U', 2, 'U', 4, 'U', 4, 'U']` | 52 |
+
+Each shape is `runProcedure(counts, 0).shape` for that card's twist vector, read
+straight out of `validate.mjs` rather than typed by hand.
 
 All four share `loop: ["R'", "D'", 'R', 'D']` and
-`until: 'yellow points up'`.
+`until: 'yellow points up — finish the four'`. The stop condition names the
+finish as well as the cue: yellow becomes visible after `R' D' R`, and a learner
+who stops there, before the final `D`, desynchronises the layers below.
 
 Three existing variations adopt `loop` + `run` and stop being hand-typed:
 
@@ -193,7 +198,7 @@ and must not be forced into one.
   procedure check, and the label-keyed `CHECKS`.
 - Every `b-orient-last-corners` card renders as loop blocks with an until-chip
   and a tally, never as a flat expansion. The four-corner card, the longest,
-  shows four blocks rather than 51 chips.
+  shows four blocks rather than 52 chips.
 - No card header reports a raw move count.
 - Stepping, scrubbing and chip-clicking land on the same cube states as before
   for every variation that did not change content.

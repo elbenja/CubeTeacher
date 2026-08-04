@@ -503,10 +503,18 @@ const CHECKS = {
     goal: c => solved(c),
     goalName: 'cube solved',
     cases: {
-      'Two corners twisted, side by side': { name: 'two adjacent corners twisted, F2L intact', test: twistCase },
-      'Two corners twisted, diagonal': { name: 'two diagonal corners twisted, F2L intact', test: twistCase },
-      'Three corners twisted': { name: 'three corners twisted, F2L intact', test: twistCase },
-      'All four corners twisted': { name: 'all four corners twisted, F2L intact', test: twistCase }
+      'Two corners twisted, side by side':
+        { name: 'two adjacent corners twisted (URF, URB), F2L intact',
+          test: c => twistCase(c, 2, 'adjacent') },
+      'Two corners twisted, diagonal':
+        { name: 'two diagonal corners twisted (URF, ULB), F2L intact',
+          test: c => twistCase(c, 2, 'diagonal') },
+      'Three corners twisted':
+        { name: 'three corners twisted (URF, ULB, URB), F2L intact',
+          test: c => twistCase(c, 3) },
+      'All four corners twisted':
+        { name: 'all four corners twisted, F2L intact',
+          test: c => twistCase(c, 4) }
     }
   }
 };
@@ -534,9 +542,27 @@ function swapped(c, a, b) {
   const fa = facesOf(a).filter(f => f !== UP)[0], fb = facesOf(b).filter(f => f !== UP)[0];
   return sticker(c, vecOf(a), fa) === centre(c, fb) && sticker(c, vecOf(b), fb) === centre(c, fa);
 }
-function twistCase(c) {
-  return f2lSolved(c, DN) && crossSolved(c, UP) && cornersPositioned(c, UP)
-    && sticker(c, vecOf('UFR'), 'U') !== centre(c, 'U');
+// Which top corners are twisted. The step-7 cards differ only in this set, so a
+// predicate that stopped at "F2L intact, corners home" would pass with any of
+// the four setups pasted into any other card.
+const misorientedCorners = c =>
+  slotsOf(UP, 'corner').map(tokOf).filter(t => sticker(c, vecOf(t), 'U') !== centre(c, 'U'));
+
+// Two top corners are adjacent when they share a side face, which makes the
+// horizontal parts of their position vectors perpendicular; diagonal corners
+// point straight away from each other.
+const pairing = (a, b) => {
+  const p = vecOf(a), q = vecOf(b);
+  return p[0] * q[0] + p[2] * q[2] === 0 ? 'adjacent' : 'diagonal';
+};
+
+// `pair` is only meaningful for the two-corner cases. Every card is held so that
+// the first corner to fix sits at URF, so that one must be twisted.
+function twistCase(c, count, pair) {
+  if (!(f2lSolved(c, DN) && crossSolved(c, UP) && cornersPositioned(c, UP))) return false;
+  const off = misorientedCorners(c);
+  if (off.length !== count || off.indexOf('URF') === -1) return false;
+  return pair == null || pairing(off[0], off[1]) === pair;
 }
 
 // --------------------------------------------------------------------- main
@@ -576,10 +602,8 @@ function main() {
       if (!c) { notes.push('no case predicate'); verdict = 'unchecked'; }
       else if (!c.test(start)) { notes.push(`start is not "${c.name}"`); verdict = 'mismatch'; }
 
-      // A variation may narrow the step goal: step 7's single-corner drills end
-      // with F2L still open on purpose.
-      const goal = (c && c.goal) || (spec && spec.goal);
-      const goalName = (c && c.goalName) || (spec && spec.goalName);
+      const goal = spec && spec.goal;
+      const goalName = spec && spec.goalName;
       if (goal && !goal(end)) { notes.push(`end is not "${goalName}"`); verdict = 'mismatch'; }
 
       // Steps 4-6 must hand the first two layers back exactly as they found

@@ -584,32 +584,32 @@ For each printed setup, confirm by hand that it is not `invertMoves` of the card
 
 - [ ] **Step 3: Author the four cards**
 
-Replace the `variations` array of `b-orient-last-corners` in `algorithms.js`, and add `unit: 'corner'` to the algorithm object. Substitute each `setup` with the array printed in Step 1.
+Replace the `variations` array of `b-orient-last-corners` in `algorithms.js`, and add `unit: 'corner'` to the algorithm object. Substitute each `setup` with the array printed in Step 1. Each `run` below is `runProcedure(counts, 0).shape` for that card's twist vector — 26, 26, 27 and 52 moves — not hand-typed.
 
 ```js
     id: 'b-orient-last-corners', group: 'beginner', name: 'Orient Last Layer Corners',
     unit: 'corner',
     goal: 'Twist each yellow corner so yellow points up. This finishes the cube.',
     whenToUse: 'Every corner is in the right slot but some are twisted.',
-    whyItWorks: "Same R' D' R D loop as the first layer, applied to a corner held front-right. Each loop advances that corner's twist by a fixed step, so a corner is either two loops or four from home — you never count, you stop when yellow is up. The loop has order six, so the two layers below only come back together once the counts across every corner add up to a multiple of six, which is why the cube looks wrecked in between. Never rotate the cube between corners — only U.",
+    whyItWorks: "Same R' D' R D loop as the first layer, applied to a corner held front-right. Each loop advances that corner's twist by a fixed step, so a corner is either two loops or four from home — you never count, you stop when yellow is up. Run each loop to the end: stopping when you see yellow, before the final D, is the classic way to wreck the cube. The loop has order six, so the two layers below only come back together once the counts across every corner add up to a multiple of six, which is why the cube looks wrecked in between. Never rotate the cube between corners — only U.",
     variations: [
       { label: 'Two corners twisted, side by side',
-        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up', run: [2, 'U', 4, 'U2'],
+        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up — finish the four', run: [2, 'U', 4, "U'"],
         setup: [/* from Step 1 */],
         dim: false,
         source: 'ruwix-step-7#example-1' },
       { label: 'Two corners twisted, diagonal',
-        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up', run: [2, 'U2', 4, 'U'],
+        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up — finish the four', run: [2, 'U2', 4, 'U2'],
         setup: [/* from Step 1 */],
         dim: false,
         source: 'ruwix-step-7#example-1' },
       { label: 'Three corners twisted',
-        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up', run: [2, 'U', 2, 'U', 2, 'U'],
+        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up — finish the four', run: [2, 'U', 2, 'U', 2, 'U2'],
         setup: [/* from Step 1 */],
         dim: false,
         source: 'ruwix-step-7#example-1' },
       { label: 'All four corners twisted',
-        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up', run: [2, 'U', 2, 'U', 4, 'U', 4],
+        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up — finish the four', run: [2, 'U', 2, 'U', 4, 'U', 4, 'U'],
         setup: [/* from Step 1 */],
         dim: false,
         source: 'ruwix-step-7#example-1' }
@@ -669,7 +669,7 @@ git commit -m "Replace the corner-orientation cards with four keyed by arrangeme
 Add to the component class:
 
 ```js
-  // The header badge reports structure, not a move total. A 51-move card is the
+  // The header badge reports structure, not a move total. A 52-move card is the
   // easiest kind of case -- three identical corners -- and a raw count says the
   // opposite.
   structureLabel(v) {
@@ -895,9 +895,9 @@ Return `stripItems` instead of `chips` from `render()`. The `i` field each item 
 - [ ] **Step 4: Verify playback end to end**
 
 Open **Orient Last Layer Corners → All four corners twisted**. Expected:
-- Play runs all 51 moves and ends on a solved cube.
+- Play runs all 52 moves and ends on a solved cube.
 - The tally on each block fills one pip per completed loop.
-- The move counter still reads `n / 51`.
+- The move counter still reads `n / 52`.
 - Left/right arrows and scrub move one flat move at a time.
 - Clicking the second chip of the third block jumps into that block's current iteration.
 - Then check an untouched variation (**Yellow Cross → Line**) behaves exactly as before.

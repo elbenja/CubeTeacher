@@ -222,11 +222,13 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
               </button>
             </sc-for>
             <span class="ct-until">{{ it.untilText }}</span>
-            <span class="ct-tally">
-              <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
-                <span class="ct-pip" data-on="{{ d.on }}"></span>
-              </sc-for>
-            </span>
+            <sc-if value="{{ it.hasTally }}">
+              <span class="ct-tally">
+                <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
+                  <span class="ct-pip" data-on="{{ d.on }}"></span>
+                </sc-for>
+              </span>
+            </sc-if>
           </span>
         </sc-if>
         <sc-if value="{{ it.isSpacer }}">
@@ -284,11 +286,13 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
                       <span class="ct-mini" data-face="{{ mc.face }}">{{ mc.label }}</span>
                     </sc-for>
                     <span class="ct-until">{{ it.untilText }}</span>
-                    <span class="ct-tally">
-                      <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
-                        <span class="ct-pip" data-on="{{ d.on }}"></span>
-                      </sc-for>
-                    </span>
+                    <sc-if value="{{ it.hasTally }}">
+                      <span class="ct-tally">
+                        <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
+                          <span class="ct-pip" data-on="{{ d.on }}"></span>
+                        </sc-for>
+                      </span>
+                    </sc-if>
                   </span>
                 </sc-if>
                 <sc-if value="{{ it.isSpacer }}">
@@ -431,7 +435,9 @@ class Component extends DCLogic {
       return {
         key: ei + ':b', kind: 'block', until: e.until || null,
         badge: e.until ? null : (e.repeat > 1 ? '×' + e.repeat : null),
-        dots: Array.from({ length: e.repeat }, (_, k) => ({ key: k, on: k < iteration ? 'true' : 'false' })),
+        // A single run is not a loop, so it gets no tally: one lone pip reads as
+        // progress through a repetition that never happens.
+        dots: e.repeat > 1 ? Array.from({ length: e.repeat }, (_, k) => ({ key: k, on: k < iteration ? 'true' : 'false' })) : [],
         chips: e.moves.map((m, off) => {
           const target = first + (live ? at.iteration : 0) * e.moves.length + off;
           return {
@@ -621,7 +627,7 @@ class Component extends DCLogic {
       key: it.key, isBlock: it.kind === 'block', isSpacer: it.kind === 'spacer',
       face: it.face, label: it.label, state: it.state, tip: it.tip, jump: it.jump,
       i: it.i != null ? String(it.i) : '',
-      chips: it.chips, dots: it.dots,
+      chips: it.chips, dots: it.dots, hasTally: !!(it.dots && it.dots.length),
       untilText: it.until ? '↻ until ' + it.until : (it.badge || '')
     })) : [];
 
@@ -631,7 +637,7 @@ class Component extends DCLogic {
       sel: i === S.varIdx ? 'true' : 'false',
       items: this.renderEntries(v, { index: -1, interactive: false }).map(it => ({
         key: it.key, isBlock: it.kind === 'block', isSpacer: it.kind === 'spacer',
-        face: it.face, label: it.label, chips: it.chips, dots: it.dots,
+        face: it.face, label: it.label, chips: it.chips, dots: it.dots, hasTally: !!(it.dots && it.dots.length),
         untilText: it.until ? '↻ until ' + it.until : (it.badge || '')
       })),
       canvasRef: this.cache('cv-' + i, () => el => { this.varCanvas[i] = el; if (el && this.pool) requestAnimationFrame(() => this.drawThumbs()); }),
