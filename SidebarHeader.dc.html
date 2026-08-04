@@ -17,31 +17,31 @@
 </helmet>
 
 <div style="display:flex;align-items:flex-start;gap:10px;padding:2px 2px 0;font-family:var(--font-sans)">
-  <div class="ct-hide" style="flex:0 0 auto;width:34px;height:34px;border-radius:11px;overflow:hidden">
-    <img src="uploads/Logo.svg" alt="" style="width:34px;height:34px;display:block">
-  </div>
-  <div class="ct-hide" style="min-width:0;flex:1 1 auto">
-    <div style="display:flex;align-items:center;gap:6px">
-      <span style="font:var(--type-panel-title);letter-spacing:var(--tracking-tight);color:var(--text-primary)">{{ title }}</span>
-      <span style="display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:var(--radius-full);background:var(--gray-900);color:var(--text-inverse);font:var(--type-mono);font-size:var(--text-2xs)">{{ badge }}</span>
-    </div>
-    <a href="{{ emailHref }}" style="display:block;margin-top:1px;font:var(--type-caption);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis">{{ email }}</a>
-  </div>
+  <a href="https://silverdesk.com" target="_blank" rel="noopener" style="display:flex;align-items:flex-start;gap:10px;min-width:0;flex:1 1 auto;text-decoration:none">
+    <span class="ct-hide" style="flex:0 0 auto;width:34px;height:34px;border-radius:11px;overflow:hidden">
+      <img src="uploads/Logo.svg" alt="" style="width:34px;height:34px;display:block">
+    </span>
+    <span class="ct-hide" style="min-width:0;flex:1 1 auto">
+      <span style="display:flex;align-items:center;gap:6px">
+        <span style="font:var(--type-panel-title);letter-spacing:var(--tracking-tight);color:var(--text-primary)">{{ title }}</span>
+        <span style="display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:var(--radius-full);background:var(--gray-900);color:var(--text-inverse);font:var(--type-mono);font-size:var(--text-2xs)">{{ badge }}</span>
+      </span>
+      <span style="display:block;margin-top:1px;font:var(--type-caption);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis">{{ subtitle }}</span>
+    </span>
+  </a>
   <span class="ct-tip" data-tip="{{ tip }}" data-side="below">
     <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="sidebar-left" label="{{ tip }}" size="sm" onClick="{{ onToggle }}" hint-size="30px,30px"></x-import>
   </span>
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:72},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Silverdesk&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;badge&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Lab&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;email&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;elbenja@gmail.com&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Collapse sidebar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:72},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Silverdesk&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;badge&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Lab&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;subtitle&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Cube Trainer&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Collapse sidebar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
 class Component extends DCLogic {
   renderVals() {
-    const email = this.props.email ?? "elbenja@gmail.com";
     return {
       title: this.props.title ?? "Silverdesk",
       badge: this.props.badge ?? "Lab",
-      email,
-      emailHref: "mailto:" + email,
+      subtitle: this.props.subtitle ?? "Cube Trainer",
       tip: this.props.tip ?? "Collapse sidebar",
       onToggle: this.props.onToggle ?? (() => {})
     };
