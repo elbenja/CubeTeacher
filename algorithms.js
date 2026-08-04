@@ -14,11 +14,49 @@
 // out, by the slot each one occupies in the case position (after `setup` has
 // run). `D*` means the whole D layer. `dim: false` keeps the whole cube in
 // colour. Ruwix does the same thing with its roofpig `colored=` lists.
+//
+// `view: 'left'` mirrors the camera to the front-left corner, for cases whose
+// slot sits on the left face and would otherwise be hidden behind the cube.
 
 const CROSS_AND_CENTRES = ['U', 'UR', 'UB', 'UL', 'F', 'R', 'B', 'L', 'D'];
 const WHITE_LAYER = ['U', 'UF', 'UR', 'UB', 'UL', 'UFL', 'UBR', 'UBL', 'F', 'R', 'B', 'L', 'D'];
 const FIRST_LAYER = ['D*', 'F', 'R', 'B', 'L', 'U'];
 const F2L_AND_LL_EDGES = ['D*', 'FR', 'FL', 'BR', 'BL', 'F', 'R', 'B', 'L', 'U', 'UF', 'UR', 'UB', 'UL'];
+
+// A variation is authored either as a flat `moves` list or as a `loop` block
+// plus a `run`: numbers repeat the block, strings are literal spacer moves
+// between blocks. Expanding here keeps `moves` the single thing every consumer
+// reads, so the engine, the thumbnails and the validator need no special case.
+export function expandRun(v) {
+  const moves = [], entries = [], map = [];
+  if (!v.run) {
+    (v.moves || []).forEach((m, i) => {
+      moves.push(m);
+      entries.push({ kind: 'spacer', move: m });
+      map.push({ entry: i });
+    });
+    return { moves, entries, map };
+  }
+  for (const item of v.run) {
+    const entry = entries.length;
+    if (typeof item === 'string') {
+      entries.push({ kind: 'spacer', move: item });
+      moves.push(item);
+      map.push({ entry });
+      continue;
+    }
+    const block = { kind: 'block', repeat: item, moves: v.loop.slice() };
+    if (v.until != null) block.until = v.until;
+    entries.push(block);
+    for (let iteration = 0; iteration < item; iteration++) {
+      v.loop.forEach((m, offset) => {
+        moves.push(m);
+        map.push({ entry, iteration, offset });
+      });
+    }
+  }
+  return { moves, entries, map };
+}
 
 export const ALGORITHMS = [
   // ---------------------------------------------------------------- Beginner
@@ -94,6 +132,7 @@ export const ALGORITHMS = [
       { label: 'Insert to the left', moves: ["U'", "L'", 'U', 'L', 'U', 'F', "U'", "F'"],
         setup: ['z2', 'y', 'F', 'U', "F'", "U'", "L'", "U'", 'L', 'U'],
         keep: FIRST_LAYER.concat(['UF']),
+        view: 'left',
         source: 'ruwix-step3#left-algorithm' },
       { label: 'Edge flipped in its slot', moves: ['U', 'R', "U'", "R'", "U'", "F'", 'U', 'F', "U'", 'R', "U'", "R'", "U'", "F'", 'U', 'F'],
         setup: ['z2', 'y', "F'", "U'", 'F', 'U', 'R', 'U', "R'", 'U', "F'", "U'", 'F', 'U', 'R', 'U', "R'", "U'"],
@@ -117,7 +156,8 @@ export const ALGORITHMS = [
         keep: F2L_AND_LL_EDGES,
         source: 'ruwix-step-4#l-shape-shortcut',
         note: 'This is the inverse of F R U R′ U′ F′ and takes the L straight to the cross in one run instead of two.' },
-      { label: 'Dot (three runs)', moves: ['F', 'R', 'U', "R'", "U'", "F'", 'y2', 'F', 'R', 'U', "R'", "U'", "F'", 'y2', 'F', 'R', 'U', "R'", "U'", "F'"],
+      { label: 'Dot (three runs)',
+        loop: ['F', 'R', 'U', "R'", "U'", "F'"], run: [1, 'y2', 1, 'y2', 1],
         setup: ['z2', 'y', 'F', 'U', 'R', "U'", "R'", "F'", 'y2', 'F', 'U', 'R', "U'", "R'", "F'", 'y2', 'F', 'U', 'R', "U'", "R'", "F'"],
         keep: F2L_AND_LL_EDGES,
         source: 'ruwix-step-4#dot',
@@ -135,7 +175,8 @@ export const ALGORITHMS = [
         keep: F2L_AND_LL_EDGES,
         source: 'ruwix-step-5#switch-two-edges',
         note: 'Hold the two edges that need swapping at the front and the left.' },
-      { label: 'Two opposite edges', moves: ['U', 'R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U', 'y2', 'R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U'],
+      { label: 'Two opposite edges',
+        loop: ['R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U'], run: ['U', 1, 'y2', 1],
         setup: ['z2', 'y', "U'", 'R', 'U2', "R'", "U'", 'R', "U'", "R'", 'y2', "U'", 'R', 'U2', "R'", "U'", 'R', "U'", "R'", "U'"],
         keep: F2L_AND_LL_EDGES,
         source: 'ruwix-step-5#applied-twice',
@@ -153,7 +194,8 @@ export const ALGORITHMS = [
         dim: false,
         source: 'ruwix-step-6#cycle-three-corners',
         note: 'The front-right corner stays put; the other three move round it. Orientation is ignored at this stage.' },
-      { label: 'Run it again', moves: ['U', 'R', "U'", "L'", 'U', "R'", "U'", 'L', 'U', 'R', "U'", "L'", 'U', "R'", "U'", 'L'],
+      { label: 'Run it again',
+        loop: ['U', 'R', "U'", "L'", 'U', "R'", "U'", 'L'], run: [2],
         setup: ['z2', 'y', "L'", 'U', 'R', "U'", 'L', 'U', "R'", "U'", "L'", 'U', 'R', "U'", 'L', 'U', "R'", "U'"],
         dim: false,
         source: 'ruwix-step-6#cycle-three-corners',
@@ -162,25 +204,31 @@ export const ALGORITHMS = [
   },
   {
     id: 'b-orient-last-corners', group: 'beginner', name: 'Orient Last Layer Corners',
+    unit: 'corner',
     goal: 'Twist each yellow corner so yellow points up. This finishes the cube.',
     whenToUse: 'Every corner is in the right slot but some are twisted.',
-    whyItWorks: "Same R' D' R D loop as the first layer, applied to a corner held front-right. Two loops twist it one way, four twist it the other. The loop has order six, so the two layers below only come back together once the counts across every corner you fix add up to six — which is why the cube looks wrecked in between and why the examples run 2+4 or 2+2+2. Never rotate the cube between corners — only U.",
+    whyItWorks: "Same R' D' R D loop as the first layer, applied to a corner held front-right. Each loop advances that corner's twist by a fixed step, so a corner is either two loops or four from home — you never count, you stop when yellow is up. Run each loop to the end: stopping when you see yellow, before the final D, is the classic way to wreck the cube. The loop has order six, so the two layers below only come back together once the counts across every corner add up to a multiple of six, which is why the cube looks wrecked in between. Never rotate the cube between corners — only U.",
     variations: [
-      { label: 'Twist one corner (two loops)', moves: ["R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D'],
-        setup: ['z2', 'y', "U'", "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', 'U', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R'],
+      { label: 'Two corners twisted, side by side',
+        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up — finish the four', run: [2, 'U', 4, "U'"],
+        setup: ['z2', 'y', 'U', 'R2', "U'", "R'", 'U', "R'", "U'", 'R2', "U'", 'R2', 'U', 'R', "U'", 'R', 'U', 'R2'],
         dim: false,
-        source: 'ruwix-step-7#example-1',
-        note: "Two of the four corners are twisted here. This run fixes the front-right one and deliberately leaves the layers below open — U′ then brings the other corner round and its four loops settle everything. Run each loop to the end: stopping when you see yellow, before the final D, is the classic way to wreck the cube." },
-      { label: 'Twist one corner (four loops)', moves: ["R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D'],
-        setup: ['z2', 'y', "U'", "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', 'U', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R'],
+        source: 'ruwix-step-7#example-1' },
+      { label: 'Two corners twisted, diagonal',
+        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up — finish the four', run: [2, 'U2', 4, 'U2'],
+        setup: ['z2', 'y', "R'", 'U2', 'R', 'U2', 'R', 'U', "R'", 'U', 'R', 'U2', "R'", 'U2', "R'", "U'", 'R', "U'"],
         dim: false,
-        source: 'ruwix-step-7#example-1-reversed',
-        note: 'Same two-corner case as above with the yellow stickers facing the other way, so the order flips: four loops on this corner, two on the next.' },
-      { label: 'Two corners, start to finish', moves: ["R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "U'", "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', "R'", "D'", 'R', 'D', 'U'],
-        setup: ['z2', 'y', "U'", "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R', 'U', "D'", "R'", 'D', 'R', "D'", "R'", 'D', 'R'],
+        source: 'ruwix-step-7#example-1' },
+      { label: 'Three corners twisted',
+        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up — finish the four', run: [2, 'U', 2, 'U', 2, 'U2'],
+        setup: ['z2', 'y', 'R', "U'", 'R2', 'U', "R'", 'U', 'R2', 'U', "R'", 'U', 'R2', 'U2', 'R', "U'", "R'", 'U2', "R'", 'U2'],
         dim: false,
-        source: 'ruwix-step-7#example-1',
-        note: 'The whole of Ruwix example 1: two loops, U′ to bring the next corner round, four loops, then U to put the top layer back. Ends on a solved cube.' }
+        source: 'ruwix-step-7#example-1' },
+      { label: 'All four corners twisted',
+        loop: ["R'", "D'", 'R', 'D'], until: 'yellow points up — finish the four', run: [2, 'U', 2, 'U', 4, 'U', 4, 'U'],
+        setup: ['z2', 'y', "R'", 'U2', 'R', 'U', "R'", "U'", 'R2', 'U2', 'R2', "U'", 'R2', "U'", 'R2', 'U', 'R', 'U'],
+        dim: false,
+        source: 'ruwix-step-7#example-1' }
     ]
   },
 
@@ -255,6 +303,18 @@ export const ALGORITHMS = [
     variations: [{ label: 'From solved', moves: seq.split(/\s+/), setup: [] }]
   }))
 ];
+
+// Authoring a repeat is only half of it -- every variation is normalised here so
+// that `moves`, `entries` and `runMap` are always present, whichever form was
+// used. Consumers never have to ask which.
+for (const alg of ALGORITHMS) {
+  for (const v of alg.variations) {
+    const { moves, entries, map } = expandRun(v);
+    v.moves = moves;
+    v.entries = entries;
+    v.runMap = map;
+  }
+}
 
 // Icon slugs are Hugeicons Stroke Rounded names. The graduation cap ships as
 // `mortarboard-01` and the hat-and-glasses as `incognito`; the newer
