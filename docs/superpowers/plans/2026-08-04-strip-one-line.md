@@ -325,7 +325,9 @@ Then run the measurement harness. Expected:
 { "stripHeight": 72, "captions": ["repeat loop until yellow points up"], "trackScrollable": true }
 ```
 
-`stripHeight` must be **≤ 80**. `trackScrollable` must be `true`.
+`stripHeight` must be **≤ 90**. `trackScrollable` must be `true`.
+
+*(Corrected during execution — measured 87.6. The original bar of 72/≤80 was arithmetically impossible for this case: it omitted `.ct-loop`'s 14px of vertical padding, which every caption-bearing case necessarily carries, since a caption only renders for loop-block variations. 72 is the number for a flat variation. Real breakdown: 8+8 card padding + 6 gap + ~19.6 caption + 46 loop row = 87.6. `.ct-loop` padding is deliberately NOT tightened to chase the old number.)*
 
 Then check the ring tracks correctly across a scroll:
 
@@ -402,11 +404,20 @@ Insert directly after `positionRing()` in `Cube Trainer.dc.html`:
       track._fadeBound = true;
       track.addEventListener('scroll', () => this.syncFade(), { passive: true });
     }
+    // 4px of tolerance, not 0: the ring is sized chip.width + 8 at a -4px
+    // offset, so parked on the last chip its own border box pushes scrollWidth
+    // 4px past clientWidth. Without the slack a row that visibly fits reports
+    // as scrollable and grows a fade over nothing.
+    const slack = 4;
     const start = track.scrollLeft > 2;
-    const end = track.scrollLeft + track.clientWidth < track.scrollWidth - 2;
+    const end = track.scrollLeft + track.clientWidth < track.scrollWidth - slack;
     track.dataset.fade = start && end ? 'both' : start ? 'start' : end ? 'end' : 'none';
   }
 ```
+
+`followChip`'s early return needs the same slack for the same reason — use
+`track.scrollWidth - track.clientWidth <= slack` there rather than `<=`
+against a bare `clientWidth`.
 
 - [ ] **Step 2: Call them**
 
