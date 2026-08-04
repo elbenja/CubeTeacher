@@ -111,11 +111,27 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-var:hover{background:var(--gray-0);box-shadow:var(--shadow-float)}
 .ct-var[data-sel="true"]{background:var(--gray-0);box-shadow:0 0 0 2px var(--blue-500)}
 .ct-var canvas{display:block;width:100%;height:118px}
-.ct-loop{display:inline-flex;flex-wrap:wrap;align-items:center;gap:5px;padding:5px 7px;border-radius:10px;background:var(--gray-0);box-shadow:inset 0 0 0 1px var(--border-default)}
-.ct-until{font:var(--type-caption);color:var(--text-secondary);padding-left:4px;white-space:nowrap}
-.ct-tally{display:inline-flex;align-items:center;gap:4px}
-.ct-pip{width:7px;height:7px;border-radius:50%;background:var(--gray-300)}
-.ct-pip[data-on="true"]{background:var(--text-primary)}
+/* A loop block stacks its moves over its stop condition, and spans the full row
+   so the spacer after it always lands on its own line. The strip has room to put
+   both on one line, so it opts back into a row below. */
+.ct-loop{display:flex;flex-direction:column;gap:5px;width:100%;padding:7px 9px;border-radius:10px;background:var(--gray-0);box-shadow:inset 0 0 0 1px var(--border-default)}
+.ct-loop-moves{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.ct-loop-meta{display:flex;align-items:center;gap:8px;min-width:0}
+.ct-until{font:var(--type-caption);color:var(--text-secondary)}
+.ct-tally{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
+/* Hollow until the loop is done, so the tally reads as progress and not as a
+   count that has already been achieved. */
+.ct-pip{width:8px;height:8px;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 1.5px var(--gray-500)}
+.ct-pip[data-on="true"]{background:var(--text-primary);box-shadow:none}
+/* Filled rather than outlined: a move that separates two loop blocks is a
+   different kind of thing from the moves inside them. Only marked when the
+   variation actually has blocks -- on a flat variation every move would
+   otherwise read as a separator, which separates nothing. */
+.ct-mini[data-sep="true"]{background:var(--gray-150);box-shadow:none}
+/* The strip has 660px to work with, so a block keeps its moves and its stop
+   condition on one line rather than stacking them. */
+.ct-strip .ct-loop{flex-direction:row;align-items:center;flex-wrap:wrap;width:auto;gap:8px}
+.ct-strip .ct-chip[data-spacer="true"][data-state="future"]{background:var(--gray-150);box-shadow:none}
 
 /* ---- misc ---- */
 .ct-scrub{display:flex;align-items:center;justify-content:center;min-width:60px;height:32px;padding:0 10px;border:0;border-radius:10px;background:var(--gray-100);color:var(--text-primary);font:var(--type-mono);font-size:var(--text-base);font-variant-numeric:tabular-nums;cursor:ew-resize;transition:background-color calc(130ms*var(--m)) var(--ease-out)}
@@ -216,23 +232,27 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
         <sc-if value="{{ it.isBlock }}">
           <span class="ct-loop">
-            <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="4">
-              <button class="ct-chip ct-tip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
-                <span class="ct-dot"></span>{{ c.label }}
-              </button>
-            </sc-for>
-            <span class="ct-until">{{ it.untilText }}</span>
-            <sc-if value="{{ it.hasTally }}">
-              <span class="ct-tally">
-                <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
-                  <span class="ct-pip" data-on="{{ d.on }}"></span>
-                </sc-for>
-              </span>
-            </sc-if>
+            <span class="ct-loop-moves">
+              <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="4">
+                <button class="ct-chip ct-tip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
+                  <span class="ct-dot"></span>{{ c.label }}
+                </button>
+              </sc-for>
+            </span>
+            <span class="ct-loop-meta">
+              <span class="ct-until">{{ it.untilText }}</span>
+              <sc-if value="{{ it.hasTally }}">
+                <span class="ct-tally">
+                  <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
+                    <span class="ct-pip" data-on="{{ d.on }}"></span>
+                  </sc-for>
+                </span>
+              </sc-if>
+            </span>
           </span>
         </sc-if>
         <sc-if value="{{ it.isSpacer }}">
-          <button class="ct-chip ct-tip" data-face="{{ it.face }}" data-state="{{ it.state }}" data-i="{{ it.i }}" data-tip="{{ it.tip }}" onClick="{{ it.jump }}" aria-label="{{ it.tip }}">
+          <button class="ct-chip ct-tip" data-spacer="{{ it.isSep }}" data-face="{{ it.face }}" data-state="{{ it.state }}" data-i="{{ it.i }}" data-tip="{{ it.tip }}" onClick="{{ it.jump }}" aria-label="{{ it.tip }}">
             <span class="ct-dot"></span>{{ it.label }}
           </button>
         </sc-if>
@@ -272,9 +292,9 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
     <div class="ct-hide2" style="flex:1 1 auto;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:14px">
       <sc-for list="{{ variations }}" as="v" hint-placeholder-count="3">
         <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-            <span style="font:var(--type-section-label)">{{ v.label }}</span>
-            <span style="font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary);margin-left:auto">{{ v.structure }}</span>
+          <div style="margin-bottom:7px">
+            <span style="display:block;font:var(--type-section-label)">{{ v.label }}</span>
+            <span style="display:block;margin-top:2px;font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary)">{{ v.structure }}</span>
           </div>
           <button class="ct-var" data-sel="{{ v.sel }}" onClick="{{ v.select }}" onPointerMove="{{ v.tilt }}" onPointerLeave="{{ v.untilt }}" aria-pressed="{{ v.sel }}">
             <canvas ref="{{ v.canvasRef }}" width="96" height="118"></canvas>
@@ -282,21 +302,25 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
               <sc-for list="{{ v.items }}" as="it" hint-placeholder-count="3">
                 <sc-if value="{{ it.isBlock }}">
                   <span class="ct-loop">
-                    <sc-for list="{{ it.chips }}" as="mc" hint-placeholder-count="4">
-                      <span class="ct-mini" data-face="{{ mc.face }}">{{ mc.label }}</span>
-                    </sc-for>
-                    <span class="ct-until">{{ it.untilText }}</span>
-                    <sc-if value="{{ it.hasTally }}">
-                      <span class="ct-tally">
-                        <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
-                          <span class="ct-pip" data-on="{{ d.on }}"></span>
-                        </sc-for>
-                      </span>
-                    </sc-if>
+                    <span class="ct-loop-moves">
+                      <sc-for list="{{ it.chips }}" as="mc" hint-placeholder-count="4">
+                        <span class="ct-mini" data-face="{{ mc.face }}">{{ mc.label }}</span>
+                      </sc-for>
+                    </span>
+                    <span class="ct-loop-meta">
+                      <span class="ct-until">{{ it.untilText }}</span>
+                      <sc-if value="{{ it.hasTally }}">
+                        <span class="ct-tally">
+                          <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
+                            <span class="ct-pip" data-on="{{ d.on }}"></span>
+                          </sc-for>
+                        </span>
+                      </sc-if>
+                    </span>
                   </span>
                 </sc-if>
                 <sc-if value="{{ it.isSpacer }}">
-                  <span class="ct-mini" data-face="{{ it.face }}">{{ it.label }}</span>
+                  <span class="ct-mini" data-sep="{{ it.isSep }}" data-face="{{ it.face }}">{{ it.label }}</span>
                 </sc-if>
               </sc-for>
             </div>
@@ -623,12 +647,17 @@ class Component extends DCLogic {
     });
 
     const cv = this.currentVar();
+    // A spacer only reads as a separator when there are blocks for it to sit
+    // between; on a flat variation every move would otherwise be marked as one.
+    const hasBlocks = v => (v && v.entries ? v.entries : []).some(e => e.kind === 'block');
+    const cvHasBlocks = hasBlocks(cv);
     const stripItems = cv ? this.renderEntries(cv, { index: S.index, interactive: true }).map(it => ({
       key: it.key, isBlock: it.kind === 'block', isSpacer: it.kind === 'spacer',
       face: it.face, label: it.label, state: it.state, tip: it.tip, jump: it.jump,
       i: it.i != null ? String(it.i) : '',
+      isSep: it.kind === 'spacer' && cvHasBlocks ? 'true' : 'false',
       chips: it.chips, dots: it.dots, hasTally: !!(it.dots && it.dots.length),
-      untilText: it.until ? '↻ until ' + it.until : (it.badge || '')
+      untilText: it.until ? 'repeat loop until ' + it.until : (it.badge || '')
     })) : [];
 
     const variations = (alg ? alg.variations : []).map((v, i) => ({
@@ -637,8 +666,9 @@ class Component extends DCLogic {
       sel: i === S.varIdx ? 'true' : 'false',
       items: this.renderEntries(v, { index: -1, interactive: false }).map(it => ({
         key: it.key, isBlock: it.kind === 'block', isSpacer: it.kind === 'spacer',
+        isSep: it.kind === 'spacer' && hasBlocks(v) ? 'true' : 'false',
         face: it.face, label: it.label, chips: it.chips, dots: it.dots, hasTally: !!(it.dots && it.dots.length),
-        untilText: it.until ? '↻ until ' + it.until : (it.badge || '')
+        untilText: it.until ? 'repeat loop until ' + it.until : (it.badge || '')
       })),
       canvasRef: this.cache('cv-' + i, () => el => { this.varCanvas[i] = el; if (el && this.pool) requestAnimationFrame(() => this.drawThumbs()); }),
       select: this.cache('var-' + i, () => () => this.selectVar(i)),
