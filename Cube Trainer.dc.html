@@ -121,7 +121,7 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-var{position:relative;display:block;width:100%;padding:10px;border:0;border-radius:var(--radius-lg);background:var(--surface-sunken);cursor:pointer;text-align:left;transform:perspective(720px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:box-shadow calc(190ms*var(--m)) var(--ease-out),transform calc(340ms*var(--m)) var(--ease-spring-out),background-color calc(130ms*var(--m)) var(--ease-out)}
 .ct-var:hover{background:var(--gray-0);box-shadow:var(--shadow-float)}
 .ct-var[data-sel="true"]{background:var(--gray-0);box-shadow:0 0 0 2px var(--blue-500)}
-.ct-var canvas{display:block;width:100%;height:118px}
+.ct-var canvas{display:block;width:100%;height:118px;object-fit:contain}
 /* A loop block stacks its moves over its stop condition, and spans the full row
    so the spacer after it always lands on its own line. The strip has room to put
    both on one line, so it opts back into a row below. */
@@ -168,10 +168,16 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
 .ct-side[data-collapsed="true"] .ct-frow{justify-content:center}
 .ct-side[data-collapsed="true"] .ct-fend{margin-left:0}
 .ct[data-scol="true"] .ct-stage{left:116px!important}
-.ct-right[data-collapsed="true"]{width:56px!important;align-items:center}
-.ct-right[data-collapsed="true"] .ct-hide2{display:none!important}
-.ct-right[data-collapsed="true"] .ct-heart{display:none}
-.ct[data-rcol="true"] .ct-stage{right:96px!important}
+/* Collapsing the right panel is a desktop-only idea, and its rules outrank the
+   sheet's own by specificity. Left unscoped, a panel collapsed on a wide window
+   would follow you down to a phone as a 56px sheet with its contents hidden --
+   and the toggle that undoes it is itself hidden there. */
+@media (min-width:1025px){
+  .ct-right[data-collapsed="true"]{width:56px!important;align-items:center}
+  .ct-right[data-collapsed="true"] .ct-hide2{display:none!important}
+  .ct-right[data-collapsed="true"] .ct-heart{display:none}
+  .ct[data-rcol="true"] .ct-stage{right:96px!important}
+}
 .ct-why{display:grid;grid-template-rows:0fr;transition:grid-template-rows calc(280ms*var(--m)) var(--ease-out),opacity calc(190ms*var(--m)) var(--ease-out);opacity:0}
 .ct-why[data-open="true"]{grid-template-rows:1fr;opacity:1}
 .ct-why>div{overflow:hidden;min-height:0}
@@ -183,17 +189,40 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   .ct-stage{right:336px!important}
 }
 @media (max-width:1024px){
-  .ct-right{position:fixed!important;left:328px!important;right:12px!important;bottom:0!important;top:auto!important;width:auto!important;max-height:56vh;border-radius:20px 20px 0 0;transform:translateY(calc(100% - 54px));transition:transform calc(280ms*var(--m)) var(--ease-out)}
+  /* Closed, the sheet peeks by exactly its grabber plus its title row, so the
+     case name stays readable with the panel down. Both the peek and the room
+     the stage leaves for it come off this one number. */
+  .ct{--peek:78px}
+  /* The design system's icon glyph carries its own z-index, which floats it out
+     of the transport bar and over an unlayered sheet -- icons with no button
+     under them. Give the sheet a layer of its own, still under the drawer scrim
+     so opening the menu dims it. */
+  .ct-right{position:fixed!important;left:328px!important;right:12px!important;bottom:0!important;top:auto!important;width:auto!important;max-height:56vh;border-radius:20px 20px 0 0;z-index:10;transform:translateY(calc(100% - var(--peek)));transition:transform calc(280ms*var(--m)) var(--ease-out)}
   .ct-right[data-sheet="open"]{transform:none}
   .ct-sheet-handle{display:flex!important}
-  .ct-stage{right:20px!important;bottom:54px!important}
+  /* The grabber sits near the edge and the title tucks straight under it -- the
+     54px handle and 16px header inset that read fine as panel chrome just push
+     the title out of the peek. */
+  .ct-rhead{padding-top:0!important}
+  /* Closed, the whole peek is the toggle, so a tap on the visible title opens
+     the sheet rather than landing on dead panel. Stops short of the heart so
+     favouriting still works with the panel down. */
+  .ct-right[data-sheet="closed"] .ct-sheet-handle::after{content:"";position:absolute;left:0;top:0;right:52px;height:var(--peek)}
+  /* As a sheet the panel has no collapsed state to toggle into. */
+  .ct-right .ct-ib{display:none}
+  .ct-stage{right:20px!important;bottom:var(--peek)!important}
 }
 @media (max-width:768px){
   .ct-right{left:12px!important}
   .ct-side{position:fixed!important;z-index:55;transform:translateX(calc(-100% - 28px));transition:transform calc(280ms*var(--m)) var(--ease-out)}
   .ct-side[data-drawer="open"]{transform:none}
   .ct-burger{display:grid!important}
-  .ct-stage{left:16px!important;right:16px!important}
+  /* Start the stage below the burger so it stops sitting on the group label.
+     The room comes out of the dead gap above the cube, which is centred in the
+     window rather than in the stage, so nothing moves to pay for it. */
+  .ct-stage{left:16px!important;right:16px!important;top:32px!important}
+  /* Two paragraphs 2px apart read as one; at this width they need the break. */
+  .ct-teach p+p{margin-top:8px!important}
   .ct-scrim[data-on="true"]{opacity:1;pointer-events:auto}
   main.ct-stage>[data-sc-name="TeachCard"]{max-width:none!important}
 }
@@ -296,10 +325,10 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   </main>
 
   <aside class="ct-right" data-sheet="{{ sheetState }}" data-collapsed="{{ rightCollapsed }}" style="position:absolute;right:20px;top:20px;bottom:20px;width:328px;display:flex;flex-direction:column;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-panel),inset 0 0 0 1px var(--border-hairline);transition:width 280ms var(--ease-out)">
-    <button class="ct-sheet-handle" onClick="{{ toggleSheet }}" style="align-items:center;justify-content:center;gap:8px;width:100%;height:54px;flex:0 0 auto;border:0;background:none;cursor:pointer;font:var(--type-label);color:var(--text-secondary)">
-      <span style="width:34px;height:4px;border-radius:2px;background:var(--gray-300)"></span>{{ variationsLabel }}
+    <button class="ct-sheet-handle" onClick="{{ toggleSheet }}" aria-label="{{ variationsLabel }}" aria-expanded="{{ sheetExpanded }}" style="position:relative;align-items:flex-start;justify-content:center;width:100%;height:32px;padding-top:10px;flex:0 0 auto;border:0;background:none;cursor:pointer">
+      <span style="width:34px;height:4px;border-radius:2px;background:var(--gray-300)"></span>
     </button>
-    <div style="display:flex;align-items:center;gap:6px;padding:16px 16px 12px;flex:0 0 auto">
+    <div class="ct-rhead" style="display:flex;align-items:center;gap:6px;padding:16px 16px 12px;flex:0 0 auto">
       <span class="ct-hide2" style="flex:1 1 auto;min-width:0;font:var(--type-panel-title);letter-spacing:var(--tracking-tight);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ cur.name }}</span>
       <button class="ct-heart ct-tip" data-on="{{ likedState }}" data-tip="{{ heartTip }}" data-side="below" onClick="{{ toggleLike }}" aria-label="{{ heartTip }}" aria-pressed="{{ likedState }}">
         <i class="hgi-stroke hgi-favourite" style="font-size:19px"></i>
@@ -316,7 +345,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
             <span style="display:block;margin-top:2px;font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary)">{{ v.structure }}</span>
           </div>
           <button class="ct-var" data-sel="{{ v.sel }}" onClick="{{ v.select }}" onPointerMove="{{ v.tilt }}" onPointerLeave="{{ v.untilt }}" aria-pressed="{{ v.sel }}">
-            <canvas ref="{{ v.canvasRef }}" width="96" height="118"></canvas>
+            <canvas ref="{{ v.canvasRef }}" width="256" height="256"></canvas>
             <div style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px">
               <sc-for list="{{ v.items }}" as="it" hint-placeholder-count="3">
                 <sc-if value="{{ it.isBlock }}">
@@ -769,6 +798,7 @@ class Component extends DCLogic {
       toggleDrawer: () => this.setState(s => ({ drawer: !s.drawer })),
       closeDrawer: () => this.setState({ drawer: false }),
       sheetState: S.sheet ? 'open' : 'closed',
+      sheetExpanded: S.sheet ? 'true' : 'false',
       toggleSheet: () => this.setState(s => ({ sheet: !s.sheet }))
     };
   }

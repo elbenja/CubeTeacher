@@ -517,13 +517,15 @@ export class MiniPool {
     this.camera.position.set(r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.cos(theta));
     this.camera.lookAt(0, 0, 0);
     this.renderer.render(this.scene, this.camera);
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = canvas.clientWidth || 96, h = canvas.clientHeight || 96;
-    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    // Square buffer in, square buffer out, centred by object-fit rather than by
+    // arithmetic. Sizing the backing store from clientWidth raced the panel's
+    // layout: measure a box a few pixels wider than the one that finally lays
+    // out and every thumbnail is squeezed horizontally by the difference.
+    const px = this.size;
+    canvas.width = px; canvas.height = px;
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const side = Math.min(canvas.width, canvas.height);
-    ctx.drawImage(this.renderer.domElement, (canvas.width - side) / 2, (canvas.height - side) / 2, side, side);
+    ctx.clearRect(0, 0, px, px);
+    ctx.drawImage(this.renderer.domElement, 0, 0, px, px);
   }
 
   dispose() {
