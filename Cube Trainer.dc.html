@@ -129,6 +129,9 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-loop-moves{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .ct-loop-meta{display:flex;align-items:center;gap:8px;min-width:0}
 .ct-until{font:var(--type-caption);color:var(--text-secondary)}
+/* One per variation, above the moves, so it stays put while the track scrolls.
+   --text-secondary on --amber-50 is 4.6:1, which clears AA for caption text. */
+.ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--text-secondary);font:var(--type-caption)}
 .ct-tally{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
 /* Filled grey, going black as each loop completes: readable as a count while
    idle, and as progress while playing. Cards render statically, so their pips
@@ -272,7 +275,10 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       </sc-if>
     </div>
 
-    <div class="ct-strip" data-tint="{{ tintState }}" ref="{{ stripRef }}" style="pointer-events:auto;position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:660px;padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
+    <div class="ct-strip" data-tint="{{ tintState }}" ref="{{ stripRef }}" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:660px;padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
+      <sc-if value="{{ stripUntil }}">
+        <span class="ct-strip-until">{{ stripUntil }}</span>
+      </sc-if>
       <div class="ct-ring" ref="{{ ringRef }}"></div>
       <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
         <sc-if value="{{ it.isBlock }}">
@@ -746,6 +752,7 @@ class Component extends DCLogic {
       startBeginner: e => { e.preventDefault(); this.setState(s => ({ open: Object.assign({}, s.open, { beginner: true }) }), () => this.selectAlg('b-first-layer-edges')); },
 
       stripItems,
+      stripUntil: cv && cv.until ? 'repeat loop until ' + cv.until : '',
       variations,
       variationsLabel: variations.length + ' case variations',
 
