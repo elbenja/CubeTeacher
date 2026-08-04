@@ -12,6 +12,7 @@
 
 - No new dependencies. No build step. Single file changed: `Cube Trainer.dc.html`.
 - Only design-system tokens for colour and type. Do not invent token names. The tokens this plan uses and their values: `--amber-50: #fff6e0`, `--text-secondary: #757575`, `--type-caption`, `--radius-full`, `--gray-0`, `--border-default`.
+- The literal `#000` inside a `mask-image` gradient is the exception, and is not a token violation: a mask reads only the alpha channel, so the value is opacity, not colour. There is no token for it and none should be added.
 - Match existing style: two-space indent, single quotes in JS, comments that explain *why* rather than *what*.
 - `node validate.mjs` must exit 0 at the end of every task.
 - The `×N` badge (`it.badge`) must keep rendering for every algorithm that has repeat blocks without an `until`. Only the `until` string is de-duplicated.
@@ -256,9 +257,10 @@ Insert after the `.ct-strip-until` rule added in Task 2:
 /* Nothing shrinks: a nowrap flex line squashes its items by default, which
    would compress chips instead of overflowing them. */
 .ct-strip-track>*{flex:0 0 auto}
-/* The panel can wrap a long block internally; the track never can, or a block
-   would grow a second row and undo the whole point. */
-.ct-strip-track .ct-loop,.ct-strip-track .ct-loop-moves{flex-wrap:nowrap}
+/* The panel can wrap a long block's moves internally; the track never can, or a
+   block would grow a second row and undo the whole point. `.ct-loop` itself is
+   already nowrap from its base rule -- only its moves list needs overriding. */
+.ct-strip-track .ct-loop-moves{flex-wrap:nowrap}
 .ct-strip-track[data-fade="start"]{mask-image:linear-gradient(90deg,transparent 0,#000 24px)}
 .ct-strip-track[data-fade="end"]{mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent 100%)}
 .ct-strip-track[data-fade="both"]{mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
