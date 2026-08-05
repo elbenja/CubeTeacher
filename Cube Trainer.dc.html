@@ -139,11 +139,6 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-loop-moves{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .ct-loop-meta{display:flex;align-items:center;gap:8px;min-width:0}
 .ct-until{font:var(--type-caption);color:var(--text-secondary)}
-/* A blank repeat badge still takes its .ct-loop-meta gap, pushing the tally 8px
-   off the last chip for nothing. Matched through the interpolation span rather
-   than with :empty -- the wrapper always holds that span, so it is never empty
-   itself however little it renders. */
-.ct-until:has(.sc-interp:empty){display:none}
 /* One per variation, above the moves, so it stays put while the track scrolls.
    --gray-700 on --amber-50 is 7.61:1, which clears AA for caption text. */
 .ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
@@ -323,7 +318,9 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
                 </sc-for>
               </span>
               <span class="ct-loop-meta">
-                <span class="ct-until">{{ it.untilText }}</span>
+                <sc-if value="{{ it.untilText }}">
+                  <span class="ct-until">{{ it.untilText }}</span>
+                </sc-if>
                 <sc-if value="{{ it.hasTally }}">
                   <span class="ct-tally">
                     <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
@@ -393,7 +390,9 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
                       </sc-for>
                     </span>
                     <span class="ct-loop-meta">
-                      <span class="ct-until">{{ it.untilText }}</span>
+                      <sc-if value="{{ it.untilText }}">
+                        <span class="ct-until">{{ it.untilText }}</span>
+                      </sc-if>
                       <sc-if value="{{ it.hasTally }}">
                         <span class="ct-tally">
                           <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
@@ -705,15 +704,21 @@ class Component extends DCLogic {
     // Anchored to the chip rather than shifted by a fixed page. A relative
     // scrollBy overshoots by an amount that depends on chip width, dropping the
     // chip straight back into the opposite trigger zone -- so the next step
-    // scrolls back and the strip flip-flops without ever settling. Parking the
-    // chip exactly `lead` inside the far edge is clear of both zones by
-    // construction, for any track wider than 2*lead. Content coordinates, as in
-    // positionRing: scrollLeft and the rects are read at the same instant, so
-    // this is correct even mid-animation.
+    // scrolls back and the strip flip-flops without ever settling.
+    //
+    // Park it a whole epsilon clear of the zone rather than exactly `lead`
+    // inside the far edge: landing on the boundary leaves the opposite trigger
+    // at the mercy of how the browser rounds scrollLeft, and followChip runs on
+    // every state change, not only on index changes -- so a re-render that
+    // doesn't move the index would lurch the strip back and forth.
+    //
+    // Content coordinates, as in positionRing: scrollLeft and the rects are
+    // read at the same instant, so this is correct even mid-animation.
+    const park = lead + this.SCROLL_EPSILON;
     const cur = track.scrollLeft;
     const chipLeft = cr.left - tr.left + cur;
-    if (cr.right > tr.right - lead) track.scrollTo({ left: chipLeft - lead, behavior: this.smoothness() });
-    else if (cr.left < tr.left + lead) track.scrollTo({ left: chipLeft + cr.width + lead - track.clientWidth, behavior: this.smoothness() });
+    if (cr.right > tr.right - lead) track.scrollTo({ left: chipLeft - park, behavior: this.smoothness() });
+    else if (cr.left < tr.left + lead) track.scrollTo({ left: chipLeft + cr.width + park - track.clientWidth, behavior: this.smoothness() });
   }
 
   // Only fade an edge that actually has content past it -- a fade over a fully
