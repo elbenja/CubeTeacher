@@ -139,6 +139,11 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-loop-moves{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .ct-loop-meta{display:flex;align-items:center;gap:8px;min-width:0}
 .ct-until{font:var(--type-caption);color:var(--text-secondary)}
+/* A blank repeat badge still takes its .ct-loop-meta gap, pushing the tally 8px
+   off the last chip for nothing. Matched through the interpolation span rather
+   than with :empty -- the wrapper always holds that span, so it is never empty
+   itself however little it renders. */
+.ct-until:has(.sc-interp:empty){display:none}
 /* One per variation, above the moves, so it stays put while the track scrolls.
    --gray-700 on --amber-50 is 7.61:1, which clears AA for caption text. */
 .ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
@@ -301,7 +306,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       </sc-if>
     </div>
 
-    <div class="ct-strip" data-tint="{{ tintState }}" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:660px;padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
+    <div class="ct-strip" data-tint="{{ tintState }}" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:min(660px,100%);padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
       <sc-if value="{{ stripUntil }}">
         <span class="ct-strip-until">{{ stripUntil }}</span>
       </sc-if>
@@ -426,6 +431,15 @@ class Component extends DCLogic {
     likes: [], viewed: [], legendOpen: false,
     sideCollapsed: false, rightCollapsed: false, drawer: false, sheet: false
   };
+
+  // The ring is sized chip.width + 8 at a -4px offset, so parked on the last
+  // chip its own border box pushes scrollWidth 4px past clientWidth. Every
+  // edge test on the track has to forgive that much, or a row that visibly
+  // fits reports as scrollable and grows a fade over nothing.
+  RING_SLACK = 4;
+  // scrollLeft lands on fractions after a smooth scroll, so "at the start" is
+  // a couple of pixels wide rather than exactly zero.
+  SCROLL_EPSILON = 2;
 
   // ------------------------------------------------------------ lifecycle
   async componentDidMount() {
@@ -676,21 +690,30 @@ class Component extends DCLogic {
 
   // Edge-triggered, not centred. Centring would move the strip on all 52 steps
   // of a four-corner case; this leaves it still until the live chip is about to
-  // fall off, then turns a page. Matches how the ring already reads -- a marker
-  // that travels, rather than a fixed sight the moves slide under.
+  // fall off, then carries it across to the far edge. Matches how the ring
+  // already reads -- a marker that travels, rather than a fixed sight the moves
+  // slide under.
   followChip() {
     const track = this.stripEl;
-    // Same 4px of ring overflow syncFade allows for -- see the note there.
-    if (!track || track.scrollWidth - track.clientWidth <= 4) return;
+    if (!track || track.scrollWidth - track.clientWidth <= this.RING_SLACK) return;
     const chip = track.querySelector('[data-i="' + this.state.index + '"]');
     if (!chip) return;
     const tr = track.getBoundingClientRect(), cr = chip.getBoundingClientRect();
     // One chip plus its gap of headroom: the turn happens while the chip after
     // the live one is still the thing about to be lost, not the live one.
     const lead = cr.width + 8;
-    const page = track.clientWidth * 0.8;
-    if (cr.right > tr.right - lead) track.scrollBy({ left: page, behavior: this.smoothness() });
-    else if (cr.left < tr.left + lead) track.scrollBy({ left: -page, behavior: this.smoothness() });
+    // Anchored to the chip rather than shifted by a fixed page. A relative
+    // scrollBy overshoots by an amount that depends on chip width, dropping the
+    // chip straight back into the opposite trigger zone -- so the next step
+    // scrolls back and the strip flip-flops without ever settling. Parking the
+    // chip exactly `lead` inside the far edge is clear of both zones by
+    // construction, for any track wider than 2*lead. Content coordinates, as in
+    // positionRing: scrollLeft and the rects are read at the same instant, so
+    // this is correct even mid-animation.
+    const cur = track.scrollLeft;
+    const chipLeft = cr.left - tr.left + cur;
+    if (cr.right > tr.right - lead) track.scrollTo({ left: chipLeft - lead, behavior: this.smoothness() });
+    else if (cr.left < tr.left + lead) track.scrollTo({ left: chipLeft + cr.width + lead - track.clientWidth, behavior: this.smoothness() });
   }
 
   // Only fade an edge that actually has content past it -- a fade over a fully
@@ -698,13 +721,8 @@ class Component extends DCLogic {
   syncFade() {
     const track = this.stripEl;
     if (!track) return;
-    // 4px of tolerance, not 0: the ring is sized chip.width + 8 at a -4px
-    // offset, so parked on the last chip its own border box pushes scrollWidth
-    // 4px past clientWidth. Without the slack a row that visibly fits reports
-    // as scrollable and grows a fade over nothing.
-    const slack = 4;
-    const start = track.scrollLeft > 2;
-    const end = track.scrollLeft + track.clientWidth < track.scrollWidth - slack;
+    const start = track.scrollLeft > this.SCROLL_EPSILON;
+    const end = track.scrollLeft + track.clientWidth < track.scrollWidth - this.RING_SLACK;
     track.dataset.fade = start && end ? 'both' : start ? 'start' : end ? 'end' : 'none';
   }
 
