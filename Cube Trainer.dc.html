@@ -305,7 +305,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       <sc-if value="{{ stripUntil }}">
         <span class="ct-strip-until">{{ stripUntil }}</span>
       </sc-if>
-      <div class="ct-strip-track" data-fade="none" ref="{{ stripRef }}" onPointerOver="{{ tipOver }}" onPointerOut="{{ tipOut }}">
+      <div class="ct-strip-track" data-fade="none" ref="{{ stripRef }}" onScroll="{{ stripScroll }}" onPointerOver="{{ tipOver }}" onPointerOut="{{ tipOut }}">
         <div class="ct-ring" ref="{{ ringRef }}"></div>
         <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
           <sc-if value="{{ it.isBlock }}">
@@ -336,7 +336,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
           </sc-if>
         </sc-for>
       </div>
-      <span class="ct-strip-tip" ref="{{ tipRef }}"></span>
+      <span class="ct-strip-tip" ref="{{ tipRef }}" aria-hidden="true"></span>
     </div>
 
     <div style="pointer-events:auto;display:flex;align-items:center;gap:8px;margin:16px 0 22px;padding:8px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
@@ -463,7 +463,9 @@ class Component extends DCLogic {
   }
 
   componentDidUpdate(prev) {
+    this.followChip();
     this.positionRing();
+    this.syncFade();
     this.applyMotion();
     if (this.engine && this.props.cubeFinish !== prev.cubeFinish) this.engine.setFinish(this.props.cubeFinish || 'flat');
   }
@@ -665,6 +667,54 @@ class Component extends DCLogic {
     ring.style.opacity = '1';
   }
 
+  // 'auto' rather than 'smooth' under reduced motion. The CSS route for this is
+  // --m, which a scrollBy() cannot read, so the preference is checked directly.
+  smoothness() {
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return reduce || this.props.motionLevel === 0 ? 'auto' : 'smooth';
+  }
+
+  // Edge-triggered, not centred. Centring would move the strip on all 52 steps
+  // of a four-corner case; this leaves it still until the live chip is about to
+  // fall off, then turns a page. Matches how the ring already reads -- a marker
+  // that travels, rather than a fixed sight the moves slide under.
+  followChip() {
+    const track = this.stripEl;
+    // Same 4px of ring overflow syncFade allows for -- see the note there.
+    if (!track || track.scrollWidth - track.clientWidth <= 4) return;
+    const chip = track.querySelector('[data-i="' + this.state.index + '"]');
+    if (!chip) return;
+    const tr = track.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    // One chip plus its gap of headroom: the turn happens while the chip after
+    // the live one is still the thing about to be lost, not the live one.
+    const lead = cr.width + 8;
+    const page = track.clientWidth * 0.8;
+    if (cr.right > tr.right - lead) track.scrollBy({ left: page, behavior: this.smoothness() });
+    else if (cr.left < tr.left + lead) track.scrollBy({ left: -page, behavior: this.smoothness() });
+  }
+
+  // Only fade an edge that actually has content past it -- a fade over a fully
+  // scrolled end reads as content that is not there.
+  syncFade() {
+    const track = this.stripEl;
+    if (!track) return;
+    // 4px of tolerance, not 0: the ring is sized chip.width + 8 at a -4px
+    // offset, so parked on the last chip its own border box pushes scrollWidth
+    // 4px past clientWidth. Without the slack a row that visibly fits reports
+    // as scrollable and grows a fade over nothing.
+    const slack = 4;
+    const start = track.scrollLeft > 2;
+    const end = track.scrollLeft + track.clientWidth < track.scrollWidth - slack;
+    track.dataset.fade = start && end ? 'both' : start ? 'start' : end ? 'end' : 'none';
+  }
+
+  // A manual swipe changes which edges have content past them, and drags the
+  // chips out from under a hovered tip.
+  stripScroll() {
+    this.syncFade();
+    if (this._tipChip) this.hideTip();
+  }
+
   // ------------------------------------------------------------ strip tip
   // Delegated, since chips are re-rendered on every move -- one listener on
   // the track outlives all of them instead of rebinding per chip.
@@ -691,8 +741,20 @@ class Component extends DCLogic {
     // doesn't need to re-run this -- the tip is anchored for the duration
     // of one hover, same as the pseudo-element it replaces.
     const stripRect = tip.parentElement.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    // Chip to chip, the browser fires pointerout(A) and pointerover(B) in one
+    // task, so the pill never renders hidden in between: B's text lands while
+    // the box still sits over A, and the move to B then inherits the 400ms
+    // transition-delay the reveal carries -- B's text parked over A for most of
+    // half a second. Muting transitions for the reposition and flushing it puts
+    // the box over B while it is still invisible, so the delay only ever delays
+    // the fade-in. A bare flush is not enough: the delay is on the shown state,
+    // and it applies to transform as much as to opacity.
+    tip.style.transition = 'none';
+    tip.removeAttribute('data-show');
     tip.style.setProperty('--tip-x', (cr.left - stripRect.left + cr.width / 2) + 'px');
     tip.style.setProperty('--tip-y', (cr.top - stripRect.top - 8) + 'px');
+    void tip.offsetWidth;
+    tip.style.transition = '';
     tip.setAttribute('data-show', 'true');
     this._tipChip = chip;
   }
@@ -824,6 +886,7 @@ class Component extends DCLogic {
 
       stripItems,
       stripUntil: cv && cv.until ? 'repeat loop until ' + cv.until : '',
+      stripScroll: () => this.stripScroll(),
       tipOver: e => this.tipOver(e),
       tipOut: e => this.tipOut(e),
       variations,
