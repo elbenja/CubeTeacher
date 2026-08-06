@@ -143,15 +143,23 @@ a:hover{color:var(--blue-600);text-decoration:underline}
    A custom property rather than a bare number because syncStackOverflow() reads
    it back — the button that lifts the cap has to know what the cap is. */
 .ct{--stack-cap:131px}
-/* One per variation, above the moves, so it stays put while the track scrolls.
+/* One per variation, above the moves, so it stays put while the stack scrolls.
    --gray-700 on --amber-50 is 7.61:1, which clears AA for caption text. */
 .ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
-/* Wrapped and height-capped rather than one scrolled line. A block plus its
-   spacer is ~270px, so a 323px phone content box takes one pair per row and a
-   640px desktop one takes two -- the stacking in the mockup is this wrap at
-   phone width, not a column. Capping the height protects the cube while still
-   showing the algorithm's shape, which one line cannot. */
-.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:100%;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
+/* Wrapped and height-capped rather than one scrolled line -- the stacking in
+   the mockup is this wrap at phone width, not a column. Measured, a block plus
+   its spacer runs 287-313px, so two pairs need ~582px of content box: the
+   323px phone box takes one pair per row, and of the desktop layouts only the
+   640px box (viewport 1440) fits two. At the app's 1280 layout the panels leave
+   a 564px box, which is 18px short, so that width wraps to three rows and
+   scrolls. Capping the height protects the cube while still showing the
+   algorithm's shape, which one line cannot.
+   align-items:center is load-bearing, not decoration: .ct-chip has a definite
+   32px height, so without it a standalone spacer sits flush with the top of a
+   46px row while a chip inside a .ct-loop sits 7px down from its own padding.
+   That 7px split is what makes followChip's backward trigger fire on a chip the
+   forward park had just cleared. */
+.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:100%;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
 .ct-strip-stack::-webkit-scrollbar{display:none}
 /* Expanded, the cap lifts to whatever the content needs, bounded so it can
    never grow past the stage and re-cover the cube it exists to protect. */
@@ -664,20 +672,20 @@ class Component extends DCLogic {
 
   // ----------------------------------------------------------------- ring
   positionRing() {
-    const track = this.stripEl, ring = this.ringEl;
-    if (!track || !ring) return;
+    const stack = this.stripEl, ring = this.ringEl;
+    if (!stack || !ring) return;
     // No clamp: once index reaches total every move is done, so there is no
     // current chip to ring — the lookup misses and the ring hides itself.
-    const chip = track.querySelector('[data-i="' + this.state.index + '"]');
+    const chip = stack.querySelector('[data-i="' + this.state.index + '"]');
     if (!chip || !this.state.total) { ring.style.opacity = '0'; return; }
-    const tr = track.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    const sr = stack.getBoundingClientRect(), cr = chip.getBoundingClientRect();
     ring.style.width = (cr.width + 8) + 'px';
     ring.style.height = (cr.height + 8) + 'px';
     // Content coordinates, not viewport: adding scrollTop back cancels the
     // shift getBoundingClientRect() reports, so this value is the same whether
     // it is read before, during, or after a smooth scroll. That is what lets
     // followChip() and this run in either order.
-    ring.style.transform = 'translate(' + (cr.left - tr.left - 4) + 'px,' + (cr.top - tr.top + track.scrollTop - 4) + 'px)';
+    ring.style.transform = 'translate(' + (cr.left - sr.left - 4) + 'px,' + (cr.top - sr.top + stack.scrollTop - 4) + 'px)';
     ring.style.opacity = '1';
   }
 
