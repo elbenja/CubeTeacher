@@ -146,11 +146,21 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 /* One per variation, above the moves, so it stays put while the stack scrolls.
    --gray-700 on --amber-50 is 7.61:1, which clears AA for caption text. */
 .ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
-/* Anchored to the card's corner rather than beside the caption: only the four
-   OLL variations carry a stop condition, so most algorithms have no caption for
-   a button to sit next to -- and a flat 20-move pattern is exactly the case
-   that needs the toggle. Outside the stack so it cannot scroll away. */
-.ct-stack-toggle{position:absolute;right:6px;top:6px;z-index:2}
+/* Caption and toggle share one row, rendered only when at least one of them
+   exists -- a short flat variation with neither keeps its old height.
+   The toggle floated in the card's corner first. That fails: on a case with no
+   caption the top row starts high enough to run under it, and the button
+   covered the sixth chip of Superflip's top row and swallowed its clicks.
+   Reserving a horizontal gutter instead cost more than it bought -- clearing
+   the button needs >=24px, but keeping the phone's four rows needs <=10 and
+   keeping 1440's two rows needs <=6, so no width satisfies all three; at 28px
+   the wider blocks split from their spacer and left it alone on its own line.
+   A row costs nothing wherever a caption already renders one.
+   Three columns rather than a flex row with a spacer: the outer 1fr pair keeps
+   the caption optically centred whether or not the toggle is there. */
+.ct-strip-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%}
+.ct-strip-head .ct-strip-until{grid-column:2;justify-self:center}
+.ct-stack-toggle{grid-column:3;justify-self:end}
 /* Wrapped and height-capped rather than one scrolled line -- the stacking in
    the mockup is this wrap at phone width, not a column. Measured, a block plus
    its spacer runs 287-313px, so two pairs need ~582px of content box: the
@@ -164,17 +174,9 @@ a:hover{color:var(--blue-600);text-decoration:underline}
    46px row while a chip inside a .ct-loop sits 7px down from its own padding.
    That 7px split is what makes followChip's backward trigger fire on a chip the
    forward park had just cleared.
-   padding-right reserves the gutter the .ct-stack-toggle sits in. The toggle is
-   absolutely positioned over the card, and on a case with no caption the first
-   row starts high enough to run under it -- measured, the button covered the
-   sixth chip of Superflip's top row and swallowed its clicks. 28px because the
-   button intrudes 24px into the content box (stack right edge 349, button left
-   325); the extra 4 is margin.
-   Unconditional, not gated on stackOverflows: padding shrinks the content box,
-   which can add a wrap row, which changes whether the stack overflows -- gating
-   it would feed syncStackOverflow's own result back into what it measures, and
-   a case sitting on the boundary would go hysteretic. */
-.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:100%;padding-right:28px;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
+   Nothing is reserved horizontally: the toggle lives in .ct-strip-head above,
+   so the stack keeps its full content box and the measured row counts hold. */
+.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:100%;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
 .ct-strip-stack::-webkit-scrollbar{display:none}
 /* Expanded, the cap lifts to whatever the content needs, bounded at 60vh so a
    long algorithm cannot re-cover the cube the cap exists to protect. Only the
@@ -330,8 +332,17 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
     </div>
 
     <div class="ct-strip" data-tint="{{ tintState }}" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:min(660px,100%);padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
-      <sc-if value="{{ stripUntil }}">
-        <span class="ct-strip-until">{{ stripUntil }}</span>
+      <sc-if value="{{ stripHead }}">
+        <div class="ct-strip-head">
+          <sc-if value="{{ stripUntil }}">
+            <span class="ct-strip-until">{{ stripUntil }}</span>
+          </sc-if>
+          <sc-if value="{{ stackOverflows }}">
+            <span class="ct-stack-toggle ct-tip" data-tip="{{ stackToggleTip }}" data-align="end">
+              <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ stackToggleIcon }}" label="{{ stackToggleTip }}" size="sm" onClick="{{ toggleStack }}" aria-expanded="{{ stackExpanded }}" hint-size="28px,28px"></x-import>
+            </span>
+          </sc-if>
+        </div>
       </sc-if>
       <div class="ct-strip-stack" data-fade="none" data-expanded="{{ stackExpanded }}" ref="{{ stripRef }}" onScroll="{{ stripScroll }}" onPointerOver="{{ tipOver }}" onPointerOut="{{ tipOut }}">
         <div class="ct-ring" ref="{{ ringRef }}"></div>
@@ -367,11 +378,6 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
         </sc-for>
       </div>
       <span class="ct-strip-tip" ref="{{ tipRef }}" aria-hidden="true"></span>
-      <sc-if value="{{ stackOverflows }}">
-        <span class="ct-stack-toggle ct-tip" data-tip="{{ stackToggleTip }}" data-align="end">
-          <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ stackToggleIcon }}" label="{{ stackToggleTip }}" size="sm" onClick="{{ toggleStack }}" aria-expanded="{{ stackExpanded }}" hint-size="28px,28px"></x-import>
-        </span>
-      </sc-if>
     </div>
 
     <div style="pointer-events:auto;display:flex;align-items:center;gap:8px;margin:16px 0 22px;padding:8px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
@@ -613,7 +619,15 @@ class Component extends DCLogic {
     const v = this.currentVar();
     if (!this.engine || !v) return;
     this.stopPlay();
-    this.engine.load(v).then(() => { this.drawThumbs(); this.positionRing(); });
+    // The toggle has to be re-derived here, not only from componentDidUpdate:
+    // it reads the stack's scrollHeight, which this load can change with no
+    // state change to trigger an update.
+    this.engine.load(v).then(() => {
+      this.drawThumbs();
+      this.positionRing();
+      this.syncFade();
+      this.syncStackOverflow();
+    });
     if (markViewed) {
       const id = this.state.algId;
       if (this.state.viewed.indexOf(id) === -1) {
@@ -960,6 +974,9 @@ class Component extends DCLogic {
 
       stripItems,
       stripUntil: cv && cv.until ? 'repeat loop until ' + cv.until : '',
+      // Either/or, not always: a variation with no stop condition and few enough
+      // rows to fit the cap gets no header row at all, and keeps its old height.
+      stripHead: !!(cv && cv.until) || S.stackOverflows,
       stackExpanded: S.stripExpanded ? 'true' : 'false',
       stackOverflows: S.stackOverflows,
       stackToggleIcon: S.stripExpanded ? 'arrow-shrink-01' : 'arrow-expand-01',
