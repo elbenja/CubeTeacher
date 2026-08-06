@@ -139,10 +139,11 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-loop-moves{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .ct-loop-meta{display:flex;align-items:center;gap:8px;min-width:0}
 .ct-until{font:var(--type-caption);color:var(--text-secondary)}
-/* The collapsed height of the move stack: 2.5 loop-rows (46px block + 8px gap).
+/* The collapsed height of the move stack: 2.5 loop-rows (46px block + 8px gap)
+   plus the stack's own 8px of padding, since box-sizing is border-box.
    A custom property rather than a bare number because syncStackOverflow() reads
    it back — the button that lifts the cap has to know what the cap is. */
-.ct{--stack-cap:131px}
+.ct{--stack-cap:139px}
 /* One per variation, above the moves, so it stays put while the stack scrolls.
    --gray-700 on --amber-50 is 7.61:1, which clears AA for caption text. */
 .ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
@@ -174,9 +175,18 @@ a:hover{color:var(--blue-600);text-decoration:underline}
    46px row while a chip inside a .ct-loop sits 7px down from its own padding.
    That 7px split is what makes followChip's backward trigger fire on a chip the
    forward park had just cleared.
-   Nothing is reserved horizontally: the toggle lives in .ct-strip-head above,
-   so the stack keeps its full content box and the measured row counts hold. */
-.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:100%;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
+   Nothing is reserved horizontally for the toggle: it lives in .ct-strip-head
+   above, so the stack keeps its full content box and the measured row counts
+   hold.
+   The 4px of padding is the ring's halo. .ct-ring is sized chip + 8 at a -4
+   offset, so it overhangs its chip on every side, and overflow-y:auto computes
+   overflow-x to auto as well -- without the padding the ring is sheared off at
+   the stack's edges on any chip touching one, and its 4px bottom overhang also
+   shows up as scrollHeight past clientHeight, which read as a phantom scroll
+   and left a fade over a row that does not move. The card gives back the same
+   4px horizontally (8px 6px, not 8px 10px) so the content box width is
+   unchanged: a narrower box would add wrap rows. */
+.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:100%;padding:4px;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
 .ct-strip-stack::-webkit-scrollbar{display:none}
 /* Expanded, the cap lifts to whatever the content needs, bounded at 60vh so a
    long algorithm cannot re-cover the cube the cap exists to protect. Only the
@@ -331,7 +341,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       </sc-if>
     </div>
 
-    <div class="ct-strip" data-tint="{{ tintState }}" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:min(660px,100%);padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
+    <div class="ct-strip" data-tint="{{ tintState }}" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:min(660px,100%);padding:8px 6px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
       <sc-if value="{{ stripHead }}">
         <div class="ct-strip-head">
           <sc-if value="{{ stripUntil }}">
