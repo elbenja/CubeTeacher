@@ -36,8 +36,12 @@ Run via `mcp__Claude_Browser__javascript_tool` (async IIFEs only, no bare top-le
   const k=document.querySelector('.ct-strip-stack')||document.querySelector('.ct-strip-track');
   const stage=document.querySelector('.ct-stage');
   const sr=s.getBoundingClientRect(), st=stage.getBoundingClientRect();
+  // Rows by CENTRE line, not by `top`. With align-items:center a 32px spacer
+  // chip and a 46px loop block on the SAME row have different tops, so a
+  // top-based count reports 8 rows for a 4-row stack and trips this plan's own
+  // failure signal. Centres agree; tops do not.
   const rows=[...new Set([...k.children].filter(c=>!c.classList.contains('ct-ring'))
-    .map(c=>Math.round(c.getBoundingClientRect().top)))];
+    .map(c=>{const b=c.getBoundingClientRect();return Math.round(b.top+b.height/2);}))];
   return JSON.stringify({
     viewport:innerWidth,
     stripH:Math.round(sr.height*10)/10,
@@ -197,15 +201,18 @@ Then fresh-navigate and run the harness at each width. Expected:
 | case | width | `stripH` | `visualRows` | `scrollableY` |
 |---|---|---|---|---|
 | four-block | 375 | ~173 (16 pad + 26 caption + 131 cap) | 4 | `true` |
-| four-block | 1280 | ~142 (16 + 26 + 100, under the cap) | 2 | `false` |
+| four-block | 1280 | ~173 (capped) | **3** | `true` |
+| four-block | 1440 | ~142 (16 + 26 + 100, under the cap) | 2 | `false` |
 | `First Layer Edges` | 375 | ~48 (16 + one 32px chip row, no caption) | 1 | `false` |
 | `Superflip` (Fun Patterns) | 375 | ~147 (16 + 131 cap, no caption) | 4–6 | `true` |
 
 Heights are derived, not measured, so treat them as ±10px. **The hard bars are the structural ones:**
 - 375 four-block `stripH` between **160 and 185**
 - `visualRows` is **4** — not 1 (the wrap did not take effect), and not 8 (blocks and spacers each took their own row, meaning something is still forcing full-width children)
-- 1280 four-block does **not** scroll
+- 1440 four-block does **not** scroll (1280 **does** — see below)
 - `First Layer Edges` does **not** scroll and has no caption
+
+**Corrected during execution:** the plan originally predicted 2 rows and no scroll at 1280. That was wrong. `.ct-strip` is `max-width:min(660px,100%)` with `padding:8px 10px`, and the side panels squeeze `.ct-stage` to 584px at 1280 — so the content box is 564px, not the 640px the plan assumed. A block+spacer pair is 287–313px and two need ~582px, which fits a 1440px layout's 640px box but not 1280's 564px. **3 rows and a scroll at 1280 is correct behaviour**, confirmed as a product decision: the toggle is expected to appear there.
 
 If a derived height is off by more than ~10px, report the real number rather than adjusting the code to hit the estimate — a sibling branch burned a fix round chasing a height target that turned out to be arithmetically impossible.
 
