@@ -146,6 +146,11 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 /* One per variation, above the moves, so it stays put while the stack scrolls.
    --gray-700 on --amber-50 is 7.61:1, which clears AA for caption text. */
 .ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
+/* Anchored to the card's corner rather than beside the caption: only the four
+   OLL variations carry a stop condition, so most algorithms have no caption for
+   a button to sit next to -- and a flat 20-move pattern is exactly the case
+   that needs the toggle. Outside the stack so it cannot scroll away. */
+.ct-stack-toggle{position:absolute;right:6px;top:6px;z-index:2}
 /* Wrapped and height-capped rather than one scrolled line -- the stacking in
    the mockup is this wrap at phone width, not a column. Measured, a block plus
    its spacer runs 287-313px, so two pairs need ~582px of content box: the
@@ -314,7 +319,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       <sc-if value="{{ stripUntil }}">
         <span class="ct-strip-until">{{ stripUntil }}</span>
       </sc-if>
-      <div class="ct-strip-stack" data-fade="none" ref="{{ stripRef }}" onScroll="{{ stripScroll }}" onPointerOver="{{ tipOver }}" onPointerOut="{{ tipOut }}">
+      <div class="ct-strip-stack" data-fade="none" data-expanded="{{ stackExpanded }}" ref="{{ stripRef }}" onScroll="{{ stripScroll }}" onPointerOver="{{ tipOver }}" onPointerOut="{{ tipOut }}">
         <div class="ct-ring" ref="{{ ringRef }}"></div>
         <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
           <sc-if value="{{ it.isBlock }}">
@@ -348,6 +353,11 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
         </sc-for>
       </div>
       <span class="ct-strip-tip" ref="{{ tipRef }}" aria-hidden="true"></span>
+      <sc-if value="{{ stackOverflows }}">
+        <span class="ct-stack-toggle ct-tip" data-tip="{{ stackToggleTip }}" data-align="end">
+          <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ stackToggleIcon }}" label="{{ stackToggleTip }}" size="sm" onClick="{{ toggleStack }}" hint-size="28px,28px"></x-import>
+        </span>
+      </sc-if>
     </div>
 
     <div style="pointer-events:auto;display:flex;align-items:center;gap:8px;margin:16px 0 22px;padding:8px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
@@ -437,7 +447,8 @@ class Component extends DCLogic {
     index: 0, total: 0, playing: false,
     open: { beginner: true, advanced: false, patterns: false, likes: false },
     likes: [], viewed: [], legendOpen: false,
-    sideCollapsed: false, rightCollapsed: false, drawer: false, sheet: false
+    sideCollapsed: false, rightCollapsed: false, drawer: false, sheet: false,
+    stripExpanded: false, stackOverflows: false
   };
 
   // The ring overhangs its chip by 4px on every side, so parked on a chip in
@@ -488,6 +499,7 @@ class Component extends DCLogic {
     this.followChip();
     this.positionRing();
     this.syncFade();
+    this.syncStackOverflow();
     this.applyMotion();
     if (this.engine && this.props.cubeFinish !== prev.cubeFinish) this.engine.setFinish(this.props.cubeFinish || 'flat');
   }
@@ -609,12 +621,13 @@ class Component extends DCLogic {
 
   selectAlg(id) {
     if (id === this.state.algId) return;
-    this.setState({ algId: id, varIdx: 0 }, () => this.loadCurrent(true));
+    // A new case means looking at the cube first, so the stack starts collapsed.
+    this.setState({ algId: id, varIdx: 0, stripExpanded: false }, () => this.loadCurrent(true));
   }
 
   selectVar(i) {
     if (i === this.state.varIdx) return;
-    this.setState({ varIdx: i }, () => this.loadCurrent(false));
+    this.setState({ varIdx: i, stripExpanded: false }, () => this.loadCurrent(false));
   }
 
   // ------------------------------------------------------------ transport
@@ -739,6 +752,20 @@ class Component extends DCLogic {
     const start = stack.scrollTop > this.SCROLL_EPSILON;
     const end = stack.scrollTop + stack.clientHeight < stack.scrollHeight - this.RING_SLACK;
     stack.dataset.fade = start && end ? 'both' : start ? 'start' : end ? 'end' : 'none';
+  }
+
+  // Measured against the collapsed cap, never against clientHeight: expanded,
+  // clientHeight grows to fit the content, so a clientHeight test would go
+  // false and hide the very button that collapses it again. scrollHeight is the
+  // content height in both states, so comparing it to the cap is stable.
+  syncStackOverflow() {
+    const stack = this.stripEl;
+    if (!stack || !this.rootEl) return;
+    const cap = parseFloat(getComputedStyle(this.rootEl).getPropertyValue('--stack-cap')) || 131;
+    const overflows = stack.scrollHeight > cap + this.RING_SLACK;
+    // Guarded: this runs from componentDidUpdate, so setting state on every
+    // pass would be an infinite render loop.
+    if (overflows !== this.state.stackOverflows) this.setState({ stackOverflows: overflows });
   }
 
   // A manual swipe changes which edges have content past them, and drags the
@@ -919,6 +946,11 @@ class Component extends DCLogic {
 
       stripItems,
       stripUntil: cv && cv.until ? 'repeat loop until ' + cv.until : '',
+      stackExpanded: S.stripExpanded ? 'true' : 'false',
+      stackOverflows: S.stackOverflows,
+      stackToggleIcon: S.stripExpanded ? 'arrow-shrink-01' : 'arrow-expand-01',
+      stackToggleTip: S.stripExpanded ? 'Collapse moves' : 'Expand moves',
+      toggleStack: () => this.setState(s => ({ stripExpanded: !s.stripExpanded })),
       stripScroll: () => this.stripScroll(),
       tipOver: e => this.tipOver(e),
       tipOut: e => this.tipOut(e),
