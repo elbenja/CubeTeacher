@@ -163,11 +163,25 @@ a:hover{color:var(--blue-600);text-decoration:underline}
    32px height, so without it a standalone spacer sits flush with the top of a
    46px row while a chip inside a .ct-loop sits 7px down from its own padding.
    That 7px split is what makes followChip's backward trigger fire on a chip the
-   forward park had just cleared. */
-.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:100%;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
+   forward park had just cleared.
+   padding-right reserves the gutter the .ct-stack-toggle sits in. The toggle is
+   absolutely positioned over the card, and on a case with no caption the first
+   row starts high enough to run under it -- measured, the button covered the
+   sixth chip of Superflip's top row and swallowed its clicks. 28px because the
+   button intrudes 24px into the content box (stack right edge 349, button left
+   325); the extra 4 is margin.
+   Unconditional, not gated on stackOverflows: padding shrinks the content box,
+   which can add a wrap row, which changes whether the stack overflows -- gating
+   it would feed syncStackOverflow's own result back into what it measures, and
+   a case sitting on the boundary would go hysteretic. */
+.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:100%;padding-right:28px;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
 .ct-strip-stack::-webkit-scrollbar{display:none}
-/* Expanded, the cap lifts to whatever the content needs, bounded so it can
-   never grow past the stage and re-cover the cube it exists to protect. */
+/* Expanded, the cap lifts to whatever the content needs, bounded at 60vh so a
+   long algorithm cannot re-cover the cube the cap exists to protect. Only the
+   60vh arm binds: .ct-strip is an auto-height flex column, so the 100% resolves
+   against an indefinite containing block and constrains nothing -- measured,
+   `100%` alone lets the stack grow to its full content height. 60vh is not the
+   stage, so this does not bound the strip against the stage. */
 .ct-strip-stack[data-expanded="true"]{max-height:min(60vh,100%)}
 .ct-strip-stack[data-fade="start"]{mask-image:linear-gradient(180deg,transparent 0,#000 24px)}
 .ct-strip-stack[data-fade="end"]{mask-image:linear-gradient(180deg,#000 calc(100% - 24px),transparent 100%)}
@@ -355,7 +369,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       <span class="ct-strip-tip" ref="{{ tipRef }}" aria-hidden="true"></span>
       <sc-if value="{{ stackOverflows }}">
         <span class="ct-stack-toggle ct-tip" data-tip="{{ stackToggleTip }}" data-align="end">
-          <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ stackToggleIcon }}" label="{{ stackToggleTip }}" size="sm" onClick="{{ toggleStack }}" hint-size="28px,28px"></x-import>
+          <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ stackToggleIcon }}" label="{{ stackToggleTip }}" size="sm" onClick="{{ toggleStack }}" aria-expanded="{{ stackExpanded }}" hint-size="28px,28px"></x-import>
         </span>
       </sc-if>
     </div>
