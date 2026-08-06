@@ -101,10 +101,10 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-tip[data-align="end"]::after{left:auto;right:0;transform:translateY(-4px)}
 .ct-tip[data-align="end"]:hover::after{transform:translateY(0)}
 /* Hoisted, JS-positioned twin of `.ct-tip::after` for chips inside
-   `.ct-strip-track`: that track clips overflow on both axes (`overflow-x:auto`
-   computes `overflow-y` to `auto` too, CSS Overflow 3 3.3), so a chip's own
+   `.ct-strip-stack`: that stack clips overflow on both axes (`overflow-y:auto`
+   computes `overflow-x` to `auto` too, CSS Overflow 3 3.3), so a chip's own
    ::after -- anchored above the chip -- would never be visible there. This
-   span lives in `.ct-strip`, outside the clipped track, and showTip()/
+   span lives in `.ct-strip`, outside the clipped stack, and showTip()/
    hideTip() position it from the hovered chip's data-tip via the --tip-x/
    --tip-y custom properties. Same look and reveal delay as `.ct-tip::after`
    by design, reusing the same tokens. */
@@ -139,25 +139,26 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-loop-moves{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .ct-loop-meta{display:flex;align-items:center;gap:8px;min-width:0}
 .ct-until{font:var(--type-caption);color:var(--text-secondary)}
+/* The collapsed height of the move stack: 2.5 loop-rows (46px block + 8px gap).
+   A custom property rather than a bare number because syncStackOverflow() reads
+   it back — the button that lifts the cap has to know what the cap is. */
+.ct{--stack-cap:131px}
 /* One per variation, above the moves, so it stays put while the track scrolls.
    --gray-700 on --amber-50 is 7.61:1, which clears AA for caption text. */
 .ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
-/* One line, scrolled rather than wrapped: during playback the strip's job is
-   "where am I", which one line answers. Whole-shape scanning belongs to the
-   variation panel. `safe center` and not `center` -- plain centring overflows
-   both ends and puts the first chip out of reach of any scroll. */
-.ct-strip-track{position:relative;display:flex;align-items:center;gap:8px;justify-content:safe center;max-width:100%;overflow-x:auto;scrollbar-width:none}
-.ct-strip-track::-webkit-scrollbar{display:none}
-/* Nothing shrinks: a nowrap flex line squashes its items by default, which
-   would compress chips instead of overflowing them. */
-.ct-strip-track>*{flex:0 0 auto}
-/* The panel can wrap a long block's moves internally; the track never can, or a
-   block would grow a second row and undo the whole point. `.ct-loop` itself is
-   already nowrap from its base rule -- only its moves list needs overriding. */
-.ct-strip-track .ct-loop-moves{flex-wrap:nowrap}
-.ct-strip-track[data-fade="start"]{mask-image:linear-gradient(90deg,transparent 0,#000 24px)}
-.ct-strip-track[data-fade="end"]{mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent 100%)}
-.ct-strip-track[data-fade="both"]{mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
+/* Wrapped and height-capped rather than one scrolled line. A block plus its
+   spacer is ~270px, so a 323px phone content box takes one pair per row and a
+   640px desktop one takes two -- the stacking in the mockup is this wrap at
+   phone width, not a column. Capping the height protects the cube while still
+   showing the algorithm's shape, which one line cannot. */
+.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:100%;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
+.ct-strip-stack::-webkit-scrollbar{display:none}
+/* Expanded, the cap lifts to whatever the content needs, bounded so it can
+   never grow past the stage and re-cover the cube it exists to protect. */
+.ct-strip-stack[data-expanded="true"]{max-height:min(60vh,100%)}
+.ct-strip-stack[data-fade="start"]{mask-image:linear-gradient(180deg,transparent 0,#000 24px)}
+.ct-strip-stack[data-fade="end"]{mask-image:linear-gradient(180deg,#000 calc(100% - 24px),transparent 100%)}
+.ct-strip-stack[data-fade="both"]{mask-image:linear-gradient(180deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
 .ct-tally{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
 /* Filled grey, going black as each loop completes: readable as a count while
    idle, and as progress while playing. Cards render statically, so their pips
@@ -305,7 +306,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       <sc-if value="{{ stripUntil }}">
         <span class="ct-strip-until">{{ stripUntil }}</span>
       </sc-if>
-      <div class="ct-strip-track" data-fade="none" ref="{{ stripRef }}" onScroll="{{ stripScroll }}" onPointerOver="{{ tipOver }}" onPointerOut="{{ tipOut }}">
+      <div class="ct-strip-stack" data-fade="none" ref="{{ stripRef }}" onScroll="{{ stripScroll }}" onPointerOver="{{ tipOver }}" onPointerOut="{{ tipOut }}">
         <div class="ct-ring" ref="{{ ringRef }}"></div>
         <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
           <sc-if value="{{ it.isBlock }}">
@@ -431,12 +432,12 @@ class Component extends DCLogic {
     sideCollapsed: false, rightCollapsed: false, drawer: false, sheet: false
   };
 
-  // The ring is sized chip.width + 8 at a -4px offset, so parked on the last
-  // chip its own border box pushes scrollWidth 4px past clientWidth. Every
-  // edge test on the track has to forgive that much, or a row that visibly
-  // fits reports as scrollable and grows a fade over nothing.
+  // The ring overhangs its chip by 4px on every side, so parked on a chip in
+  // the last row its own border box pushes scrollHeight 4px past clientHeight.
+  // Every edge test on the stack has to forgive that much, or a stack that
+  // visibly fits reports as scrollable and grows a fade over nothing.
   RING_SLACK = 4;
-  // scrollLeft lands on fractions after a smooth scroll, so "at the start" is
+  // scrollTop lands on fractions after a smooth scroll, so "at the start" is
   // a couple of pixels wide rather than exactly zero.
   SCROLL_EPSILON = 2;
 
@@ -672,11 +673,11 @@ class Component extends DCLogic {
     const tr = track.getBoundingClientRect(), cr = chip.getBoundingClientRect();
     ring.style.width = (cr.width + 8) + 'px';
     ring.style.height = (cr.height + 8) + 'px';
-    // Content coordinates, not viewport: adding scrollLeft back cancels the
+    // Content coordinates, not viewport: adding scrollTop back cancels the
     // shift getBoundingClientRect() reports, so this value is the same whether
     // it is read before, during, or after a smooth scroll. That is what lets
     // followChip() and this run in either order.
-    ring.style.transform = 'translate(' + (cr.left - tr.left + track.scrollLeft - 4) + 'px,' + (cr.top - tr.top - 4) + 'px)';
+    ring.style.transform = 'translate(' + (cr.left - tr.left - 4) + 'px,' + (cr.top - tr.top + track.scrollTop - 4) + 'px)';
     ring.style.opacity = '1';
   }
 
@@ -693,42 +694,43 @@ class Component extends DCLogic {
   // already reads -- a marker that travels, rather than a fixed sight the moves
   // slide under.
   followChip() {
-    const track = this.stripEl;
-    if (!track || track.scrollWidth - track.clientWidth <= this.RING_SLACK) return;
-    const chip = track.querySelector('[data-i="' + this.state.index + '"]');
+    const stack = this.stripEl;
+    // Same 4px of ring overflow syncFade allows for -- see the note there.
+    if (!stack || stack.scrollHeight - stack.clientHeight <= this.RING_SLACK) return;
+    const chip = stack.querySelector('[data-i="' + this.state.index + '"]');
     if (!chip) return;
-    const tr = track.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    const sr = stack.getBoundingClientRect(), cr = chip.getBoundingClientRect();
     // One chip plus its gap of headroom: the turn happens while the chip after
     // the live one is still the thing about to be lost, not the live one.
-    const lead = cr.width + 8;
+    const lead = cr.height + 8;
     // Anchored to the chip rather than shifted by a fixed page. A relative
-    // scrollBy overshoots by an amount that depends on chip width, dropping the
+    // scrollBy overshoots by an amount that depends on chip size, dropping the
     // chip straight back into the opposite trigger zone -- so the next step
-    // scrolls back and the strip flip-flops without ever settling.
+    // scrolls back and the stack flip-flops without ever settling.
     //
     // Park it a whole epsilon clear of the zone rather than exactly `lead`
     // inside the far edge: landing on the boundary leaves the opposite trigger
-    // at the mercy of how the browser rounds scrollLeft, and followChip runs on
+    // at the mercy of how the browser rounds scrollTop, and followChip runs on
     // every state change, not only on index changes -- so a re-render that
-    // doesn't move the index would lurch the strip back and forth.
+    // doesn't move the index would lurch the stack up and down.
     //
-    // Content coordinates, as in positionRing: scrollLeft and the rects are
-    // read at the same instant, so this is correct even mid-animation.
+    // Content coordinates, as in positionRing: scrollTop and the rects are read
+    // at the same instant, so this is correct even mid-animation.
     const park = lead + this.SCROLL_EPSILON;
-    const cur = track.scrollLeft;
-    const chipLeft = cr.left - tr.left + cur;
-    if (cr.right > tr.right - lead) track.scrollTo({ left: chipLeft - park, behavior: this.smoothness() });
-    else if (cr.left < tr.left + lead) track.scrollTo({ left: chipLeft + cr.width + park - track.clientWidth, behavior: this.smoothness() });
+    const cur = stack.scrollTop;
+    const chipTop = cr.top - sr.top + cur;
+    if (cr.bottom > sr.bottom - lead) stack.scrollTo({ top: chipTop - park, behavior: this.smoothness() });
+    else if (cr.top < sr.top + lead) stack.scrollTo({ top: chipTop + cr.height + park - stack.clientHeight, behavior: this.smoothness() });
   }
 
   // Only fade an edge that actually has content past it -- a fade over a fully
   // scrolled end reads as content that is not there.
   syncFade() {
-    const track = this.stripEl;
-    if (!track) return;
-    const start = track.scrollLeft > this.SCROLL_EPSILON;
-    const end = track.scrollLeft + track.clientWidth < track.scrollWidth - this.RING_SLACK;
-    track.dataset.fade = start && end ? 'both' : start ? 'start' : end ? 'end' : 'none';
+    const stack = this.stripEl;
+    if (!stack) return;
+    const start = stack.scrollTop > this.SCROLL_EPSILON;
+    const end = stack.scrollTop + stack.clientHeight < stack.scrollHeight - this.RING_SLACK;
+    stack.dataset.fade = start && end ? 'both' : start ? 'start' : end ? 'end' : 'none';
   }
 
   // A manual swipe changes which edges have content past them, and drags the
