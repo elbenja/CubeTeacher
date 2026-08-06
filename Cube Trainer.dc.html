@@ -248,7 +248,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   /* Closed, the sheet peeks by exactly its grabber plus its title row, so the
      case name stays readable with the panel down. Both the peek and the room
      the stage leaves for it come off this one number. */
-  .ct{--peek:78px}
+  .ct{--peek:66px}
   /* The design system's icon glyph carries its own z-index, which floats it out
      of the transport bar and over an unlayered sheet -- icons with no button
      under them. Give the sheet a layer of its own, still under the drawer scrim
@@ -398,7 +398,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   </main>
 
   <aside class="ct-right" data-sheet="{{ sheetState }}" data-collapsed="{{ rightCollapsed }}" style="position:absolute;right:20px;top:20px;bottom:20px;width:328px;display:flex;flex-direction:column;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-panel),inset 0 0 0 1px var(--border-hairline);transition:width 280ms var(--ease-out)">
-    <button class="ct-sheet-handle" onClick="{{ toggleSheet }}" aria-label="{{ variationsLabel }}" aria-expanded="{{ sheetExpanded }}" style="position:relative;align-items:flex-start;justify-content:center;width:100%;height:32px;padding-top:10px;flex:0 0 auto;border:0;background:none;cursor:pointer">
+    <button class="ct-sheet-handle" onClick="{{ toggleSheet }}" aria-label="{{ variationsLabel }}" aria-expanded="{{ sheetExpanded }}" style="position:relative;align-items:flex-start;justify-content:center;width:100%;height:20px;padding-top:10px;flex:0 0 auto;border:0;background:none;cursor:pointer">
       <span style="width:34px;height:4px;border-radius:2px;background:var(--gray-300)"></span>
     </button>
     <div class="ct-rhead" style="display:flex;align-items:center;gap:6px;padding:16px 16px 12px;flex:0 0 auto">
