@@ -261,10 +261,16 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   .ct{--peek:66px}
   /* The design system's icon glyph carries its own z-index, which floats it out
      of the transport bar and over an unlayered sheet -- icons with no button
-     under them. Give the sheet a layer of its own, still under the drawer scrim
-     so opening the menu dims it. */
+     under them. Give the sheet a layer of its own. Closed, it stays under the
+     scrim; open, it has to rise above it, or the scrim it just summoned would
+     cover the sheet it exists to set apart. Opening the menu closes the sheet,
+     so the two never compete for the same layer. */
   .ct-right{position:fixed!important;left:328px!important;right:12px!important;bottom:0!important;top:auto!important;width:auto!important;max-height:56vh;border-radius:20px 20px 0 0;z-index:10;transform:translateY(calc(100% - var(--peek)));transition:transform calc(280ms*var(--m)) var(--ease-out)}
-  .ct-right[data-sheet="open"]{transform:none}
+  .ct-right[data-sheet="open"]{transform:none;z-index:51}
+  /* Wherever the panel is a sheet, a tap outside it closes it -- the same scrim
+     the drawer uses. Declared here rather than in the 768 block because the
+     sheet exists across this whole range and 768 is a subset of it. */
+  .ct-scrim[data-on="true"]{opacity:1;pointer-events:auto}
   .ct-sheet-handle{display:flex!important}
   /* The grabber sits near the edge and the title tucks straight under it -- the
      54px handle and 16px header inset that read fine as panel chrome just push
@@ -289,7 +295,6 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   .ct-stage{left:16px!important;right:16px!important;top:32px!important}
   /* Two paragraphs 2px apart read as one; at this width they need the break. */
   .ct-teach p+p{margin-top:8px!important}
-  .ct-scrim[data-on="true"]{opacity:1;pointer-events:auto}
   main.ct-stage>[data-sc-name="TeachCard"]{max-width:none!important}
 }
 @media (prefers-reduced-motion:reduce){
@@ -466,7 +471,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   <button class="ct-burger ct-tip" data-tip="{{ drawerTip }}" data-side="right" aria-label="{{ drawerTip }}" aria-expanded="{{ drawerExpanded }}" onClick="{{ toggleDrawer }}" style="position:fixed;left:16px;top:16px;z-index:58;place-items:center;width:40px;height:40px;border:0;border-radius:12px;background:var(--surface-float);box-shadow:var(--shadow-float);cursor:pointer;color:var(--icon-default)">
     <i class="hgi-stroke hgi-menu-01" style="font-size:18px"></i>
   </button>
-  <div class="ct-scrim" data-on="{{ drawerState2 }}" onClick="{{ closeDrawer }}"></div>
+  <div class="ct-scrim" data-on="{{ scrimOn }}" onClick="{{ closeOverlays }}"></div>
 </div>
 
 </x-dc>
@@ -1043,8 +1048,14 @@ class Component extends DCLogic {
       drawerExpanded: S.drawer ? 'true' : 'false',
       drawerState: S.drawer ? 'open' : 'closed',
       drawerState2: S.drawer ? 'true' : 'false',
-      toggleDrawer: () => this.setState(s => ({ drawer: !s.drawer })),
+      // Opening the menu closes the sheet: one overlay at a time, so the scrim
+      // always means exactly one thing and the two never share a layer.
+      toggleDrawer: () => this.setState(s => ({ drawer: !s.drawer, sheet: s.drawer ? s.sheet : false })),
       closeDrawer: () => this.setState({ drawer: false }),
+      // The sheet gets the drawer's scrim: same dimmed backdrop, same tap-outside
+      // to dismiss. One element serves both -- only one can be open at a time.
+      scrimOn: S.drawer || S.sheet ? 'true' : 'false',
+      closeOverlays: () => this.setState({ drawer: false, sheet: false }),
       sheetState: S.sheet ? 'open' : 'closed',
       sheetExpanded: S.sheet ? 'true' : 'false',
       toggleSheet: () => this.setState(s => ({ sheet: !s.sheet }))
