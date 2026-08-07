@@ -100,6 +100,16 @@ a:hover{color:var(--blue-600);text-decoration:underline}
    centred tip runs off-screen no matter how wide the panel is. */
 .ct-tip[data-align="end"]::after{left:auto;right:0;transform:translateY(-4px)}
 .ct-tip[data-align="end"]:hover::after{transform:translateY(0)}
+/* Hoisted, JS-positioned twin of `.ct-tip::after` for chips inside
+   `.ct-strip-stack`: that stack clips overflow on both axes (`overflow-y:auto`
+   computes `overflow-x` to `auto` too, CSS Overflow 3 3.3), so a chip's own
+   ::after -- anchored above the chip -- would never be visible there. This
+   span lives in `.ct-strip`, outside the clipped stack, and showTip()/
+   hideTip() position it from the hovered chip's data-tip via the --tip-x/
+   --tip-y custom properties. Same look and reveal delay as `.ct-tip::after`
+   by design, reusing the same tokens. */
+.ct-strip-tip{position:absolute;left:0;top:0;padding:6px 9px;border-radius:var(--radius-md);background:var(--surface-inverse);color:var(--text-inverse);font:var(--type-caption);white-space:nowrap;box-shadow:var(--shadow-inverse);opacity:0;pointer-events:none;z-index:60;transform:translate(var(--tip-x,0),var(--tip-y,0)) translate(-50%,-100%) translateY(4px);transition:opacity calc(130ms*var(--m)) var(--ease-out),transform calc(190ms*var(--m)) var(--ease-out)}
+.ct-strip-tip[data-show="true"]{opacity:1;transform:translate(var(--tip-x,0),var(--tip-y,0)) translate(-50%,-100%);transition-delay:400ms}
 
 /* ---- panel chrome icon buttons ---- */
 /* The design system's icon button is 28px with a 12px radius, which next to the
@@ -122,13 +132,72 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-var:hover{background:var(--gray-0);box-shadow:var(--shadow-float)}
 .ct-var[data-sel="true"]{background:var(--gray-0);box-shadow:0 0 0 2px var(--blue-500)}
 .ct-var canvas{display:block;width:100%;height:118px;object-fit:contain}
-/* A loop block stacks its moves over its stop condition, and spans the full row
-   so the spacer after it always lands on its own line. The strip has room to put
-   both on one line, so it opts back into a row below. */
-.ct-loop{display:flex;flex-direction:column;gap:5px;width:100%;padding:7px 9px;border-radius:10px;background:var(--gray-0);box-shadow:inset 0 0 0 1px var(--border-default)}
+/* Moves and the repeat tally on one row. This used to be a column so a block
+   could stack its stop condition underneath; that string now renders once per
+   variation, so there is nothing left to stack and both surfaces agree. */
+.ct-loop{display:flex;align-items:center;flex-wrap:nowrap;gap:6px;padding:7px 9px;border-radius:10px;background:var(--gray-0);box-shadow:inset 0 0 0 1px var(--border-default)}
 .ct-loop-moves{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .ct-loop-meta{display:flex;align-items:center;gap:8px;min-width:0}
 .ct-until{font:var(--type-caption);color:var(--text-secondary)}
+/* The collapsed height of the move stack: 2.5 loop-rows (46px block + 8px gap)
+   plus the stack's own 8px of padding, since box-sizing is border-box.
+   A custom property rather than a bare number because syncStackOverflow() reads
+   it back — the button that lifts the cap has to know what the cap is. */
+.ct{--stack-cap:139px}
+/* One per variation, above the moves, so it stays put while the stack scrolls.
+   --gray-700 on --amber-50 is 7.61:1, which clears AA for caption text. */
+.ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
+/* Caption and toggle share one row, rendered only when at least one of them
+   exists -- a short flat variation with neither keeps its old height.
+   The toggle floated in the card's corner first. That fails: on a case with no
+   caption the top row starts high enough to run under it, and the button
+   covered the sixth chip of Superflip's top row and swallowed its clicks.
+   Reserving a horizontal gutter instead cost more than it bought -- clearing
+   the button needs >=24px, but keeping the phone's four rows needs <=10 and
+   keeping 1440's two rows needs <=6, so no width satisfies all three; at 28px
+   the wider blocks split from their spacer and left it alone on its own line.
+   A row costs nothing wherever a caption already renders one.
+   Three columns rather than a flex row with a spacer: the outer 1fr pair keeps
+   the caption optically centred whether or not the toggle is there. */
+.ct-strip-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%}
+.ct-strip-head .ct-strip-until{grid-column:2;justify-self:center}
+.ct-stack-toggle{grid-column:3;justify-self:end}
+/* Wrapped and height-capped rather than one scrolled line -- the stacking in
+   the mockup is this wrap at phone width, not a column. Measured, a block plus
+   its spacer runs 287-313px, so two pairs need ~582px of content box: the
+   323px phone box takes one pair per row, and of the desktop layouts only the
+   640px box (viewport 1440) fits two. At the app's 1280 layout the panels leave
+   a 564px box, which is 18px short, so that width wraps to three rows and
+   scrolls. Capping the height protects the cube while still showing the
+   algorithm's shape, which one line cannot.
+   align-items:center is load-bearing, not decoration: .ct-chip has a definite
+   32px height, so without it a standalone spacer sits flush with the top of a
+   46px row while a chip inside a .ct-loop sits 7px down from its own padding.
+   That 7px split is what makes followChip's backward trigger fire on a chip the
+   forward park had just cleared.
+   Nothing is reserved horizontally for the toggle: it lives in .ct-strip-head
+   above, so the stack keeps its full content box and the measured row counts
+   hold.
+   The 4px of padding is the ring's halo. .ct-ring is sized chip + 8 at a -4
+   offset, so it overhangs its chip on every side, and overflow-y:auto computes
+   overflow-x to auto as well -- without the padding the ring is sheared off at
+   the stack's edges on any chip touching one, and its 4px bottom overhang also
+   shows up as scrollHeight past clientHeight, which read as a phantom scroll
+   and left a fade over a row that does not move. The card gives back the same
+   4px horizontally (8px 6px, not 8px 10px) so the content box width is
+   unchanged: a narrower box would add wrap rows. */
+.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:100%;padding:4px;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
+.ct-strip-stack::-webkit-scrollbar{display:none}
+/* Expanded, the cap lifts to whatever the content needs, bounded at 60vh so a
+   long algorithm cannot re-cover the cube the cap exists to protect. Only the
+   60vh arm binds: .ct-strip is an auto-height flex column, so the 100% resolves
+   against an indefinite containing block and constrains nothing -- measured,
+   `100%` alone lets the stack grow to its full content height. 60vh is not the
+   stage, so this does not bound the strip against the stage. */
+.ct-strip-stack[data-expanded="true"]{max-height:min(60vh,100%)}
+.ct-strip-stack[data-fade="start"]{mask-image:linear-gradient(180deg,transparent 0,#000 24px)}
+.ct-strip-stack[data-fade="end"]{mask-image:linear-gradient(180deg,#000 calc(100% - 24px),transparent 100%)}
+.ct-strip-stack[data-fade="both"]{mask-image:linear-gradient(180deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
 .ct-tally{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
 /* Filled grey, going black as each loop completes: readable as a count while
    idle, and as progress while playing. Cards render statically, so their pips
@@ -140,9 +209,6 @@ a:hover{color:var(--blue-600);text-decoration:underline}
    variation actually has blocks -- on a flat variation every move would
    otherwise read as a separator, which separates nothing. */
 .ct-mini[data-sep="true"]{background:var(--gray-150);box-shadow:none}
-/* The strip has 660px to work with, so a block keeps its moves and its stop
-   condition on one line rather than stacking them. */
-.ct-strip .ct-loop{flex-direction:row;align-items:center;flex-wrap:wrap;width:auto;gap:8px}
 .ct-strip .ct-chip[data-spacer="true"][data-state="future"]{background:var(--gray-150);box-shadow:none}
 
 /* ---- misc ---- */
@@ -192,13 +258,19 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   /* Closed, the sheet peeks by exactly its grabber plus its title row, so the
      case name stays readable with the panel down. Both the peek and the room
      the stage leaves for it come off this one number. */
-  .ct{--peek:78px}
+  .ct{--peek:66px}
   /* The design system's icon glyph carries its own z-index, which floats it out
      of the transport bar and over an unlayered sheet -- icons with no button
-     under them. Give the sheet a layer of its own, still under the drawer scrim
-     so opening the menu dims it. */
+     under them. Give the sheet a layer of its own. Closed, it stays under the
+     scrim; open, it has to rise above it, or the scrim it just summoned would
+     cover the sheet it exists to set apart. Opening the menu closes the sheet,
+     so the two never compete for the same layer. */
   .ct-right{position:fixed!important;left:328px!important;right:12px!important;bottom:0!important;top:auto!important;width:auto!important;max-height:56vh;border-radius:20px 20px 0 0;z-index:10;transform:translateY(calc(100% - var(--peek)));transition:transform calc(280ms*var(--m)) var(--ease-out)}
-  .ct-right[data-sheet="open"]{transform:none}
+  .ct-right[data-sheet="open"]{transform:none;z-index:51}
+  /* Wherever the panel is a sheet, a tap outside it closes it -- the same scrim
+     the drawer uses. Declared here rather than in the 768 block because the
+     sheet exists across this whole range and 768 is a subset of it. */
+  .ct-scrim[data-on="true"]{opacity:1;pointer-events:auto}
   .ct-sheet-handle{display:flex!important}
   /* The grabber sits near the edge and the title tucks straight under it -- the
      54px handle and 16px header inset that read fine as panel chrome just push
@@ -223,7 +295,6 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   .ct-stage{left:16px!important;right:16px!important;top:32px!important}
   /* Two paragraphs 2px apart read as one; at this width they need the break. */
   .ct-teach p+p{margin-top:8px!important}
-  .ct-scrim[data-on="true"]{opacity:1;pointer-events:auto}
   main.ct-stage>[data-sc-name="TeachCard"]{max-width:none!important}
 }
 @media (prefers-reduced-motion:reduce){
@@ -275,36 +346,53 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       </sc-if>
     </div>
 
-    <div class="ct-strip" data-tint="{{ tintState }}" ref="{{ stripRef }}" style="pointer-events:auto;position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:660px;padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
-      <div class="ct-ring" ref="{{ ringRef }}"></div>
-      <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
-        <sc-if value="{{ it.isBlock }}">
-          <span class="ct-loop">
-            <span class="ct-loop-moves">
-              <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="4">
-                <button class="ct-chip ct-tip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
-                  <span class="ct-dot"></span>{{ c.label }}
-                </button>
-              </sc-for>
+    <div class="ct-strip" data-tint="{{ tintState }}" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:min(660px,100%);padding:8px 6px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
+      <sc-if value="{{ stripHead }}">
+        <div class="ct-strip-head">
+          <sc-if value="{{ stripUntil }}">
+            <span class="ct-strip-until">{{ stripUntil }}</span>
+          </sc-if>
+          <sc-if value="{{ stackOverflows }}">
+            <span class="ct-stack-toggle ct-tip" data-tip="{{ stackToggleTip }}" data-align="end">
+              <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ stackToggleIcon }}" label="{{ stackToggleTip }}" size="sm" onClick="{{ toggleStack }}" aria-expanded="{{ stackExpanded }}" hint-size="28px,28px"></x-import>
             </span>
-            <span class="ct-loop-meta">
-              <span class="ct-until">{{ it.untilText }}</span>
-              <sc-if value="{{ it.hasTally }}">
-                <span class="ct-tally">
-                  <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
-                    <span class="ct-pip" data-on="{{ d.on }}"></span>
-                  </sc-for>
-                </span>
-              </sc-if>
+          </sc-if>
+        </div>
+      </sc-if>
+      <div class="ct-strip-stack" data-fade="none" data-expanded="{{ stackExpanded }}" ref="{{ stripRef }}" onScroll="{{ stripScroll }}" onPointerOver="{{ tipOver }}" onPointerOut="{{ tipOut }}">
+        <div class="ct-ring" ref="{{ ringRef }}"></div>
+        <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="7">
+          <sc-if value="{{ it.isBlock }}">
+            <span class="ct-loop">
+              <span class="ct-loop-moves">
+                <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="4">
+                  <button class="ct-chip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-i="{{ c.i }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}">
+                    <span class="ct-dot"></span>{{ c.label }}
+                  </button>
+                </sc-for>
+              </span>
+              <span class="ct-loop-meta">
+                <sc-if value="{{ it.untilText }}">
+                  <span class="ct-until">{{ it.untilText }}</span>
+                </sc-if>
+                <sc-if value="{{ it.hasTally }}">
+                  <span class="ct-tally">
+                    <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
+                      <span class="ct-pip" data-on="{{ d.on }}"></span>
+                    </sc-for>
+                  </span>
+                </sc-if>
+              </span>
             </span>
-          </span>
-        </sc-if>
-        <sc-if value="{{ it.isSpacer }}">
-          <button class="ct-chip ct-tip" data-spacer="{{ it.isSep }}" data-face="{{ it.face }}" data-state="{{ it.state }}" data-i="{{ it.i }}" data-tip="{{ it.tip }}" onClick="{{ it.jump }}" aria-label="{{ it.tip }}">
-            <span class="ct-dot"></span>{{ it.label }}
-          </button>
-        </sc-if>
-      </sc-for>
+          </sc-if>
+          <sc-if value="{{ it.isSpacer }}">
+            <button class="ct-chip" data-spacer="{{ it.isSep }}" data-face="{{ it.face }}" data-state="{{ it.state }}" data-i="{{ it.i }}" data-tip="{{ it.tip }}" onClick="{{ it.jump }}" aria-label="{{ it.tip }}">
+              <span class="ct-dot"></span>{{ it.label }}
+            </button>
+          </sc-if>
+        </sc-for>
+      </div>
+      <span class="ct-strip-tip" ref="{{ tipRef }}" aria-hidden="true"></span>
     </div>
 
     <div style="pointer-events:auto;display:flex;align-items:center;gap:8px;margin:16px 0 22px;padding:8px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
@@ -325,7 +413,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   </main>
 
   <aside class="ct-right" data-sheet="{{ sheetState }}" data-collapsed="{{ rightCollapsed }}" style="position:absolute;right:20px;top:20px;bottom:20px;width:328px;display:flex;flex-direction:column;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-panel),inset 0 0 0 1px var(--border-hairline);transition:width 280ms var(--ease-out)">
-    <button class="ct-sheet-handle" onClick="{{ toggleSheet }}" aria-label="{{ variationsLabel }}" aria-expanded="{{ sheetExpanded }}" style="position:relative;align-items:flex-start;justify-content:center;width:100%;height:32px;padding-top:10px;flex:0 0 auto;border:0;background:none;cursor:pointer">
+    <button class="ct-sheet-handle" onClick="{{ toggleSheet }}" aria-label="{{ variationsLabel }}" aria-expanded="{{ sheetExpanded }}" style="position:relative;align-items:flex-start;justify-content:center;width:100%;height:20px;padding-top:10px;flex:0 0 auto;border:0;background:none;cursor:pointer">
       <span style="width:34px;height:4px;border-radius:2px;background:var(--gray-300)"></span>
     </button>
     <div class="ct-rhead" style="display:flex;align-items:center;gap:6px;padding:16px 16px 12px;flex:0 0 auto">
@@ -356,7 +444,9 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
                       </sc-for>
                     </span>
                     <span class="ct-loop-meta">
-                      <span class="ct-until">{{ it.untilText }}</span>
+                      <sc-if value="{{ it.untilText }}">
+                        <span class="ct-until">{{ it.untilText }}</span>
+                      </sc-if>
                       <sc-if value="{{ it.hasTally }}">
                         <span class="ct-tally">
                           <sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2">
@@ -381,7 +471,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   <button class="ct-burger ct-tip" data-tip="{{ drawerTip }}" data-side="right" aria-label="{{ drawerTip }}" aria-expanded="{{ drawerExpanded }}" onClick="{{ toggleDrawer }}" style="position:fixed;left:16px;top:16px;z-index:58;place-items:center;width:40px;height:40px;border:0;border-radius:12px;background:var(--surface-float);box-shadow:var(--shadow-float);cursor:pointer;color:var(--icon-default)">
     <i class="hgi-stroke hgi-menu-01" style="font-size:18px"></i>
   </button>
-  <div class="ct-scrim" data-on="{{ drawerState2 }}" onClick="{{ closeDrawer }}"></div>
+  <div class="ct-scrim" data-on="{{ scrimOn }}" onClick="{{ closeOverlays }}"></div>
 </div>
 
 </x-dc>
@@ -392,8 +482,18 @@ class Component extends DCLogic {
     index: 0, total: 0, playing: false,
     open: { beginner: true, advanced: false, patterns: false, likes: false },
     likes: [], viewed: [], legendOpen: false,
-    sideCollapsed: false, rightCollapsed: false, drawer: false, sheet: false
+    sideCollapsed: false, rightCollapsed: false, drawer: false, sheet: false,
+    stripExpanded: false, stackOverflows: false
   };
+
+  // The ring overhangs its chip by 4px on every side, so parked on a chip in
+  // the last row its own border box pushes scrollHeight 4px past clientHeight.
+  // Every edge test on the stack has to forgive that much, or a stack that
+  // visibly fits reports as scrollable and grows a fade over nothing.
+  RING_SLACK = 4;
+  // scrollTop lands on fractions after a smooth scroll, so "at the start" is
+  // a couple of pixels wide rather than exactly zero.
+  SCROLL_EPSILON = 2;
 
   // ------------------------------------------------------------ lifecycle
   async componentDidMount() {
@@ -431,7 +531,10 @@ class Component extends DCLogic {
   }
 
   componentDidUpdate(prev) {
+    this.followChip();
     this.positionRing();
+    this.syncFade();
+    this.syncStackOverflow();
     this.applyMotion();
     if (this.engine && this.props.cubeFinish !== prev.cubeFinish) this.engine.setFinish(this.props.cubeFinish || 'flat');
   }
@@ -531,7 +634,15 @@ class Component extends DCLogic {
     const v = this.currentVar();
     if (!this.engine || !v) return;
     this.stopPlay();
-    this.engine.load(v).then(() => { this.drawThumbs(); this.positionRing(); });
+    // The toggle has to be re-derived here, not only from componentDidUpdate:
+    // it reads the stack's scrollHeight, which this load can change with no
+    // state change to trigger an update.
+    this.engine.load(v).then(() => {
+      this.drawThumbs();
+      this.positionRing();
+      this.syncFade();
+      this.syncStackOverflow();
+    });
     if (markViewed) {
       const id = this.state.algId;
       if (this.state.viewed.indexOf(id) === -1) {
@@ -553,12 +664,13 @@ class Component extends DCLogic {
 
   selectAlg(id) {
     if (id === this.state.algId) return;
-    this.setState({ algId: id, varIdx: 0 }, () => this.loadCurrent(true));
+    // A new case means looking at the cube first, so the stack starts collapsed.
+    this.setState({ algId: id, varIdx: 0, stripExpanded: false }, () => this.loadCurrent(true));
   }
 
   selectVar(i) {
     if (i === this.state.varIdx) return;
-    this.setState({ varIdx: i }, () => this.loadCurrent(false));
+    this.setState({ varIdx: i, stripExpanded: false }, () => this.loadCurrent(false));
   }
 
   // ------------------------------------------------------------ transport
@@ -616,17 +728,143 @@ class Component extends DCLogic {
 
   // ----------------------------------------------------------------- ring
   positionRing() {
-    const strip = this.stripEl, ring = this.ringEl;
-    if (!strip || !ring) return;
+    const stack = this.stripEl, ring = this.ringEl;
+    if (!stack || !ring) return;
     // No clamp: once index reaches total every move is done, so there is no
     // current chip to ring — the lookup misses and the ring hides itself.
-    const chip = strip.querySelector('[data-i="' + this.state.index + '"]');
+    const chip = stack.querySelector('[data-i="' + this.state.index + '"]');
     if (!chip || !this.state.total) { ring.style.opacity = '0'; return; }
-    const sr = strip.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    const sr = stack.getBoundingClientRect(), cr = chip.getBoundingClientRect();
     ring.style.width = (cr.width + 8) + 'px';
     ring.style.height = (cr.height + 8) + 'px';
-    ring.style.transform = 'translate(' + (cr.left - sr.left - 4) + 'px,' + (cr.top - sr.top - 4) + 'px)';
+    // Content coordinates, not viewport: adding scrollTop back cancels the
+    // shift getBoundingClientRect() reports, so this value is the same whether
+    // it is read before, during, or after a smooth scroll. That is what lets
+    // followChip() and this run in either order.
+    ring.style.transform = 'translate(' + (cr.left - sr.left - 4) + 'px,' + (cr.top - sr.top + stack.scrollTop - 4) + 'px)';
     ring.style.opacity = '1';
+  }
+
+  // 'auto' rather than 'smooth' under reduced motion. The CSS route for this is
+  // --m, which a scrollBy() cannot read, so the preference is checked directly.
+  smoothness() {
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return reduce || this.props.motionLevel === 0 ? 'auto' : 'smooth';
+  }
+
+  // Edge-triggered, not centred. Centring would move the strip on all 52 steps
+  // of a four-corner case; this leaves it still until the live chip is about to
+  // fall off, then carries it across to the far edge. Matches how the ring
+  // already reads -- a marker that travels, rather than a fixed sight the moves
+  // slide under.
+  followChip() {
+    const stack = this.stripEl;
+    // Same 4px of ring overflow syncFade allows for -- see the note there.
+    if (!stack || stack.scrollHeight - stack.clientHeight <= this.RING_SLACK) return;
+    const chip = stack.querySelector('[data-i="' + this.state.index + '"]');
+    if (!chip) return;
+    const sr = stack.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    // One chip plus its gap of headroom: the turn happens while the chip after
+    // the live one is still the thing about to be lost, not the live one.
+    const lead = cr.height + 8;
+    // Anchored to the chip rather than shifted by a fixed page. A relative
+    // scrollBy overshoots by an amount that depends on chip size, dropping the
+    // chip straight back into the opposite trigger zone -- so the next step
+    // scrolls back and the stack flip-flops without ever settling.
+    //
+    // Park it a whole epsilon clear of the zone rather than exactly `lead`
+    // inside the far edge: landing on the boundary leaves the opposite trigger
+    // at the mercy of how the browser rounds scrollTop, and followChip runs on
+    // every state change, not only on index changes -- so a re-render that
+    // doesn't move the index would lurch the stack up and down.
+    //
+    // Content coordinates, as in positionRing: scrollTop and the rects are read
+    // at the same instant, so this is correct even mid-animation.
+    const park = lead + this.SCROLL_EPSILON;
+    const cur = stack.scrollTop;
+    const chipTop = cr.top - sr.top + cur;
+    if (cr.bottom > sr.bottom - lead) stack.scrollTo({ top: chipTop - park, behavior: this.smoothness() });
+    else if (cr.top < sr.top + lead) stack.scrollTo({ top: chipTop + cr.height + park - stack.clientHeight, behavior: this.smoothness() });
+  }
+
+  // Only fade an edge that actually has content past it -- a fade over a fully
+  // scrolled end reads as content that is not there.
+  syncFade() {
+    const stack = this.stripEl;
+    if (!stack) return;
+    const start = stack.scrollTop > this.SCROLL_EPSILON;
+    const end = stack.scrollTop + stack.clientHeight < stack.scrollHeight - this.RING_SLACK;
+    stack.dataset.fade = start && end ? 'both' : start ? 'start' : end ? 'end' : 'none';
+  }
+
+  // Measured against the collapsed cap, never against clientHeight: expanded,
+  // clientHeight grows to fit the content, so a clientHeight test would go
+  // false and hide the very button that collapses it again. scrollHeight is the
+  // content height in both states, so comparing it to the cap is stable.
+  syncStackOverflow() {
+    const stack = this.stripEl;
+    if (!stack || !this.rootEl) return;
+    const cap = parseFloat(getComputedStyle(this.rootEl).getPropertyValue('--stack-cap')) || 131;
+    const overflows = stack.scrollHeight > cap + this.RING_SLACK;
+    // Guarded: this runs from componentDidUpdate, so setting state on every
+    // pass would be an infinite render loop.
+    if (overflows !== this.state.stackOverflows) this.setState({ stackOverflows: overflows });
+  }
+
+  // A manual swipe changes which edges have content past them, and drags the
+  // chips out from under a hovered tip.
+  stripScroll() {
+    this.syncFade();
+    if (this._tipChip) this.hideTip();
+  }
+
+  // ------------------------------------------------------------ strip tip
+  // Delegated, since chips are re-rendered on every move -- one listener on
+  // the track outlives all of them instead of rebinding per chip.
+  tipOver(e) {
+    const chip = e.target.closest('.ct-chip');
+    if (!chip || this._tipChip === chip) return;
+    this.showTip(chip);
+  }
+
+  tipOut(e) {
+    const chip = e.target.closest('.ct-chip');
+    // relatedTarget is where the pointer went; still inside the same chip
+    // (e.g. crossing from the dot to the label) isn't a real exit.
+    if (!chip || chip.contains(e.relatedTarget)) return;
+    this.hideTip();
+  }
+
+  showTip(chip) {
+    const tip = this.tipEl, text = chip.getAttribute('data-tip');
+    if (!tip || !text) return;
+    tip.textContent = text;
+    // Positioned relative to `.ct-strip` (the tip's own parent, already
+    // position:relative) rather than the track, so scrolling the track
+    // doesn't need to re-run this -- the tip is anchored for the duration
+    // of one hover, same as the pseudo-element it replaces.
+    const stripRect = tip.parentElement.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    // Chip to chip, the browser fires pointerout(A) and pointerover(B) in one
+    // task, so the pill never renders hidden in between: B's text lands while
+    // the box still sits over A, and the move to B then inherits the 400ms
+    // transition-delay the reveal carries -- B's text parked over A for most of
+    // half a second. Muting transitions for the reposition and flushing it puts
+    // the box over B while it is still invisible, so the delay only ever delays
+    // the fade-in. A bare flush is not enough: the delay is on the shown state,
+    // and it applies to transform as much as to opacity.
+    tip.style.transition = 'none';
+    tip.removeAttribute('data-show');
+    tip.style.setProperty('--tip-x', (cr.left - stripRect.left + cr.width / 2) + 'px');
+    tip.style.setProperty('--tip-y', (cr.top - stripRect.top - 8) + 'px');
+    void tip.offsetWidth;
+    tip.style.transition = '';
+    tip.setAttribute('data-show', 'true');
+    this._tipChip = chip;
+  }
+
+  hideTip() {
+    if (this.tipEl) this.tipEl.removeAttribute('data-show');
+    this._tipChip = null;
   }
 
   // ---------------------------------------------------------------- likes
@@ -705,7 +943,9 @@ class Component extends DCLogic {
       i: it.i != null ? String(it.i) : '',
       isSep: it.kind === 'spacer' && cvHasBlocks ? 'true' : 'false',
       chips: it.chips, dots: it.dots, hasTally: !!(it.dots && it.dots.length),
-      untilText: it.until ? 'repeat loop until ' + it.until : (it.badge || '')
+      // The stop condition is a property of the variation, not of each block --
+      // expandRun copies it onto all of them. It renders once, above the track.
+      untilText: it.badge || ''
     })) : [];
 
     const variations = (alg ? alg.variations : []).map((v, i) => ({
@@ -716,7 +956,7 @@ class Component extends DCLogic {
         key: it.key, isBlock: it.kind === 'block', isSpacer: it.kind === 'spacer',
         isSep: it.kind === 'spacer' && hasBlocks(v) ? 'true' : 'false',
         face: it.face, label: it.label, chips: it.chips, dots: it.dots, hasTally: !!(it.dots && it.dots.length),
-        untilText: it.until ? 'repeat loop until ' + it.until : (it.badge || '')
+        untilText: it.badge || ''
       })),
       canvasRef: this.cache('cv-' + i, () => el => { this.varCanvas[i] = el; if (el && this.pool) requestAnimationFrame(() => this.drawThumbs()); }),
       select: this.cache('var-' + i, () => () => this.selectVar(i)),
@@ -731,6 +971,7 @@ class Component extends DCLogic {
       cubeRef: this.cache('cube', () => el => { this.cubeEl = el; }),
       stripRef: this.cache('strip', () => el => { this.stripEl = el; }),
       ringRef: this.cache('ring', () => el => { this.ringEl = el; }),
+      tipRef: this.cache('striptip', () => el => { this.tipEl = el; }),
       scrubRef: this.cache('scrub', () => el => { this.scrubEl = el; }),
 
       groups,
@@ -747,6 +988,18 @@ class Component extends DCLogic {
       startBeginner: e => { e.preventDefault(); this.setState(s => ({ open: Object.assign({}, s.open, { beginner: true }) }), () => this.selectAlg('b-first-layer-edges')); },
 
       stripItems,
+      stripUntil: cv && cv.until ? 'repeat loop until ' + cv.until : '',
+      // Either/or, not always: a variation with no stop condition and few enough
+      // rows to fit the cap gets no header row at all, and keeps its old height.
+      stripHead: !!(cv && cv.until) || S.stackOverflows,
+      stackExpanded: S.stripExpanded ? 'true' : 'false',
+      stackOverflows: S.stackOverflows,
+      stackToggleIcon: S.stripExpanded ? 'arrow-shrink-01' : 'arrow-expand-01',
+      stackToggleTip: S.stripExpanded ? 'Collapse moves' : 'Expand moves',
+      toggleStack: () => this.setState(s => ({ stripExpanded: !s.stripExpanded })),
+      stripScroll: () => this.stripScroll(),
+      tipOver: e => this.tipOver(e),
+      tipOut: e => this.tipOut(e),
       variations,
       variationsLabel: variations.length + ' case variations',
 
@@ -795,8 +1048,14 @@ class Component extends DCLogic {
       drawerExpanded: S.drawer ? 'true' : 'false',
       drawerState: S.drawer ? 'open' : 'closed',
       drawerState2: S.drawer ? 'true' : 'false',
-      toggleDrawer: () => this.setState(s => ({ drawer: !s.drawer })),
+      // Opening the menu closes the sheet: one overlay at a time, so the scrim
+      // always means exactly one thing and the two never share a layer.
+      toggleDrawer: () => this.setState(s => ({ drawer: !s.drawer, sheet: s.drawer ? s.sheet : false })),
       closeDrawer: () => this.setState({ drawer: false }),
+      // The sheet gets the drawer's scrim: same dimmed backdrop, same tap-outside
+      // to dismiss. One element serves both -- only one can be open at a time.
+      scrimOn: S.drawer || S.sheet ? 'true' : 'false',
+      closeOverlays: () => this.setState({ drawer: false, sheet: false }),
       sheetState: S.sheet ? 'open' : 'closed',
       sheetExpanded: S.sheet ? 'true' : 'false',
       toggleSheet: () => this.setState(s => ({ sheet: !s.sheet }))
