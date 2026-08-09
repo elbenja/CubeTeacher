@@ -160,6 +160,17 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 /* One per variation, above the moves, so it stays put while the stack scrolls.
    --gray-700 on --amber-50 is 7.61:1, which clears AA for caption text. */
 .ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
+/* Hugeicons ships Expand and Collapse in its icon package but not yet in the
+   icon font the design system's Icon draws from, so the two glyphs come in as
+   masks filling the slot the font would have. currentColor keeps them on the
+   button's own tint, hover and disabled states included.
+   1.6em, not 1em: both glyphs are drawn well inside their 24px viewBox, so at
+   the slot's nominal size their ink is barely half of what the font's own
+   glyphs put in the same space. The box is scaled instead of the artwork so
+   the 1.5 stroke stays in proportion to the shape. */
+.hgi-expand::before,.hgi-collapse::before{content:"";display:block;width:1.6em;height:1.6em;background:currentColor;-webkit-mask:var(--hgi-src) center/contain no-repeat;mask:var(--hgi-src) center/contain no-repeat}
+.hgi-expand{--hgi-src:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 12L19 8.99996C19 7.11435 18.9999 6.17155 18.4142 5.58577C17.8284 4.99999 16.8856 4.99999 15 5L12 5.00001'/%3E%3Cpath d='M5 12L5.00003 15C5.00004 16.8856 5.00005 17.8284 5.58584 18.4142C6.17163 19 7.11443 19 9.00004 19L12 19'/%3E%3C/svg%3E")}
+.hgi-collapse{--hgi-src:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 4L13 7.00002C13 8.88563 13.0001 9.82843 13.5858 10.4142C14.1716 11 15.1144 11 17 11L20 11'/%3E%3Cpath d='M11.0001 20L11 17C11 15.1144 11 14.1715 10.4142 13.5858C9.82843 13 8.88563 13 7.00002 13L4.00006 13'/%3E%3C/svg%3E")}
 /* Caption and toggle share one row, rendered only when at least one of them
    exists -- a short flat variation with neither keeps its old height.
    The toggle floated in the card's corner first. That fails: on a case with no
@@ -232,6 +243,12 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-fend{margin-left:auto}
 .ct-link:hover{background:var(--surface-hover);color:var(--text-primary);text-decoration:none}
 .ct-scrim{position:fixed;inset:0;background:var(--surface-scrim);opacity:0;pointer-events:none;transition:opacity calc(280ms*var(--m)) var(--ease-out);z-index:50}
+/* One gap above and below the transport, so the move stack, the bar and the
+   sheet below it read as an evenly spaced column rather than three strays.
+   Wherever the panel is not a sheet there is nothing under the bar to space
+   against, and the bar lines up with the side panels' 20px inset instead. */
+.ct-transport{margin:12px 0}
+@media (min-width:1025px){.ct-transport{margin-bottom:20px}}
 .ct-burger,.ct-sheet-handle{display:none}
 main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 auto}
 
@@ -408,7 +425,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       <span class="ct-strip-tip" ref="{{ tipRef }}" aria-hidden="true"></span>
     </div>
 
-    <div style="pointer-events:auto;display:flex;align-items:center;gap:8px;margin:16px 0 22px;padding:8px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
+    <div class="ct-transport" style="pointer-events:auto;display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
       <span class="ct-tip" data-tip="Reset to start (R)">
         <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="refresh" label="Reset to start" onClick="{{ reset }}" hint-size="36px,36px"></x-import>
       </span>
@@ -1007,7 +1024,7 @@ class Component extends DCLogic {
       stripHead: !!(cv && cv.until) || S.stackOverflows,
       stackExpanded: S.stripExpanded ? 'true' : 'false',
       stackOverflows: S.stackOverflows,
-      stackToggleIcon: S.stripExpanded ? 'arrow-shrink-01' : 'arrow-expand-01',
+      stackToggleIcon: S.stripExpanded ? 'collapse' : 'expand',
       stackToggleTip: S.stripExpanded ? 'Collapse moves' : 'Expand moves',
       toggleStack: () => this.setState(s => ({ stripExpanded: !s.stripExpanded })),
       stripScroll: () => this.stripScroll(),
