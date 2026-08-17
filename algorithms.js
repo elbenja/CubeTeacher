@@ -23,6 +23,12 @@ const WHITE_LAYER = ['U', 'UF', 'UR', 'UB', 'UL', 'UFL', 'UBR', 'UBL', 'F', 'R',
 const FIRST_LAYER = ['D*', 'F', 'R', 'B', 'L', 'U'];
 const F2L_AND_LL_EDGES = ['D*', 'FR', 'FL', 'BR', 'BL', 'F', 'R', 'B', 'L', 'U', 'UF', 'UR', 'UB', 'UL'];
 
+// Advanced masks. CFOP keeps white on the bottom, so the cross being protected
+// is the D one; LAST_LAYER greys the two finished layers away and leaves the
+// case itself lit.
+const CROSS_ONLY = ['DF', 'DR', 'DB', 'DL', 'D', 'F', 'R', 'B', 'L', 'U'];
+const LAST_LAYER = ['U*', 'F', 'R', 'B', 'L', 'D'];
+
 // A variation is authored either as a flat `moves` list or as a `loop` block
 // plus a `run`: numbers repeat the block, strings are literal spacer moves
 // between blocks. Expanding here keeps `moves` the single thing every consumer
@@ -260,10 +266,59 @@ export const ALGORITHMS = [
     goal: 'Make the whole top face one colour in two looks: edges, then corners.',
     whenToUse: 'Two layers finished. 2-look OLL — ten cases instead of fifty-seven.',
     whyItWorks: 'Look one flips the edges into a cross. Look two twists the corners. Splitting it costs a few moves and saves fifty algorithms.',
+    crossLink: 'b-yellow-cross',
+    badge: 'top',
     variations: [
-      { label: 'Look 1 — edge cross', moves: ['F', 'R', 'U', "R'", "U'", "F'"] },
-      { label: 'Look 2 — Sune', moves: ['R', 'U', "R'", 'U', 'R', 'U2', "R'"] },
-      { label: 'Look 2 — Anti-Sune', moves: ['R', 'U2', "R'", "U'", 'R', "U'", "R'"] }
+      { label: 'Look 1 — dot', section: 'Look 1 — orient the edges',
+        moves: ['F', 'R', 'U', "R'", "U'", "F'", 'U2', 'F', 'U', 'R', "U'", "R'", "F'"],
+        setup: ['z2', 'y', 'F', 'R', 'U', "R'", "U'", "F'", 'U2', 'F', 'U', 'R', "U'", "R'", "F'"],
+        keep: LAST_LAYER,
+        note: 'No top edge is up yet. This is the only look-1 case that needs two passes of the F R U R′ U′ F′ family.' },
+      { label: 'Look 1 — L-shape',
+        moves: ['F', 'U', 'R', "U'", "R'", "F'"],
+        setup: ['z2', 'y', 'F', 'R', 'U', "R'", "U'", "F'"],
+        keep: LAST_LAYER,
+        note: 'Hold the hook pointing back-left.' },
+      { label: 'Look 1 — line',
+        moves: ['F', 'R', 'U', "R'", "U'", "F'"],
+        setup: ['z2', 'y', 'F', 'U', 'R', "U'", "R'", "F'"],
+        keep: LAST_LAYER,
+        note: 'Hold the line horizontal, left to right.' },
+      { label: 'Look 2 — Sune', section: 'Look 2 — twist the corners',
+        moves: ['R', 'U', "R'", 'U', 'R', 'U2', "R'"],
+        setup: ['z2', 'y', 'R', 'U2', "R'", "U'", 'R', "U'", "R'"],
+        keep: LAST_LAYER,
+        note: 'One corner already up, at the front-left. The workhorse of the whole step.' },
+      { label: 'Look 2 — Anti-Sune',
+        moves: ['R', 'U2', "R'", "U'", 'R', "U'", "R'"],
+        setup: ['z2', 'y', 'R', 'U', "R'", 'U', 'R', 'U2', "R'"],
+        keep: LAST_LAYER,
+        note: 'Sune backwards. One corner up, at the back-right.' },
+      { label: 'Look 2 — T',
+        moves: ['R', "M'", 'U', "R'", "U'", "R'", 'M', 'F', 'R', "F'"],
+        setup: ['z2', 'y', 'F', "R'", "F'", "M'", 'R', 'U', 'R', "U'", 'M', "R'"],
+        keep: LAST_LAYER,
+        note: "Two corners up on the right. Written with wide moves as r U R′ U′ r′ F R F′; r is the R layer plus the M slice, so it is spelled R M′ here." },
+      { label: 'Look 2 — U',
+        moves: ['R2', 'D', "R'", 'U2', 'R', "D'", "R'", 'U2', "R'"],
+        setup: ['z2', 'y', 'R', 'U2', 'R', 'D', "R'", 'U2', 'R', "D'", 'R2'],
+        keep: LAST_LAYER,
+        note: 'Two corners up along the back — the headlights case.' },
+      { label: 'Look 2 — L',
+        moves: ['F', "R'", "F'", 'R', "M'", 'U', 'R', "U'", "R'", 'M'],
+        setup: ['z2', 'y', "M'", 'R', 'U', "R'", "U'", 'M', "R'", 'F', 'R', "F'"],
+        keep: LAST_LAYER,
+        note: 'Two corners up diagonally. Wide-move form is F R′ F′ r U R U′ r′.' },
+      { label: 'Look 2 — H',
+        moves: ['R', 'U', "R'", 'U', 'R', "U'", "R'", 'U', 'R', 'U2', "R'"],
+        setup: ['z2', 'y', 'R', 'U2', "R'", "U'", 'R', 'U', "R'", "U'", 'R', "U'", "R'"],
+        keep: LAST_LAYER,
+        note: 'No corner is up. Told apart from Pi by the side stickers: H shows a pair on the right and a pair on the left.' },
+      { label: 'Look 2 — Pi',
+        moves: ['R', 'U2', 'R2', "U'", 'R2', "U'", 'R2', 'U2', 'R'],
+        setup: ['z2', 'y', "R'", 'U2', 'R2', 'U', 'R2', 'U', 'R2', 'U2', "R'"],
+        keep: LAST_LAYER,
+        note: 'No corner is up either. Pi shows its pairs on the left and across the back and front, not mirrored left-right like H.' }
     ]
   },
   {

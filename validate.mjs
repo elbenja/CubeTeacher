@@ -453,6 +453,13 @@ const twoOriented = (c, pair) => {
   return on === pair.slice().sort().join(',');
 };
 
+// An OCLL case: F2L done, every top edge oriented, and exactly this set of top
+// corners already showing the up colour. H and Pi both orient none, so callers
+// separate those two on the side tabs.
+const ocll = (c, up) =>
+  f2lSolved(c, DN) && faceCross(c, UP) &&
+  U_CORNER_TOKS.filter(t => sticker(c, vecOf(t), 'U') === centre(c, 'U')).sort().join(',') === up.slice().sort().join(',');
+
 const CHECKS = {
   // ---- step 1 : white up. Three cross edges done, the fourth is the case.
   'b-first-layer-edges': {
@@ -566,6 +573,38 @@ const CHECKS = {
       'All four corners twisted':
         { name: 'all four corners twisted, F2L intact',
           test: c => twistCase(c, 4) }
+    }
+  },
+
+  // ---- advanced OLL : yellow up (z2 y). Two looks in one entry, so look 1
+  // carries its own goal -- its corners are still wrong and asserting a solid
+  // face there would be wrong.
+  'a-oll': {
+    goal: c => faceSolid(c, UP) && f2lSolved(c, DN),
+    goalName: 'whole top face one colour, F2L untouched',
+    cases: {
+      'Look 1 — dot': {
+        name: 'dot (no top edge up)',
+        goal: c => faceCross(c, UP) && f2lSolved(c, DN),
+        goalName: 'top edges oriented, F2L untouched',
+        test: c => f2lSolved(c, DN) && edgesOriented(c, UP).length === 0 },
+      'Look 1 — line': {
+        name: 'horizontal line (UL/UR up), corners unknown',
+        goal: c => faceCross(c, UP) && f2lSolved(c, DN),
+        goalName: 'top edges oriented, F2L untouched',
+        test: c => f2lSolved(c, DN) && twoOriented(c, ['UL', 'UR']) },
+      'Look 1 — L-shape': {
+        name: 'L hooked back-left (UL/UB up), corners unknown',
+        goal: c => faceCross(c, UP) && f2lSolved(c, DN),
+        goalName: 'top edges oriented, F2L untouched',
+        test: c => f2lSolved(c, DN) && twoOriented(c, ['UL', 'UB']) },
+      'Look 2 — Sune': { name: 'edges oriented, one corner up (UFL)', test: c => ocll(c, ['UFL']) },
+      'Look 2 — Anti-Sune': { name: 'edges oriented, one corner up (UBR)', test: c => ocll(c, ['UBR']) },
+      'Look 2 — T': { name: 'edges oriented, two corners up (UBR/UFR)', test: c => ocll(c, ['UBR', 'UFR']) },
+      'Look 2 — U': { name: 'edges oriented, two corners up (UBL/UBR)', test: c => ocll(c, ['UBL', 'UBR']) },
+      'Look 2 — L': { name: 'edges oriented, two corners up diagonally (UBL/UFR)', test: c => ocll(c, ['UBL', 'UFR']) },
+      'Look 2 — H': { name: 'edges oriented, no corner up, tabs on R and L', test: c => ocll(c, []) && topTabs(c).R === 'X.X' },
+      'Look 2 — Pi': { name: 'edges oriented, no corner up, tabs on L only', test: c => ocll(c, []) && topTabs(c).R === '...' }
     }
   }
 };
