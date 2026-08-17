@@ -239,7 +239,9 @@ to:
 - [ ] **Step 2: Run and confirm the stubs fail**
 
 Run: `node validate.mjs`
-Expected: 32 variations total (23 beginner + 9 advanced stubs), with every advanced row `unchecked` / `no case predicate`, and each also carrying `NO EXPLICIT SETUP`. Exit code 1.
+Expected: **34 variations** total — 23 beginner plus the 11 advanced stubs (`a-white-cross` 2, `a-f2l` 3, `a-oll` 3, `a-pll` 3) — with every advanced row `unchecked` / `no case predicate`, and each also carrying `NO EXPLICIT SETUP`. Exit code 1.
+
+The 11 is the stub count, not the target: Tasks 4-7 replace these with 29 real cases, so the final total is 52.
 
 - [ ] **Step 3: Allow a per-case goal override**
 
