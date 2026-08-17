@@ -8,7 +8,14 @@
 //   node validate.mjs          run the checks, print the table
 //   node validate.mjs --dump   also print the decoded case state per variation
 
-globalThis.window = { THREE: {}, matchMedia: () => ({ matches: false }) };
+// cube-engine.js builds a couple of THREE.Color instances at module scope (the
+// hover-ghost WHITE). None of the functions used here touch three.js, but the
+// import still has to survive, so the stub carries a Color that satisfies the
+// calls made during module evaluation.
+globalThis.window = {
+  THREE: { Color: class { constructor() {} copy() { return this; } lerp() { return this; } } },
+  matchMedia: () => ({ matches: false })
+};
 
 const { parseMoves, invertMoves, moveSpec } = await import('./cube-engine.js');
 const { ALGORITHMS, expandRun } = await import('./algorithms.js');
