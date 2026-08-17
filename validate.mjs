@@ -157,6 +157,50 @@ export const solved = cube => FACE_ORDER.every(f => layerSolved(cube, f));
 
 export function stateOf(setup) { return applyMoves(solvedCube(), setup); }
 
+// ------------------------------------------------------------ case signature
+// Advanced cases are chosen by asking what an algorithm's inverse produces, so
+// the authoring loop needs to read a candidate's case back out. Everything here
+// is reporting only -- nothing in CHECKS depends on it.
+
+const U_CORNER_TOKS = ['UFR', 'UFL', 'UBR', 'UBL'];
+
+export const cornersOriented = (cube, up) =>
+  slotsOf(up, 'corner').every(p => sticker(cube, p, up) === centre(cube, up));
+
+export const faceSolid = (cube, up) => faceCross(cube, up) && cornersOriented(cube, up);
+
+export const slotSolved = (cube, cornerTok, edgeTok) =>
+  placed(cube, cornerTok) && placed(cube, edgeTok);
+
+// The 3x3 of U-facing stickers, back row first, as the badge draws it.
+export function topGrid(cube) {
+  const up = centre(cube, 'U');
+  const rows = [];
+  for (let z = -1; z <= 1; z++) {
+    let row = '';
+    for (let x = -1; x <= 1; x++) row += sticker(cube, [x, 1, z], 'U') === up ? 'X' : '.';
+    rows.push(row);
+  }
+  return rows;
+}
+
+// The twelve side stickers of the top layer. H and Pi share a 3x3 and are told
+// apart only here, so this is load-bearing for recognition, not decoration.
+export function topTabs(cube) {
+  const up = centre(cube, 'U');
+  const on = (p, f) => sticker(cube, p, f) === up ? 'X' : '.';
+  return {
+    B: [-1, 0, 1].map(x => on([x, 1, -1], 'B')).join(''),
+    R: [-1, 0, 1].map(z => on([1, 1, z], 'R')).join(''),
+    F: [-1, 0, 1].map(x => on([x, 1, 1], 'F')).join(''),
+    L: [-1, 0, 1].map(z => on([-1, 1, z], 'L')).join('')
+  };
+}
+
+const SLOT_PAIRS = { FR: ['DFR', 'FR'], FL: ['DFL', 'FL'], BR: ['DBR', 'BR'], BL: ['DBL', 'BL'] };
+export const slotsDone = cube =>
+  Object.keys(SLOT_PAIRS).filter(s => slotSolved(cube, SLOT_PAIRS[s][0], SLOT_PAIRS[s][1]));
+
 // ------------------------------------------------------------------ hygiene
 // A visible F' F in a teaching animation is a bug: the learner watches two moves
 // undo each other. Any two consecutive turns of the same face are redundant.
@@ -572,6 +616,26 @@ function twistCase(c, count, pair) {
   return pair == null || pairing(off[0], off[1]) === pair;
 }
 
+// Report what case `['z2','y',...invertMoves(moves)]` sets up, so an author can
+// name it before writing the predicate.
+export function probe(moves) {
+  const setup = ['z2', 'y', ...invertMoves(moves)];
+  const start = stateOf(setup);
+  const end = applyMoves(stateOf(setup), moves);
+  const tabs = topTabs(start);
+  const dup = adjacentSameFace(moves);
+  console.log('moves     :', parseMoves(moves).join(' '));
+  console.log('setup     :', setup.join(' '));
+  console.log('length    :', parseMoves(moves).length, dup.length ? 'DEAD PAIR: ' + dup.join(', ') : '');
+  console.log('start F2L :', f2lSolved(start, DN), ' crossD:', crossSolved(start, DN), ' slots:', slotsDone(start).join('+') || 'none');
+  console.log('start LL  : edgesUp:', edgesOriented(start, UP).join('/') || 'none',
+    ' cornersUp:', U_CORNER_TOKS.filter(t => sticker(start, vecOf(t), 'U') === centre(start, 'U')).join('/') || 'none',
+    ' cornersPos:', cornersPositioned(start, UP));
+  console.log('start grid:', topGrid(start).join(' / '));
+  console.log('start tabs: B:' + tabs.B + ' R:' + tabs.R + ' F:' + tabs.F + ' L:' + tabs.L);
+  console.log('end       : solved:', solved(end), ' crossD:', crossSolved(end, DN), ' faceSolid:', faceSolid(end, UP));
+}
+
 // --------------------------------------------------------------------- main
 function main() {
   expansionTest();
@@ -668,4 +732,8 @@ function main() {
 }
 
 const { pathToFileURL } = await import('node:url');
-if (import.meta.url === pathToFileURL(process.argv[1]).href) main();
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const i = process.argv.indexOf('--probe');
+  if (i !== -1 && process.argv[i + 1]) probe(process.argv[i + 1]);
+  else main();
+}
