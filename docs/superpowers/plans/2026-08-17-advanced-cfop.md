@@ -291,7 +291,7 @@ to:
 - [ ] **Step 5: Confirm beginner is unaffected**
 
 Run: `node validate.mjs`
-Expected: the 23 beginner rows all still `match`; the 9 advanced rows still fail. Exit code 1.
+Expected: `34 variations, 23 match, 11 need attention`. The 23 beginner rows all still `match`; the 11 advanced stub rows still fail. Exit code 1.
 
 - [ ] **Step 6: Commit**
 
