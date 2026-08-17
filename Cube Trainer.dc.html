@@ -186,6 +186,15 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-strip-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%}
 .ct-strip-head .ct-strip-until{grid-column:2;justify-self:center}
 .ct-stack-toggle{grid-column:3;justify-self:end}
+/* IconButton is a fixed square that centres its icon with place-items, but the
+   user agent's own 1px 6px button padding survives that: at sm the content box
+   is only 16px wide, the 22.4px mask overflows it, and an overflowing grid item
+   parks at the start edge instead of centring -- the glyph sat 3.2px right of
+   centre. Zeroing the padding hands the whole square back to the grid.
+   32px rather than sm's 28: the mask needs a 22.4px box to put out the same ink
+   as a font glyph does, which leaves no margin inside 28 and reads as an icon
+   crammed to the card's edge. */
+.ct-stack-toggle .dc-ib{padding:0;width:32px;height:32px}
 /* Wrapped and height-capped rather than one scrolled line -- the stacking in
    the mockup is this wrap at phone width, not a column. Measured, a block plus
    its spacer runs 287-313px, so two pairs need ~582px of content box: the
@@ -384,7 +393,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
           </sc-if>
           <sc-if value="{{ stackOverflows }}">
             <span class="ct-stack-toggle ct-tip" data-tip="{{ stackToggleTip }}" data-align="end">
-              <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ stackToggleIcon }}" label="{{ stackToggleTip }}" size="sm" onClick="{{ toggleStack }}" aria-expanded="{{ stackExpanded }}" hint-size="28px,28px"></x-import>
+              <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ stackToggleIcon }}" label="{{ stackToggleTip }}" size="sm" onClick="{{ toggleStack }}" aria-expanded="{{ stackExpanded }}" hint-size="32px,32px"></x-import>
             </span>
           </sc-if>
         </div>

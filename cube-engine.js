@@ -81,6 +81,13 @@ const STICKER_XFORM = {
   B: { p: [0, 0, -0.503], r: [0, Math.PI, 0] }
 };
 
+// Every sticker gets a twin floating straight out along its own normal. The
+// twins of a face land on one plane, so the three faces turned away from the
+// camera read as flat 3×3 panels beside the cube — the back of the cube seen
+// through it. Only the turned-away ones are shown; the rest stay hidden so they
+// don't hang in front of the faces they belong to.
+const HOVER = 2;
+
 function buildModel(opts = {}) {
   const finish = opts.finish || 'flat';
   const gap = opts.gap != null ? opts.gap : 0.78;
@@ -90,6 +97,7 @@ function buildModel(opts = {}) {
   const geo = stickerGeometry(gap, opts.radius != null ? opts.radius : 0.07);
   const cubies = [];
   const stickers = [];
+  const ghosts = [];
   let id = 0;
   for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) for (let z = -1; z <= 1; z++) {
     const c = new THREE.Group();
@@ -102,9 +110,7 @@ function buildModel(opts = {}) {
     if (z === 1) faces.push('F'); if (z === -1) faces.push('B');
     faces.forEach(f => {
       const base = new THREE.Color(FACE_COLORS[f]);
-      const mat = finish === 'clay'
-        ? new THREE.MeshStandardMaterial({ color: base.clone(), roughness: 0.42, metalness: 0 })
-        : new THREE.MeshBasicMaterial({ color: base.clone() });
+      const mat = stickerMaterial(finish, base.clone());
       const m = new THREE.Mesh(geo, mat);
       const t = STICKER_XFORM[f];
       m.position.set(t.p[0], t.p[1], t.p[2]);
@@ -112,12 +118,41 @@ function buildModel(opts = {}) {
       m.userData = { face: f, base, cubie: c.userData.id };
       c.add(m);
       stickers.push(m);
+      // Shares its sticker's geometry, but carries its own lighter material —
+      // paintGhost keeps the two in step through dimming and finish changes.
+      const k = HOVER / 0.503;
+      const g = new THREE.Mesh(geo, stickerMaterial(finish, base.clone()));
+      g.position.set(t.p[0] * k, t.p[1] * k, t.p[2] * k);
+      g.rotation.copy(m.rotation);
+      g.visible = false;
+      m.userData.ghost = g;
+      paintGhost(m);
+      c.add(g);
+      ghosts.push(g);
     });
     group.add(c);
     cubies.push(c);
   }
-  group.userData = { cubies, stickers, bodyGeo, bodyMat, geo };
+  group.userData = { cubies, stickers, ghosts, bodyGeo, bodyMat, geo };
   return group;
+}
+
+// Two-sided: a hovering panel is always seen from its back, and the cube's own
+// stickers hide their back inside the opaque body.
+function stickerMaterial(finish, color) {
+  return finish === 'clay'
+    ? new THREE.MeshStandardMaterial({ color, roughness: 0.42, metalness: 0, side: THREE.DoubleSide })
+    : new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
+}
+
+// A panel is a fifth of the way to white, so it reads as a lighter echo of the
+// face rather than a second cube. Follows whatever colour the sticker is
+// wearing right now — mid-fade, dimmed or full.
+const HOVER_LIGHTEN = 0.2;
+const WHITE = new THREE.Color(0xffffff);
+
+function paintGhost(m) {
+  m.userData.ghost.material.color.copy(m.material.color).lerp(WHITE, HOVER_LIGHTEN);
 }
 
 function bake(cubies, axisV, angle) {
@@ -332,6 +367,7 @@ export class CubeEngine {
     );
     this.camera.lookAt(0, 0, 0);
     if (this.colorUntil && performance.now() < this.colorUntil) this.stepColors();
+    this.stepHover();
     this.renderer.render(this.scene, this.camera);
     // Runs every frame: React re-renders rewrite the guide spans' style attribute,
     // so the transforms have to be re-applied unconditionally.
@@ -344,6 +380,21 @@ export class CubeEngine {
     this.model.userData.stickers.forEach(m => {
       const want = (this.relevant && !this.relevant.has(m.userData.cubie)) ? dim : m.userData.base;
       m.material.color.lerp(want, 0.16);
+      paintGhost(m);
+    });
+  }
+
+  // A hovering twin shows only while its sticker faces away from the camera,
+  // which is decided fresh every frame: the camera swings, and so do the
+  // stickers as layers turn.
+  stepHover() {
+    const n = this._hn || (this._hn = new THREE.Vector3());
+    const p = this._hp || (this._hp = new THREE.Vector3());
+    const cam = this.camera.position;
+    this.model.userData.ghosts.forEach(g => {
+      g.getWorldDirection(n);
+      g.getWorldPosition(p);
+      g.visible = n.dot(p.sub(cam)) > 0;
     });
   }
 
@@ -355,6 +406,7 @@ export class CubeEngine {
       this.model.userData.stickers.forEach(m => {
         const want = (this.relevant && !this.relevant.has(m.userData.cubie)) ? dim : m.userData.base;
         m.material.color.copy(want);
+        paintGhost(m);
       });
       this.colorUntil = 0;
     }
@@ -458,14 +510,14 @@ export class CubeEngine {
   setFinish(finish) {
     if (finish === this._finish) return;
     this._finish = finish;
-    const clay = finish === 'clay';
     this.model.userData.stickers.forEach(m => {
-      const cur = m.material.color.clone();
-      const next = clay
-        ? new THREE.MeshStandardMaterial({ color: cur, roughness: 0.42, metalness: 0 })
-        : new THREE.MeshBasicMaterial({ color: cur });
+      const g = m.userData.ghost;
+      const next = stickerMaterial(finish, m.material.color.clone());
+      const nextGhost = stickerMaterial(finish, g.material.color.clone());
       m.material.dispose();
+      g.material.dispose();
       m.material = next;
+      g.material = nextGhost;
     });
     this.colorUntil = performance.now() + 700;
   }
@@ -473,7 +525,7 @@ export class CubeEngine {
   dispose() {
     cancelAnimationFrame(this.raf);
     if (this._ro) this._ro.disconnect();
-    this.model.userData.stickers.forEach(m => m.material.dispose());
+    this.model.userData.stickers.forEach(m => { m.material.dispose(); m.userData.ghost.material.dispose(); });
     this.model.userData.geo.dispose();
     this.model.userData.bodyGeo.dispose();
     this.model.userData.bodyMat.dispose();
@@ -509,6 +561,7 @@ export class MiniPool {
     this.model.userData.stickers.forEach(m => {
       const on = !rel || rel.size >= 27 || rel.has(m.userData.cubie);
       m.material.color.copy(on ? m.userData.base : dim);
+      paintGhost(m);
     });
     // Honour `view` here too, or a mirrored case shows its slot from one side on
     // the thumbnail and the other on the stage.
@@ -529,7 +582,7 @@ export class MiniPool {
   }
 
   dispose() {
-    this.model.userData.stickers.forEach(m => m.material.dispose());
+    this.model.userData.stickers.forEach(m => { m.material.dispose(); m.userData.ghost.material.dispose(); });
     this.model.userData.geo.dispose();
     this.model.userData.bodyGeo.dispose();
     this.model.userData.bodyMat.dispose();
