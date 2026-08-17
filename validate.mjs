@@ -645,7 +645,7 @@ function main() {
   const rows = [];
   let fails = 0;
 
-  for (const alg of ALGORITHMS.filter(a => a.group === 'beginner')) {
+  for (const alg of ALGORITHMS.filter(a => a.group === 'beginner' || a.group === 'advanced')) {
     const spec = CHECKS[alg.id];
     alg.variations.forEach((v, i) => {
       const label = `${alg.id}#${i}`;
@@ -673,16 +673,25 @@ function main() {
       if (!c) { notes.push('no case predicate'); verdict = 'unchecked'; }
       else if (!c.test(start)) { notes.push(`start is not "${c.name}"`); verdict = 'mismatch'; }
 
-      const goal = spec && spec.goal;
-      const goalName = spec && spec.goalName;
+      // Two-look steps hold cases with different end states in one entry: OLL
+      // look 1 reaches an oriented cross with the corners still wrong, look 2 a
+      // solid face. A case may name its own goal; otherwise the step's applies.
+      const goal = (c && c.goal) || (spec && spec.goal);
+      const goalName = (c && c.goalName) || (spec && spec.goalName);
       if (goal && !goal(end)) { notes.push(`end is not "${goalName}"`); verdict = 'mismatch'; }
 
       // Steps 4-6 must hand the first two layers back exactly as they found
       // them. Asserted separately from the step goal so that a later edit to a
       // goal predicate cannot quietly drop it.
-      if (['b-yellow-cross', 'b-swap-yellow-edges', 'b-position-yellow-corners'].includes(alg.id)
+      if (['b-yellow-cross', 'b-swap-yellow-edges', 'b-position-yellow-corners', 'a-oll', 'a-pll'].includes(alg.id)
         && !(f2lSolved(start, DN) && f2lSolved(end, DN))) {
         notes.push('F2L not preserved'); verdict = 'mismatch';
+      }
+
+      // An F2L algorithm that fills its slot by wrecking the cross is worse than
+      // useless, and the step goal alone would not notice.
+      if (alg.id === 'a-f2l' && !(crossSolved(start, DN) && crossSolved(end, DN))) {
+        notes.push('cross not preserved'); verdict = 'mismatch';
       }
 
       const badKeep = badKeepTokens(v.keep);
