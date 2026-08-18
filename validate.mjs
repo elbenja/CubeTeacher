@@ -465,6 +465,30 @@ const ocll = (c, up) =>
 const pllEdges = c =>
   f2lSolved(c, DN) && faceSolid(c, UP) && cornersPositioned(c, UP) && !crossSolved(c, UP);
 
+// Cross done and three slots done, FR open: the shared precondition of every
+// advanced F2L case.
+const f2lExceptFR = c =>
+  crossSolved(c, DN) && !slotSolved(c, 'DFR', 'FR') &&
+  slotSolved(c, 'DFL', 'FL') && slotSolved(c, 'DBR', 'BR') && slotSolved(c, 'DBL', 'BL');
+
+// The two pieces of the FR pair, pinned by naming the face each colour is on.
+//
+// Naming a single sticker is not enough: "white on the corner's front face" is
+// unique, but "the R colour on the UB edge's back face" is also true of the
+// yellow-red last-layer edge parked there, so a one-sticker test would match
+// two different cases. Naming both stickers of the edge, and white plus the F
+// colour on the corner, fixes the piece *and* its orientation -- the third
+// corner sticker then follows -- which makes the pair (corner, edge) a complete
+// signature of the case. That is what stops two F2L cards sharing a predicate.
+const frEdgeAt = (c, tok, fFace) => {
+  const other = tok.split('').find(f => f !== fFace);
+  return sticker(c, vecOf(tok), fFace) === centre(c, 'F')
+      && sticker(c, vecOf(tok), other) === centre(c, 'R');
+};
+const frCornerAt = (c, tok, whiteFace, fFace) =>
+  sticker(c, vecOf(tok), whiteFace) === centre(c, 'D') &&
+  sticker(c, vecOf(tok), fFace) === centre(c, 'F');
+
 const CHECKS = {
   // ---- step 1 : white up. Three cross edges done, the fourth is the case.
   'b-first-layer-edges': {
@@ -633,6 +657,57 @@ const CHECKS = {
       'Look 2 — Ub-perm': { name: 'corners placed, three edges cycled the other way', test: c => pllEdges(c) },
       'Look 2 — H-perm': { name: 'corners placed, both pairs of opposite edges swapped', test: c => pllEdges(c) },
       'Look 2 — Z-perm': { name: 'corners placed, two adjacent pairs swapped', test: c => pllEdges(c) }
+    }
+  },
+
+  // ---- advanced F2L : yellow up (z2 y). Cross plus three slots done, the FR
+  // slot is the case. The cross-preservation assertion in main() is what stops
+  // a slot being filled at the cross's expense.
+  'a-f2l': {
+    goal: c => slotSolved(c, 'DFR', 'FR') && crossSolved(c, DN),
+    goalName: 'FR pair solved, cross intact',
+    cases: {
+      // Every case shares f2lExceptFR; the frCornerAt/frEdgeAt pair after it is
+      // the case. Those two clauses pin both pieces completely, so no two of the
+      // nine can satisfy each other's test -- swapping any two algorithms here
+      // fails the run rather than passing quietly.
+
+      // -- bucket 1: corner and edge adjacent in U, same colour on the face they
+      // share, so the pair is already built.
+      'Pair joined, insert right':                  // block down the right face
+        { name: 'corner UFR white on F, edge UR with the F colour up',
+          test: c => f2lExceptFR(c) && frCornerAt(c, 'UFR', 'F', 'U') && frEdgeAt(c, 'UR', 'U') },
+      'Pair joined, insert left':                   // block across the front face
+        { name: 'corner UFR white on R, edge UF with the F colour on F',
+          test: c => f2lExceptFR(c) && frCornerAt(c, 'UFR', 'R', 'F') && frEdgeAt(c, 'UF', 'F') },
+      'Pair joined, white on top':                  // same block, white pointing up
+        { name: 'corner UFR white on U, edge UF with the F colour up',
+          test: c => f2lExceptFR(c) && frCornerAt(c, 'UFR', 'U', 'R') && frEdgeAt(c, 'UF', 'U') },
+
+      // -- bucket 2: both pieces in U, no matching pair. The corner of the first
+      // and third is identically oriented, so the edge is what tells them apart.
+      'Corner ready, edge at the back':
+        { name: 'corner UFR white on R, edge round at UB with the F colour up',
+          test: c => f2lExceptFR(c) && frCornerAt(c, 'UFR', 'R', 'F') && frEdgeAt(c, 'UB', 'U') },
+      'Corner white up, edge beside it':
+        { name: 'corner UFR white on U, edge UR with the F colour up',
+          test: c => f2lExceptFR(c) && frCornerAt(c, 'UFR', 'U', 'R') && frEdgeAt(c, 'UR', 'U') },
+      'False pair':                                 // edge flipped, so not a pair
+        { name: 'corner UFR white on R, edge UR with the F colour on R',
+          test: c => f2lExceptFR(c) && frCornerAt(c, 'UFR', 'R', 'F') && frEdgeAt(c, 'UR', 'R') },
+
+      // -- bucket 3: one piece already down in the FR slot. The two corner cards
+      // differ only in which way the corner is twisted, which is exactly what
+      // frCornerAt's white-face argument names.
+      'Corner in slot, white forward':
+        { name: 'corner DFR white on F, edge still at UR',
+          test: c => f2lExceptFR(c) && frCornerAt(c, 'DFR', 'F', 'R') && frEdgeAt(c, 'UR', 'U') },
+      'Corner in slot, white to the right':
+        { name: 'corner DFR white on R, edge still at UR',
+          test: c => f2lExceptFR(c) && frCornerAt(c, 'DFR', 'R', 'D') && frEdgeAt(c, 'UR', 'U') },
+      'Edge in slot, flipped':
+        { name: 'edge in the FR slot flipped, corner UFR white on U',
+          test: c => f2lExceptFR(c) && frCornerAt(c, 'UFR', 'U', 'R') && frEdgeAt(c, 'FR', 'R') }
     }
   }
 };
