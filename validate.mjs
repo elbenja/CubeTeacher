@@ -460,6 +460,11 @@ const ocll = (c, up) =>
   f2lSolved(c, DN) && faceCross(c, UP) &&
   U_CORNER_TOKS.filter(t => sticker(c, vecOf(t), 'U') === centre(c, 'U')).sort().join(',') === up.slice().sort().join(',');
 
+// Look 2 of PLL: the face is solid and the corners are home, only the top edges
+// are still out of place.
+const pllEdges = c =>
+  f2lSolved(c, DN) && faceSolid(c, UP) && cornersPositioned(c, UP) && !crossSolved(c, UP);
+
 const CHECKS = {
   // ---- step 1 : white up. Three cross edges done, the fourth is the case.
   'b-first-layer-edges': {
@@ -605,6 +610,29 @@ const CHECKS = {
       'Look 2 — L': { name: 'edges oriented, two corners up diagonally (UBL/UFR)', test: c => ocll(c, ['UBL', 'UFR']) },
       'Look 2 — H': { name: 'edges oriented, no corner up, tabs on R and L', test: c => ocll(c, []) && topTabs(c).R === 'X.X' },
       'Look 2 — Pi': { name: 'edges oriented, no corner up, tabs on L only', test: c => ocll(c, []) && topTabs(c).R === '...' }
+    }
+  },
+
+  // ---- advanced PLL : yellow up (z2 y). Top face already solid; look 1 places
+  // the corners, look 2 the edges, so look 1 cannot assert a solved cube.
+  'a-pll': {
+    goal: c => solved(c),
+    goalName: 'cube solved',
+    cases: {
+      'Look 1 — A-perm': {
+        name: 'top solid, three corners cycled',
+        goal: c => cornersPositioned(c, UP) && faceSolid(c, UP) && f2lSolved(c, DN),
+        goalName: 'top corners in their slots, face still solid',
+        test: c => f2lSolved(c, DN) && faceSolid(c, UP) && !cornersPositioned(c, UP) },
+      'Look 1 — Y-perm': {
+        name: 'top solid, two diagonal corners swapped',
+        goal: c => cornersPositioned(c, UP) && faceSolid(c, UP) && f2lSolved(c, DN),
+        goalName: 'top corners in their slots, face still solid',
+        test: c => f2lSolved(c, DN) && faceSolid(c, UP) && !cornersPositioned(c, UP) },
+      'Look 2 — Ua-perm': { name: 'corners placed, three edges cycled', test: c => pllEdges(c) },
+      'Look 2 — Ub-perm': { name: 'corners placed, three edges cycled the other way', test: c => pllEdges(c) },
+      'Look 2 — H-perm': { name: 'corners placed, both pairs of opposite edges swapped', test: c => pllEdges(c) },
+      'Look 2 — Z-perm': { name: 'corners placed, two adjacent pairs swapped', test: c => pllEdges(c) }
     }
   }
 };
