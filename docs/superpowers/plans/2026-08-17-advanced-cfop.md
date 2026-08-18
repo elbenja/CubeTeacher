@@ -795,7 +795,13 @@ Accept one whose start shows exactly one cross edge out of place, note which slo
 
 - [ ] **Step 3: Write the content**
 
-Replace the `a-white-cross` entry, keeping its existing `crossLink: 'b-first-layer-edges'`, adding `keep: CROSS_ONLY` and explicit setups. The worked example's `note` must walk the planning: trace all four edges during inspection, then execute without pausing.
+Replace the `a-white-cross` entry, keeping its existing `crossLink: 'b-first-layer-edges'`, and give every case an explicit `setup`. The worked example's `note` must walk the planning: trace all four edges during inspection, then execute without pausing.
+
+**The `keep` mask needs care here — Task 6 shipped this bug and had to be fixed.** `keepIds` resolves keep tokens against the model *after* the setup has run, so a token names **where a piece sits at the start**, not where it ends up (algorithms.js:13-16). A bare `keep: CROSS_ONLY` names the four solved bottom-cross slots — but in cases 1-3 the case's own edge is displaced *out* of its slot and is sitting in the U layer, so `CROSS_ONLY` would grey out the one piece the card is teaching.
+
+For each of cases 1-3, the mask must be `CROSS_ONLY.concat([<the slot the displaced edge actually occupies at the start>])` — `UF` for the two on-top cases, whichever equator slot the probe reports for the third. Derive each from `stateOf(setup)` rather than assuming.
+
+The four-edge worked example displaces several edges at once; `dim: false` is the honest choice there, since the whole cross is the subject and there is no single piece to single out.
 
 - [ ] **Step 4: Run until green**
 
