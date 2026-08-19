@@ -1023,7 +1023,7 @@ class Component extends DCLogic {
     const variations = (alg ? alg.variations : []).map((v, i) => ({
       key: alg.id + ':' + i, label: v.label,
       structure: this.structureLabel(v),
-      hasBadge: alg.badge === 'top' ? 'true' : 'false',
+      hasBadge: alg.badge === 'top' ? 'true' : '',
       badgeCells: alg.badge === 'top' && this.eng
         ? (() => { const p = this.eng.topFacePattern(v); return p.cells.concat(p.tabs).map((x, n) => ({ key: 'bc' + n, r: String(x.r), c: String(x.c), face: x.face })); })()
         : [],
