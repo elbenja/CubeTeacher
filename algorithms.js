@@ -260,51 +260,60 @@ export const ALGORITHMS = [
       // Every card holds the cube yellow-up with the front-right slot open and
       // the other three slots plus the white cross already done, so the only
       // thing on screen that can move is the pair. `keep` lights the cross, the
-      // centres and the two FR pieces; everything else greys out.
+      // centres and the corner and edge of the FR pair; everything else greys.
+      //
+      // The two pair tokens differ per card because a token names the slot a
+      // piece sits in *at the start*, not the slot it ends in: keepIds resolves
+      // each token to a cubie id once, against the case position, and that cubie
+      // then stays lit while it travels. Naming the destination ('FR', 'DFR')
+      // would light whatever last-layer piece happens to be parked in the empty
+      // slot and leave the pair itself grey for the whole animation. So the
+      // corner reads DFR only on the two cards where it really is already down
+      // in the slot, and UFR everywhere else.
       { label: 'Pair joined, insert right', section: 'Pair already joined in the top layer',
         moves: ['U', 'R', "U'", "R'"],
         setup: ['z2', 'y', 'R', 'U', "R'", "U'"],
-        keep: CROSS_ONLY.concat(['FR', 'DFR']),
+        keep: CROSS_ONLY.concat(['UFR', 'UR']),
         note: 'Corner at the front-right, edge beside it on the right — the two share a colour down the right face. White points at you, so the slot opens under the corner and it drops straight in.' },
       { label: 'Pair joined, insert left',
         moves: ["U'", "F'", 'U', 'F'],
         setup: ['z2', 'y', "F'", "U'", 'F', 'U'],
-        keep: CROSS_ONLY.concat(['FR', 'DFR']),
+        keep: CROSS_ONLY.concat(['UFR', 'UF']),
         note: 'The same pair mirrored: corner at the front-right, edge in front of it, sharing a colour across the front face. White points right, so the front face does the work instead of the right.' },
       { label: 'Pair joined, white on top',
         moves: ['U2', 'R2', 'U2', "R'", "U'", 'R', "U'", 'R2'],
         setup: ['z2', 'y', 'R2', 'U', "R'", 'U', 'R', 'U2', 'R2', 'U2'],
-        keep: CROSS_ONLY.concat(['FR', 'DFR']),
+        keep: CROSS_ONLY.concat(['UFR', 'UF']),
         note: 'Pair joined across the front, but white is facing up rather than sideways. It cannot go in as it stands, so the slot is opened with R2 and the pair rebuilt on the way through — the longest of the nine.' },
       { label: 'Corner ready, edge at the back', section: 'Corner and edge both up, but apart',
         moves: ['R', 'U', "R'"],
         setup: ['z2', 'y', 'R', "U'", "R'"],
-        keep: CROSS_ONLY.concat(['FR', 'DFR']),
+        keep: CROSS_ONLY.concat(['UFR', 'UB']),
         note: 'Corner at the front-right with white on its right face and the front colour facing you; the edge is all the way round at the back. Three moves — proof that most F2L is not an algorithm.' },
       { label: 'Corner white up, edge beside it',
         moves: ['R', 'U2', "R'", "U'", 'R', 'U', "R'"],
         setup: ['z2', 'y', 'R', "U'", "R'", 'U', 'R', 'U2', "R'"],
-        keep: CROSS_ONLY.concat(['FR', 'DFR']),
+        keep: CROSS_ONLY.concat(['UFR', 'UR']),
         note: 'White is on top of the corner, so nothing can be joined yet. The first R U2 R′ pushes the corner out of the way and turns the edge to meet it.' },
       { label: 'False pair',
         moves: ['R', "U'", "R'", 'U2', "F'", "U'", 'F'],
         setup: ['z2', 'y', "F'", 'U', 'F', 'U2', 'R', 'U', "R'"],
-        keep: CROSS_ONLY.concat(['FR', 'DFR']),
+        keep: CROSS_ONLY.concat(['UFR', 'UR']),
         note: 'Corner and edge sit side by side showing the same colour on top, which looks like a finished pair from above. It is not: white is on the right face of the corner, not under the edge. Split them apart before rebuilding.' },
       { label: 'Corner in slot, white forward', section: 'One piece stuck in the slot',
         moves: ['R', "U'", "R'", 'U', 'R', "U'", "R'"],
         setup: ['z2', 'y', 'R', 'U', "R'", "U'", 'R', 'U', "R'"],
-        keep: CROSS_ONLY.concat(['FR', 'DFR']),
+        keep: CROSS_ONLY.concat(['DFR', 'UR']),
         note: 'The corner is already down in the slot but twisted, white facing you; the edge waits at the right. R U′ R′ lifts the corner out, then the pair goes back in together.' },
       { label: 'Corner in slot, white to the right',
         moves: ['R', 'U', "R'", "U'", 'R', 'U', "R'"],
         setup: ['z2', 'y', 'R', "U'", "R'", 'U', 'R', "U'", "R'"],
-        keep: CROSS_ONLY.concat(['FR', 'DFR']),
+        keep: CROSS_ONLY.concat(['DFR', 'UR']),
         note: 'The same corner in the same slot, twisted the other way — white on the right face. The mirror of the card above, and the only difference between the two is which way the corner is turned.' },
       { label: 'Edge in slot, flipped',
         moves: ["F'", 'U', 'F', 'R', 'U2', "R'"],
         setup: ['z2', 'y', 'R', 'U2', "R'", "F'", "U'", 'F'],
-        keep: CROSS_ONLY.concat(['FR', 'DFR']),
+        keep: CROSS_ONLY.concat(['UFR', 'FR']),
         note: 'This time it is the edge that is stuck, sitting in the slot the wrong way round, with the corner above it showing white on top. F′ U F pulls the edge out; R U2 R′ puts the pair back.' }
     ]
   },
