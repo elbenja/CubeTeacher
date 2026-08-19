@@ -263,7 +263,7 @@ export const ALGORITHMS = [
         moves: ["U'", "R'", 'F', 'R'],
         setup: ['z2', 'y', "R'", "F'", 'R', 'U'],
         keep: CROSS_ONLY.concat(['UF']),
-        note: 'Same UF slot, but white faces front instead of up. U\' slides it round to UR without touching its orientation; R\' carries it down into the back-right equator slot -- the same turn also bumps the already-solved DR edge out of the cross into the equator behind it; F drops the freed edge straight into DF, done. The final R doesn\'t touch this edge at all -- its only job is carrying DR back home from where R\' left it.' },
+        note: 'Same UF slot, but white faces front instead of up. U\' slides it round to UR without touching its orientation; R\' carries it down into the front-right equator slot -- the same turn also bumps the already-solved DR edge out of the cross into the equator slot behind it; F drops the freed edge straight into DF, done. The final R doesn\'t touch this edge at all -- its only job is carrying DR back home from where R\' left it.' },
       { label: 'Edge in the equator',
         moves: ['R2', 'F', 'R2'],
         setup: ['z2', 'y', 'R2', "F'", 'R2'],
