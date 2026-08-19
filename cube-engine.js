@@ -242,6 +242,55 @@ export function keepIds(model, tokens) {
   return out;
 }
 
+// The flat OLL/PLL diagram for a case: the nine U-facing stickers plus the
+// twelve side stickers of the top layer, as 1-based cells of a 5x5 grid whose
+// outer ring holds the tabs. Derived from `setup` rather than authored, so the
+// badge cannot drift from the animation. The scratch model is built on first
+// use: buildModel makes plain THREE objects and needs no GL context, but doing
+// it lazily also keeps validate.mjs's window.THREE stub out of the way.
+let patternModel = null;
+
+export function topFacePattern(spec) {
+  if (!patternModel) patternModel = buildModel({ gap: 0.76, radius: 0.05 });
+  const model = patternModel;
+  resetModel(model);
+  applyInstant(model, spec.setup != null ? spec.setup : invertMoves(spec.moves));
+
+  const v = new THREE.Vector3();
+  const norm = m => {
+    const h = SLOT_VEC[m.userData.face];
+    v.set(h[0], h[1], h[2]).applyQuaternion(m.parent.quaternion);
+    return [Math.round(v.x), Math.round(v.y), Math.round(v.z)];
+  };
+  const pos = m => [Math.round(m.parent.position.x), Math.round(m.parent.position.y), Math.round(m.parent.position.z)];
+
+  // The up colour is whatever the U centre wears after the setup, so a case set
+  // up with a different rotation still reads correctly.
+  const centreSticker = model.userData.stickers.find(m => {
+    const p = pos(m), n = norm(m);
+    return p[0] === 0 && p[1] === 1 && p[2] === 0 && n[1] === 1;
+  });
+  const upFace = centreSticker ? centreSticker.userData.face : 'U';
+  const upColor = FACE_COLORS[upFace];
+
+  const cells = [], tabs = [];
+  model.userData.stickers.forEach(m => {
+    const p = pos(m), n = norm(m);
+    if (p[1] !== 1) return;
+    const face = FACE_COLORS[m.userData.face] === upColor ? upFace : 'off';
+    if (n[1] === 1) {
+      // Face cell: back row first, so row = z + 3 and column = x + 3.
+      cells.push({ r: p[2] + 3, c: p[0] + 3, face });
+    } else if (n[1] === 0) {
+      // Tab: pushed out to the ring on whichever side the sticker points.
+      const r = n[2] !== 0 ? (n[2] < 0 ? 1 : 5) : p[2] + 3;
+      const c = n[0] !== 0 ? (n[0] < 0 ? 1 : 5) : p[0] + 3;
+      tabs.push({ r, c, face });
+    }
+  });
+  return { cells, tabs };
+}
+
 // What stays in colour: an explicit `keep` list if the algorithm has one,
 // nothing dimmed at all when `dim` is false, otherwise the pieces the moves
 // physically touch.
