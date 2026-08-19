@@ -465,6 +465,24 @@ const ocll = (c, up) =>
 const pllEdges = c =>
   f2lSolved(c, DN) && faceSolid(c, UP) && cornersPositioned(c, UP) && !crossSolved(c, UP);
 
+// Where each top edge's side colour actually wants to go: for every U slot, the
+// face whose centre matches the colour on that slot's side sticker. Two edge
+// permutations are the same case only if all four readings agree, so this is a
+// complete signature of a PLL edge cycle.
+//
+// It exists because pllEdges alone is *shared* by all four look-2 cards. A card
+// whose whole start assertion is "the corners are home and the edges are not"
+// asserts nothing about which edges went where, so the four algorithms were
+// interchangeable: paste Ua's moves under the H-perm label and the run still
+// reported a match. The same hole sat under look 1, where both cards tested
+// byte-identical bodies -- the corner count below is what tells an A-perm's
+// three-cycle (one corner already home) from a Y-perm's diagonal swap (two).
+// Neither look was pinned to its label until these two discriminators landed.
+const llEdgePerm = c => ['UF', 'UR', 'UB', 'UL'].map(slot => {
+  const col = sticker(c, vecOf(slot), slot[1]);
+  return slot + ':U' + ['F', 'R', 'B', 'L'].find(f => centre(c, f) === col);
+}).join(' ');
+
 // The bottom cross with named slots excused -- the mirror of solvedExcept.
 const crossExceptD = (c, skip) =>
   slotsOf(DN, 'edge').every(p => skip.includes(tokOf(p)) || placed(c, tokOf(p)));
@@ -612,8 +630,8 @@ const CHECKS = {
   // ---- advanced cross : white down (z2 y). Cases 1-3 each displace exactly
   // one bottom-cross edge and are told apart by which slot is missing plus
   // which sticker of the displaced edge shows white; the worked example
-  // displaces several at once and is checked only on its end state, per the
-  // brief's own note that there is no single piece to pin there.
+  // displaces all four at once. Counting the displaced edges is what keeps that
+  // last card off the other three -- "not solved yet" was true of all four.
   'a-white-cross': {
     goal: c => crossSolved(c, DN),
     goalName: 'white cross solved on the bottom',
@@ -628,8 +646,8 @@ const CHECKS = {
         name: 'DF edge wedged at BR, white facing right',
         test: c => crossExceptD(c, ['DF']) && sticker(c, vecOf('BR'), 'R') === centre(c, 'D') },
       'Four edges, planned': {
-        name: 'several cross edges out of place',
-        test: c => !crossSolved(c, DN) }
+        name: 'all four cross edges out of place',
+        test: c => slotsOf(DN, 'edge').filter(p => !placed(c, tokOf(p))).length === 4 }
     }
   },
 
@@ -661,7 +679,7 @@ const CHECKS = {
       'Look 2 — U': { name: 'edges oriented, two corners up (UBL/UBR)', test: c => ocll(c, ['UBL', 'UBR']) },
       'Look 2 — L': { name: 'edges oriented, two corners up diagonally (UBL/UFR)', test: c => ocll(c, ['UBL', 'UFR']) },
       'Look 2 — H': { name: 'edges oriented, no corner up, tabs on R and L', test: c => ocll(c, []) && topTabs(c).R === 'X.X' },
-      'Look 2 — Pi': { name: 'edges oriented, no corner up, tabs on L only', test: c => ocll(c, []) && topTabs(c).R === '...' }
+      'Look 2 — Pi': { name: 'edges oriented, no corner up, tabs on L plus one each on B and F', test: c => ocll(c, []) && topTabs(c).R === '...' }
     }
   },
 
@@ -671,20 +689,34 @@ const CHECKS = {
     goal: c => solved(c),
     goalName: 'cube solved',
     cases: {
+      // A three-cycle leaves exactly one corner home; a diagonal swap leaves the
+      // other two. Counting them is what separates these two cards.
       'Look 1 — A-perm': {
-        name: 'top solid, three corners cycled',
+        name: 'top solid, three corners cycled, one home (ULF)',
         goal: c => cornersPositioned(c, UP) && faceSolid(c, UP) && f2lSolved(c, DN),
         goalName: 'top corners in their slots, face still solid',
-        test: c => f2lSolved(c, DN) && faceSolid(c, UP) && !cornersPositioned(c, UP) },
+        test: c => f2lSolved(c, DN) && faceSolid(c, UP) && !cornersPositioned(c, UP)
+          && cornersPlaced(c, UP).length === 1 },
       'Look 1 — Y-perm': {
-        name: 'top solid, two diagonal corners swapped',
+        name: 'top solid, two diagonal corners swapped, two home (ULF/URB)',
         goal: c => cornersPositioned(c, UP) && faceSolid(c, UP) && f2lSolved(c, DN),
         goalName: 'top corners in their slots, face still solid',
-        test: c => f2lSolved(c, DN) && faceSolid(c, UP) && !cornersPositioned(c, UP) },
-      'Look 2 — Ua-perm': { name: 'corners placed, three edges cycled', test: c => pllEdges(c) },
-      'Look 2 — Ub-perm': { name: 'corners placed, three edges cycled the other way', test: c => pllEdges(c) },
-      'Look 2 — H-perm': { name: 'corners placed, both pairs of opposite edges swapped', test: c => pllEdges(c) },
-      'Look 2 — Z-perm': { name: 'corners placed, two adjacent pairs swapped', test: c => pllEdges(c) }
+        test: c => f2lSolved(c, DN) && faceSolid(c, UP) && !cornersPositioned(c, UP)
+          && cornersPlaced(c, UP).length === 2 },
+      // Each look-2 card names the exact edge cycle it undoes, so the four are
+      // no longer swappable behind their shared pllEdges precondition.
+      'Look 2 — Ua-perm': {
+        name: 'corners placed, three edges cycled',
+        test: c => pllEdges(c) && llEdgePerm(c) === 'UF:UR UR:UL UB:UB UL:UF' },
+      'Look 2 — Ub-perm': {
+        name: 'corners placed, three edges cycled the other way',
+        test: c => pllEdges(c) && llEdgePerm(c) === 'UF:UL UR:UF UB:UB UL:UR' },
+      'Look 2 — H-perm': {
+        name: 'corners placed, both pairs of opposite edges swapped',
+        test: c => pllEdges(c) && llEdgePerm(c) === 'UF:UB UR:UL UB:UF UL:UR' },
+      'Look 2 — Z-perm': {
+        name: 'corners placed, two adjacent pairs swapped',
+        test: c => pllEdges(c) && llEdgePerm(c) === 'UF:UR UR:UF UB:UL UL:UB' }
     }
   },
 

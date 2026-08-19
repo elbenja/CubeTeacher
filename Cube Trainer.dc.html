@@ -248,9 +248,9 @@ a:hover{color:var(--blue-600);text-decoration:underline}
    OLL and PLL are recognised from the top face plus the twelve side stickers;
    the 3D thumbnail is a 3/4 view and cannot show both at once. H and Pi share a
    face and differ only in the tabs, so the ring is load-bearing.
-   Named .ct-rbadge, not .ct-badge -- .ct-badge already exists above (line 250)
-   as an unrelated, currently-unused pill style; reusing the name would collide
-   with it under the cascade instead of just sitting next to unused CSS. */
+   Named .ct-rbadge, not .ct-badge -- .ct-badge is an unrelated, currently-unused
+   pill style defined below (line 271), and being later it would win the cascade;
+   a distinct name sits beside it instead of being overridden by it. */
 .ct-rbadge{display:grid;grid-template-columns:4px 1fr 1fr 1fr 4px;grid-template-rows:4px 1fr 1fr 1fr 4px;gap:1px;width:40px;height:40px;flex:0 0 auto}
 .ct-rbadge span{border-radius:1px;background:var(--gray-300)}
 .ct-rbadge span[data-face="U"]{background:#ffffff;box-shadow:inset 0 0 0 1px var(--gray-300)}
@@ -1023,7 +1023,7 @@ class Component extends DCLogic {
     const variations = (alg ? alg.variations : []).map((v, i) => ({
       key: alg.id + ':' + i, label: v.label,
       structure: this.structureLabel(v),
-      hasBadge: alg.badge === 'top' ? 'true' : '',
+      hasBadge: alg.badge === 'top' && this.eng ? 'true' : '',
       badgeCells: alg.badge === 'top' && this.eng
         ? (() => { const p = this.eng.topFacePattern(v); return p.cells.concat(p.tabs).map((x, n) => ({ key: 'bc' + n, r: String(x.r), c: String(x.c), face: x.face })); })()
         : [],
