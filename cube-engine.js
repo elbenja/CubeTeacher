@@ -273,19 +273,26 @@ export function topFacePattern(spec) {
   const upFace = centreSticker ? centreSticker.userData.face : 'U';
   const upColor = FACE_COLORS[upFace];
 
+  // Cells and tabs are coloured by different rules, deliberately: OLL is read
+  // off the 3x3 face, where all that matters is oriented-up vs not, so cells
+  // stay binary (up-face letter or 'off'). PLL runs after OLL, so by then the
+  // whole top face is already the up colour and a binary tab would make every
+  // PLL case look identical — recognition there comes from the pattern of
+  // colour blocks and headlights around the ring, so tabs carry the sticker's
+  // own true face colour and are never 'off'.
   const cells = [], tabs = [];
   model.userData.stickers.forEach(m => {
     const p = pos(m), n = norm(m);
     if (p[1] !== 1) return;
-    const face = FACE_COLORS[m.userData.face] === upColor ? upFace : 'off';
     if (n[1] === 1) {
       // Face cell: back row first, so row = z + 3 and column = x + 3.
+      const face = FACE_COLORS[m.userData.face] === upColor ? upFace : 'off';
       cells.push({ r: p[2] + 3, c: p[0] + 3, face });
     } else if (n[1] === 0) {
       // Tab: pushed out to the ring on whichever side the sticker points.
       const r = n[2] !== 0 ? (n[2] < 0 ? 1 : 5) : p[2] + 3;
       const c = n[0] !== 0 ? (n[0] < 0 ? 1 : 5) : p[0] + 3;
-      tabs.push({ r, c, face });
+      tabs.push({ r, c, face: m.userData.face });
     }
   });
   return { cells, tabs };
