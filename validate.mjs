@@ -465,6 +465,10 @@ const ocll = (c, up) =>
 const pllEdges = c =>
   f2lSolved(c, DN) && faceSolid(c, UP) && cornersPositioned(c, UP) && !crossSolved(c, UP);
 
+// The bottom cross with named slots excused -- the mirror of solvedExcept.
+const crossExceptD = (c, skip) =>
+  slotsOf(DN, 'edge').every(p => skip.includes(tokOf(p)) || placed(c, tokOf(p)));
+
 // Cross done and three slots done, FR open: the shared precondition of every
 // advanced F2L case.
 const f2lExceptFR = c =>
@@ -602,6 +606,30 @@ const CHECKS = {
       'All four corners twisted':
         { name: 'all four corners twisted, F2L intact',
           test: c => twistCase(c, 4) }
+    }
+  },
+
+  // ---- advanced cross : white down (z2 y). Cases 1-3 each displace exactly
+  // one bottom-cross edge and are told apart by which slot is missing plus
+  // which sticker of the displaced edge shows white; the worked example
+  // displaces several at once and is checked only on its end state, per the
+  // brief's own note that there is no single piece to pin there.
+  'a-white-cross': {
+    goal: c => crossSolved(c, DN),
+    goalName: 'white cross solved on the bottom',
+    cases: {
+      'Edge on top, white up': {
+        name: 'DF edge at UF, white facing up',
+        test: c => crossExceptD(c, ['DF']) && sticker(c, vecOf('UF'), 'U') === centre(c, 'D') },
+      'Edge on top, flipped': {
+        name: 'DF edge at UF, white facing front',
+        test: c => crossExceptD(c, ['DF']) && sticker(c, vecOf('UF'), 'F') === centre(c, 'D') },
+      'Edge in the equator': {
+        name: 'DR edge wedged at BR, white facing back',
+        test: c => crossExceptD(c, ['DR']) && sticker(c, vecOf('BR'), 'B') === centre(c, 'D') },
+      'Four edges, planned': {
+        name: 'several cross edges out of place',
+        test: c => !crossSolved(c, DN) }
     }
   },
 

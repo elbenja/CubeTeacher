@@ -246,8 +246,34 @@ export const ALGORITHMS = [
     whyItWorks: 'Solving the cross on the bottom removes the daisy detour entirely. You trace all four edges before touching the cube, then execute without pausing.',
     crossLink: 'b-first-layer-edges',
     variations: [
-      { label: 'Four edges, six moves', moves: ["D'", 'R', "F'", 'L', 'D2', "B'"] },
-      { label: 'Free pair first', moves: ['R', "D'", 'F2', 'L', "U'", 'B', "D'"] }
+      // Cards 1-3 each start with the DF or DR cross edge knocked out of its
+      // slot and sitting somewhere else -- `keep` has to light wherever it
+      // actually is, not the empty slot it belongs in. A token names a slot
+      // *at the start* (after setup, before moves), so CROSS_ONLY (the four
+      // solved slots) is not enough on its own: it would leave the one piece
+      // the card is about sitting there grey. Each card adds the one slot the
+      // displaced edge really occupies -- UF for the two on-top cases, the
+      // back-right equator slot for the third.
+      { label: 'Edge on top, white up', section: 'One cross edge out of place',
+        moves: ['F2'],
+        setup: ['z2', 'y', 'F2'],
+        keep: CROSS_ONLY.concat(['UF']),
+        note: 'The DF edge sits at UF with white already facing up -- it only has to drop straight down. F2 does that in one move, no reorientation needed.' },
+      { label: 'Edge on top, flipped',
+        moves: ["U'", "R'", 'F', 'R'],
+        setup: ['z2', 'y', "R'", "F'", 'R', 'U'],
+        keep: CROSS_ONLY.concat(['UF']),
+        note: 'Same UF slot, but white faces front instead of up -- dropping it straight down would leave it flipped in place. R lifts it out of the way, F turns it the right way round, then U R\' bring it back to drop in.' },
+      { label: 'Edge in the equator',
+        moves: ['F', 'R', "F'"],
+        setup: ['z2', 'y', 'F', "R'", "F'"],
+        keep: CROSS_ONLY.concat(['BR']),
+        note: 'The DR edge is not on top at all -- it is wedged sideways in the back-right slot between the R and B faces, white facing back. F pulls it out to the top layer, R carries it round to above its slot, F\' sends it home.' },
+      { label: 'Four edges, planned', section: 'All four edges at once',
+        moves: ["D'", 'R', "F'", 'L', 'D2', "B'"],
+        setup: ['z2', 'y', 'B', 'D2', "L'", 'F', "R'", 'D'],
+        dim: false,
+        note: 'Four edges out at once, so there is no single piece to spotlight -- the whole cube stays lit. Trace all four during inspection: where each one sits, which way it is turned, and which move brings it home. Then run the six moves without stopping to look again.' }
     ]
   },
   {
