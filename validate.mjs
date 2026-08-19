@@ -625,8 +625,8 @@ const CHECKS = {
         name: 'DF edge at UF, white facing front',
         test: c => crossExceptD(c, ['DF']) && sticker(c, vecOf('UF'), 'F') === centre(c, 'D') },
       'Edge in the equator': {
-        name: 'DR edge wedged at BR, white facing back',
-        test: c => crossExceptD(c, ['DR']) && sticker(c, vecOf('BR'), 'B') === centre(c, 'D') },
+        name: 'DF edge wedged at BR, white facing right',
+        test: c => crossExceptD(c, ['DF']) && sticker(c, vecOf('BR'), 'R') === centre(c, 'D') },
       'Four edges, planned': {
         name: 'several cross edges out of place',
         test: c => !crossSolved(c, DN) }
