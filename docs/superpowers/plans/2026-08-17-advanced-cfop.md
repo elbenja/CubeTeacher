@@ -882,18 +882,54 @@ export function topFacePattern(spec) {
 
 - [ ] **Step 2: Verify against the Sune signature**
 
-`topFacePattern` needs three.js, so check it in the browser rather than in Node. Start the preview, open the OLL card, and in the console:
+`topFacePattern` needs real three.js, which the `validate.mjs` stub does not
+provide. Rather than checking by hand in a browser console, use the headless
+harness already prepared in the scratchpad — it loads three.js 0.149.0 (the same
+version the app pulls from CDN) into `globalThis.window` and re-exports
+cube-engine, so the function can be exercised from Node:
 
-```js
-const { topFacePattern } = await import('./cube-engine.js');
-const { ALGORITHMS } = await import('./algorithms.js');
-const sune = ALGORITHMS.find(a => a.id === 'a-oll').variations.find(v => v.label === 'Look 2 — Sune');
-const p = topFacePattern(sune);
-console.log(p.cells.length, p.tabs.length);
-console.log([1,2,3].map(r => [1,2,3].map(c => p.cells.find(x => x.r === r+1 && x.c === c+1).face === 'off' ? '.' : 'X').join('')).join(' / '));
+```
+<scratchpad>/three-harness.mjs
 ```
 
-Expected: `9 12` and `.X. / XXX / XX.` — the Sune grid recorded in Task 4.
+Write a throwaway script (in the scratchpad, never in the repo) that imports the
+harness and checks Sune:
+
+```js
+const h = await import('<scratchpad>/three-harness.mjs');
+const sune = h.algs.ALGORITHMS.find(a => a.id === 'a-oll')
+  .variations.find(v => v.label === 'Look 2 — Sune');
+const p = h.engine.topFacePattern(sune);
+const grid = [0,1,2].map(r => [0,1,2].map(c =>
+  p.cells.find(x => x.r === r + 2 && x.c === c + 2).face === 'off' ? '.' : 'X'
+).join('')).join(' / ');
+console.log(p.cells.length, p.tabs.length, grid);
+```
+
+Expected: `9 12 .X. / XXX / XX.` — the Sune grid recorded in Task 4.
+
+Then check the case the badge exists for. H and Pi share that 3x3 grid and are
+separated only by the side tabs, so assert they differ:
+
+```js
+const oll = h.algs.ALGORITHMS.find(a => a.id === 'a-oll').variations;
+const tabsOf = label => {
+  const p = h.engine.topFacePattern(oll.find(v => v.label === label));
+  return ['B','R','F','L'].map(side => {
+    const want = { B: x => x.r === 1, F: x => x.r === 5, L: x => x.c === 1, R: x => x.c === 5 }[side];
+    return side + ':' + p.tabs.filter(want)
+      .sort((a, b) => (a.c - b.c) || (a.r - b.r))
+      .map(t => t.face === 'off' ? '.' : 'X').join('');
+  }).join(' ');
+};
+console.log('H ', tabsOf('Look 2 — H'));
+console.log('Pi', tabsOf('Look 2 — Pi'));
+```
+
+Expected: the two lines must DIFFER, and must match the tab signatures recorded
+in Task 4 — H has its pairs on R and L, Pi does not. If they come back identical
+the badge cannot distinguish those two cases and the derivation is wrong, even
+though the Sune check passed.
 
 - [ ] **Step 3: Commit**
 
