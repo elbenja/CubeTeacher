@@ -17,6 +17,9 @@
 //
 // `view: 'left'` mirrors the camera to the front-left corner, for cases whose
 // slot sits on the left face and would otherwise be hidden behind the cube.
+//
+// `thumb: 'end'` draws the thumbnail after the moves have run rather than at
+// the start position. Patterns want it; a case you have to recognise does not.
 
 const CROSS_AND_CENTRES = ['U', 'UR', 'UB', 'UL', 'F', 'R', 'B', 'L', 'D'];
 const WHITE_LAYER = ['U', 'UF', 'UR', 'UB', 'UL', 'UFL', 'UBR', 'UBL', 'F', 'R', 'B', 'L', 'D'];
@@ -445,28 +448,47 @@ export const ALGORITHMS = [
   },
 
   // ------------------------------------------------------------ Fun Patterns
+  // The gallery from ruwix.com/the-rubiks-cube/rubiks-cube-patterns-algorithms,
+  // in its own order and under its own names, so a pattern here can be matched
+  // against the one on that page. Every sequence below was read out of the
+  // page's `data-alg` attributes rather than retyped, and the descriptions come
+  // from replaying each one headlessly and reading the six faces off the result.
   ...[
-    ['Checkerboard', 'A six-sided checker grid.', 'M2 E2 S2'],
-    ['Cross', 'A plus sign on every face.', "R2 L' D F2 R' D' R' L U' D R D B2 R' U D2"],
-    ['Superflip', 'Every edge flipped. Twenty moves from solved — the hardest state there is.', "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2"],
-    ['Cube in a Cube', 'A smaller cube nested in one corner.', "F L F U' R U F2 L2 U' L' B D' B' L2 U"],
-    ['Cube in a Cube in a Cube', 'Three nested cubes.', "U' L' U' F' R2 B' R F U B2 U B' L U' F U R F'"],
-    ['Six Spots', 'One centre dot of the wrong colour on all six faces.', "U D' R L' F B' U D'"],
-    ['Four Spots', 'Four faces get swapped centres.', "F2 B2 U D' R2 L2 U D'"],
+    ['The easy checkerboard', 'Every face a two-colour check. Three slice moves — the shortest pattern there is.', 'M2 E2 S2'],
+    ['SpeedSolving', 'The logo from the header of the SpeedSolving.com forum.', "R' L' U2 F2 D2 F2 R L B2 U2 B2 U2"],
+    ['Wire', 'Top and bottom left solid, and a zig-zag threading right round the four sides.', 'R L F B R L F B R L F B R2 B2 L2 R2 B2 L2'],
+    ['Perpendicular lines', 'Top and bottom solid, then stripes that run across one side and down the next.', 'R2 U2 L2 R2 U2 L2 M2'],
+    ['Flipped tips', 'Almost solved: two corner pieces left twisted in place.', "U B D' F2 D B' U' R2 D F2 D' R2 D F2 D' R2"],
+    ['Spiral pattern', 'A band winding round the cube like a spiral staircase.', "L' B' D U R U' R' D2 R2 D L D' L' R' F U"],
+    ['Cross', 'A plus sign on all six faces.', "R2 L' D F2 R' D' R' L U' D R D B2 R' U D2"],
+    ['4 crosses', 'Top and bottom stay solid; the four side faces each get a plus sign.', 'U2 R2 L2 F2 B2 D2 L2 R2 F2 B2'],
+    ['Union Jack', 'A plus sign on all six faces again, but the corners pair off face to face.', "U F B' L2 U2 L2 F' B U2 L2 U"],
+    ['Cube in the cube', 'A smaller cube nested in one corner.', "F L F U' R U F2 L2 U' L' B D' B' L2 U"],
+    ['Cube in a cube in a cube', 'Three nested cubes.', "U' L' U' F' R2 B' R F U B2 U B' L U' F U R F'"],
     ['Anaconda', 'A snake winding around the cube.', "L U B' U' R L' B R' F B' D R D' F'"],
     ['Python', 'A fatter snake, coiled the other way.', "F2 R' B' U R' L F' L F' B D' R B L2"],
-    ['Black Mamba', 'A third snake variant.', "R D L F' R L' D R' U D' B U' R' D'"],
-    ['Union Jack', 'Diagonal flags on four faces.', "U F B' L2 U2 L2 F' B U2 L2 U"],
-    ['Tetris', 'Interlocking blocks, eight moves.', "L R F B U' D' L' R'"],
-    ['Spiral', 'A band spiralling around the cube.', "L' B' D U R U' R' D2 R2 D L D' L' R' F U"],
-    ['Gift Box', 'The cube wrapped like a present.', "U B2 R2 B2 L2 F2 R2 D' F2 L R' U R' L D2 R2 F' L R' D2 F2 U2 D"]
+    ['Black mamba', 'A third snake.', "R D L F' R L' D R' U D' B U' R' D'"],
+    ['Green mamba', 'The fourth snake, and a move shorter than the other three.', "R D R F R' F' B D R' U' B' U D2"],
+    ['Four spots', 'Top and bottom stay solid; the four side faces each get a wrong-coloured centre.', "F2 B2 U D' R2 L2 U D'"],
+    ['Six spots', 'One centre dot of the wrong colour on all six faces.', "U D' R L' F B' U D'"],
+    ['Twister', 'The faces look wrung out, as if the cube had been twisted apart.', "F R' U L F' L' F U' R U L' U' L F'"],
+    ['Kilt (Scottish skirt)', 'A tartan check woven out of three colours on every face.', "U' R2 L2 F2 B2 U' R L F B' U F2 D2 R2 L2 F2 U2 F2 U' F2"],
+    ['C U around', 'Every face wearing another face’s colour, each keeping a small mark — find the C and the U.', "U' B2 U L2 D L2 R2 D' B' R D' L R' B2 U2 F' L' U'"],
+    ['No entry', 'A bar laid across a plain face — the road sign — with the colours shuffled around it.', "U' L' B R L' D' L B' U F2 R2 B2 D2 B2 R2 B2 D B2"],
+    ['3C3W', 'A staircase of a second colour stepping diagonally across every face.', "D L B' L2 F L' B' U D' R L' F B D L'"]
   ].map(([name, desc, seq]) => ({
-    id: 'p-' + name.toLowerCase().replace(/[^a-z]+/g, '-'),
+    // Digits are part of a name here ('4 crosses', '3C3W'), so the slug keeps
+    // them and trims the dashes a leading digit or a trailing bracket leaves.
+    id: 'p-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
     group: 'patterns', name,
     goal: desc,
     whenToUse: 'Any time. Patterns always start from a solved cube.',
     whyItWorks: 'Pattern sequences are symmetric: the same turns applied to opposite layers cancel out into a shape instead of a solve. Run the sequence backwards to return to solved.',
-    variations: [{ label: 'From solved', moves: seq.split(/\s+/), setup: [] }]
+    // No mask and no greying: a pattern is about the whole cube, and a dimmed
+    // sticker just reads as a colour you cannot identify. `thumb: 'end'` makes
+    // the thumbnail the finished pattern instead of the solved cube it starts
+    // from.
+    variations: [{ label: 'From solved', moves: seq.split(/\s+/), setup: [], dim: false, thumb: 'end' }]
   }))
 ];
 
