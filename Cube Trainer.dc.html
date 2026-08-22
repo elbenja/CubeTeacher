@@ -136,6 +136,15 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-heart:active{transform:scale(.93)}
 .ct-heart[data-on="true"]{color:var(--red-500)}
 .ct-heart[data-on="true"] i{animation:ct-pop calc(440ms*var(--m)) var(--ease-spring-out)}
+/* Liked reads as a filled heart, not a red outline. The icon font only ships
+   the stroke glyph, so the fill comes in as a mask over the same slot -- the
+   trick Expand/Collapse already use further down. Overriding the ::before
+   content drops the font glyph; currentColor keeps the shape on --red-500.
+   The SVG is base64, not percent-encoded: the runtime rewrites camelCased
+   names it finds in style text, which turns a literal viewBox into
+   sc-camel-view-box and leaves the mask unscaled. */
+.ct-heart[data-on="true"] i::before{content:"";display:block;width:1em;height:1em;background:currentColor;-webkit-mask:var(--ct-heart-fill) center/contain no-repeat;mask:var(--ct-heart-fill) center/contain no-repeat}
+.ct-heart{--ct-heart-fill:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCcgZmlsbD0nIzAwMCc+PHBhdGggZD0nTTE5LjQ2MjYgMy45OTQxNUMxNi43ODA5IDIuMzQ5MjMgMTQuNDQwNCAzLjAxMjExIDEzLjAzNDQgNC4wNjgwMUMxMi40NTc4IDQuNTAwOTYgMTIuMTY5NiA0LjcxNzQzIDEyIDQuNzE3NDNDMTEuODMwNCA0LjcxNzQzIDExLjU0MjIgNC41MDA5NiAxMC45NjU2IDQuMDY4MDFDOS41NTk2MiAzLjAxMjExIDcuMjE5MDkgMi4zNDkyMyA0LjUzNzQ0IDMuOTk0MTVDMS4wMTgwNyA2LjE1Mjk0IDAuMjIxNzIxIDEzLjI3NDkgOC4zMzk1MyAxOS4yODM0QzkuODg1NzIgMjAuNDI3OCAxMC42NTg4IDIxIDEyIDIxQzEzLjM0MTIgMjEgMTQuMTE0MyAyMC40Mjc4IDE1LjY2MDUgMTkuMjgzNEMyMy43NzgzIDEzLjI3NDkgMjIuOTgxOSA2LjE1Mjk0IDE5LjQ2MjYgMy45OTQxNVonLz48L3N2Zz4=")}
 .ct-heart[data-on="true"]::before{content:"";position:absolute;inset:3px;border-radius:50%;border:2px solid var(--red-500);animation:ct-burst calc(560ms*var(--m)) var(--ease-out) forwards}
 @keyframes ct-pop{0%{transform:scale(.86)}45%{transform:scale(1.24)}100%{transform:scale(1)}}
 @keyframes ct-burst{0%{transform:scale(.45);opacity:.6}100%{transform:scale(1.9);opacity:0}}
