@@ -146,8 +146,19 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct-heart[data-on="true"] i::before{content:"";display:block;width:1em;height:1em;background:currentColor;-webkit-mask:var(--ct-heart-fill) center/contain no-repeat;mask:var(--ct-heart-fill) center/contain no-repeat}
 .ct-heart{--ct-heart-fill:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCcgZmlsbD0nIzAwMCc+PHBhdGggZD0nTTE5LjQ2MjYgMy45OTQxNUMxNi43ODA5IDIuMzQ5MjMgMTQuNDQwNCAzLjAxMjExIDEzLjAzNDQgNC4wNjgwMUMxMi40NTc4IDQuNTAwOTYgMTIuMTY5NiA0LjcxNzQzIDEyIDQuNzE3NDNDMTEuODMwNCA0LjcxNzQzIDExLjU0MjIgNC41MDA5NiAxMC45NjU2IDQuMDY4MDFDOS41NTk2MiAzLjAxMjExIDcuMjE5MDkgMi4zNDkyMyA0LjUzNzQ0IDMuOTk0MTVDMS4wMTgwNyA2LjE1Mjk0IDAuMjIxNzIxIDEzLjI3NDkgOC4zMzk1MyAxOS4yODM0QzkuODg1NzIgMjAuNDI3OCAxMC42NTg4IDIxIDEyIDIxQzEzLjM0MTIgMjEgMTQuMTE0MyAyMC40Mjc4IDE1LjY2MDUgMTkuMjgzNEMyMy43NzgzIDEzLjI3NDkgMjIuOTgxOSA2LjE1Mjk0IDE5LjQ2MjYgMy45OTQxNVonLz48L3N2Zz4=")}
 .ct-heart[data-on="true"]::before{content:"";position:absolute;inset:3px;border-radius:50%;border:2px solid var(--red-500);animation:ct-burst calc(560ms*var(--m)) var(--ease-out) forwards}
+/* In the variation list the heart is a row control rather than panel chrome,
+   so it drops a size. It centres against the 40px badge, not the top of the
+   label, which is where flex-start would leave it sitting. */
+.ct-heart-sm{width:30px;height:30px;flex:0 0 auto;align-self:center}
 @keyframes ct-pop{0%{transform:scale(.86)}45%{transform:scale(1.24)}100%{transform:scale(1)}}
 @keyframes ct-burst{0%{transform:scale(.45);opacity:.6}100%{transform:scale(1.9);opacity:0}}
+
+/* ---- variation sections ---- */
+/* A heading only reads as the start of a group if the gap above it beats the
+   14px the list already puts between the cards inside one. The first heading
+   has nothing above it to be parted from, so it keeps the tight inset. */
+.ct-sect{margin:24px 0 8px;font:var(--type-section-label);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.04em}
+.ct-sect[data-first="true"]{margin-top:2px}
 
 /* ---- variation cards ---- */
 .ct-var{position:relative;display:block;width:100%;padding:10px;border:0;border-radius:var(--radius-lg);background:var(--surface-sunken);cursor:pointer;text-align:left;transform:perspective(720px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:box-shadow calc(190ms*var(--m)) var(--ease-out),transform calc(340ms*var(--m)) var(--ease-spring-out),background-color calc(130ms*var(--m)) var(--ease-out)}
@@ -310,7 +321,6 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
 @media (min-width:1025px){
   .ct-right[data-collapsed="true"]{width:56px!important;align-items:center}
   .ct-right[data-collapsed="true"] .ct-hide2{display:none!important}
-  .ct-right[data-collapsed="true"] .ct-heart{display:none}
   .ct[data-rcol="true"] .ct-stage{right:96px!important}
 }
 .ct-why{display:grid;grid-template-rows:0fr;transition:grid-template-rows calc(280ms*var(--m)) var(--ease-out),opacity calc(190ms*var(--m)) var(--ease-out);opacity:0}
@@ -346,9 +356,9 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
      the title out of the peek. */
   .ct-rhead{padding-top:0!important}
   /* Closed, the whole peek is the toggle, so a tap on the visible title opens
-     the sheet rather than landing on dead panel. Stops short of the heart so
-     favouriting still works with the panel down. */
-  .ct-right[data-sheet="closed"] .ct-sheet-handle::after{content:"";position:absolute;left:0;top:0;right:52px;height:var(--peek)}
+     the sheet rather than landing on dead panel. Nothing in the header competes
+     for the tap any more, so it runs the full width. */
+  .ct-right[data-sheet="closed"] .ct-sheet-handle::after{content:"";position:absolute;left:0;top:0;right:0;height:var(--peek)}
   /* As a sheet the panel has no collapsed state to toggle into. */
   .ct-right .ct-ib{display:none}
   .ct-stage{right:20px!important;bottom:var(--peek)!important}
@@ -487,9 +497,6 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
     </button>
     <div class="ct-rhead" style="display:flex;align-items:center;gap:6px;padding:16px 16px 12px;flex:0 0 auto">
       <span class="ct-hide2" style="flex:1 1 auto;min-width:0;font:var(--type-panel-title);letter-spacing:var(--tracking-tight);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ cur.name }}</span>
-      <button class="ct-heart ct-tip" data-on="{{ likedState }}" data-tip="{{ heartTip }}" data-side="below" onClick="{{ toggleLike }}" aria-label="{{ heartTip }}" aria-pressed="{{ likedState }}">
-        <i class="hgi-stroke hgi-favourite" style="font-size:19px"></i>
-      </button>
       <span class="ct-tip ct-ib" data-tip="{{ rightTip }}" data-side="below" data-align="end">
         <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="sidebar-right" label="{{ rightTip }}" onClick="{{ toggleRight }}" hint-size="34px,34px"></x-import>
       </span>
@@ -498,7 +505,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
       <sc-for list="{{ variations }}" as="v" hint-placeholder-count="3">
         <div>
           <sc-if value="{{ v.sectionLabel }}">
-            <div style="margin:2px 0 8px;font:var(--type-section-label);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.04em">{{ v.sectionLabel }}</div>
+            <div class="ct-sect" data-first="{{ v.firstSection }}">{{ v.sectionLabel }}</div>
           </sc-if>
           <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:7px">
             <sc-if value="{{ v.hasBadge }}">
@@ -512,6 +519,9 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
               <span style="display:block;font:var(--type-section-label)">{{ v.label }}</span>
               <span style="display:block;margin-top:2px;font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary)">{{ v.structure }}</span>
             </span>
+            <button class="ct-heart ct-heart-sm ct-tip" data-on="{{ v.liked }}" data-tip="{{ v.heartTip }}" data-side="below" data-align="end" onClick="{{ v.toggleLike }}" aria-label="{{ v.heartLabel }}" aria-pressed="{{ v.liked }}">
+              <i class="hgi-stroke hgi-favourite" style="font-size:17px"></i>
+            </button>
           </div>
           <button class="ct-var" data-sel="{{ v.sel }}" onClick="{{ v.select }}" onPointerMove="{{ v.tilt }}" onPointerLeave="{{ v.untilt }}" aria-pressed="{{ v.sel }}">
             <canvas ref="{{ v.canvasRef }}" width="256" height="256"></canvas>
@@ -592,7 +602,7 @@ class Component extends DCLogic {
         onIndex: (index, total) => this.setState({ index, total })
       });
       this.pool = new eng.MiniPool(256);
-      const likes = this.read('cubetrainer.likes', []);
+      const likes = this.migrateLikes(this.read('cubetrainer.likes', []));
       const viewed = this.read('cubetrainer.viewed', []);
       const legend = this.read('cubetrainer.legend', null);
       this.setState({ ready: true, likes, viewed, legendOpen: legend === null }, () => {
@@ -752,6 +762,14 @@ class Component extends DCLogic {
   selectVar(i) {
     if (i === this.state.varIdx) return;
     this.setState({ varIdx: i, stripExpanded: false }, () => this.loadCurrent(false));
+  }
+
+  // The Likes rail lists variations, so its rows have to land on one. Within
+  // the case already open that is just a variation change; across cases it is
+  // selectAlg's job, minus the reset to variation 0.
+  selectCase(id, i) {
+    if (id === this.state.algId) return this.selectVar(i);
+    this.setState({ algId: id, varIdx: i, stripExpanded: false }, () => this.loadCurrent(true));
   }
 
   // ------------------------------------------------------------ transport
@@ -949,10 +967,33 @@ class Component extends DCLogic {
   }
 
   // ---------------------------------------------------------------- likes
-  toggleLike() {
-    const id = this.state.algId;
-    const on = this.state.likes.indexOf(id) !== -1;
-    const likes = on ? this.state.likes.filter(x => x !== id) : this.state.likes.concat([id]);
+  // A like is a variation, not a case. The key carries the label rather than
+  // the index so that reordering a case's variations -- which the galleries do
+  // get rebuilt -- moves the like with its algorithm instead of onto whatever
+  // slid into that slot.
+  likeId(algId, label) { return algId + '::' + label; }
+
+  // Likes were algorithm ids until liking moved onto the variation rows. A
+  // stored id has no '::', and stood for the case as a whole; the variation it
+  // opened on is variation 0, so that is the one it becomes.
+  migrateLikes(stored) {
+    const list = Array.isArray(stored) ? stored : [];
+    if (!list.some(k => k.indexOf('::') === -1)) return list;
+    const out = [];
+    list.forEach(k => {
+      if (k.indexOf('::') !== -1) { if (out.indexOf(k) === -1) out.push(k); return; }
+      const a = this.algs().find(x => x.id === k);
+      if (!a || !a.variations || !a.variations.length) return;
+      const key = this.likeId(a.id, a.variations[0].label);
+      if (out.indexOf(key) === -1) out.push(key);
+    });
+    this.write('cubetrainer.likes', out);
+    return out;
+  }
+
+  toggleLike(key) {
+    const on = this.state.likes.indexOf(key) !== -1;
+    const likes = on ? this.state.likes.filter(x => x !== key) : this.state.likes.concat([key]);
     this.write('cubetrainer.likes', likes);
     this.setState({ likes }, () => this.bumpBadge());
   }
@@ -991,12 +1032,31 @@ class Component extends DCLogic {
 
     const alg = this.current();
     const groupLabels = { beginner: "Beginner's Method", advanced: 'Advanced Method', patterns: 'Fun Patterns' };
-    const liked = S.likes.indexOf(S.algId) !== -1;
+
+    // Likes are variations, so its rows come from a different pass than the
+    // method groups': every case's variations, flattened, filtered by the
+    // stored keys. The row itself is the same shape either way.
+    const likedRows = [];
+    this.algs().forEach(a => (a.variations || []).forEach((v, i) => {
+      const key = this.likeId(a.id, v.label);
+      if (S.likes.indexOf(key) === -1) return;
+      likedRows.push({
+        key, name: v.label,
+        active: a.id === S.algId && i === S.varIdx ? 'true' : 'false',
+        done: S.viewed.indexOf(a.id) !== -1 ? 'true' : 'false',
+        select: this.cache('sel-like-' + key, () => () => this.selectCase(a.id, i))
+      });
+    }));
 
     const groups = (this.GROUPS || []).map(g => {
       const items = g.key === 'likes'
-        ? this.algs().filter(a => S.likes.indexOf(a.id) !== -1)
-        : this.algs().filter(a => a.group === g.key);
+        ? likedRows
+        : this.algs().filter(a => a.group === g.key).map(a => ({
+            key: a.id, name: a.name,
+            active: a.id === S.algId ? 'true' : 'false',
+            done: S.viewed.indexOf(a.id) !== -1 ? 'true' : 'false',
+            select: this.cache('sel-' + g.key + '-' + a.id, () => () => this.selectAlg(a.id))
+          }));
       return {
         key: g.key, name: g.name, icon: g.icon,
         count: String(items.length),
@@ -1004,12 +1064,7 @@ class Component extends DCLogic {
         empty: g.key === 'likes' && items.length === 0 && S.open.likes,
         badgeRef: g.key === 'likes' ? this.cache('badge', () => el => { this.badgeEl = el; }) : null,
         toggle: this.cache('tg-' + g.key, () => () => this.setState(s => ({ open: Object.assign({}, s.open, { [g.key]: !s.open[g.key] }) }))),
-        items: items.map(a => ({
-          key: a.id, name: a.name,
-          active: a.id === S.algId ? 'true' : 'false',
-          done: S.viewed.indexOf(a.id) !== -1 ? 'true' : 'false',
-          select: this.cache('sel-' + g.key + '-' + a.id, () => () => this.selectAlg(a.id))
-        }))
+        items
       };
     });
 
@@ -1029,26 +1084,41 @@ class Component extends DCLogic {
       untilText: it.badge || ''
     })) : [];
 
-    const variations = (alg ? alg.variations : []).map((v, i) => ({
-      key: alg.id + ':' + i, label: v.label,
-      structure: this.structureLabel(v),
-      hasBadge: alg.badge === 'top' && this.eng ? 'true' : '',
-      badgeCells: alg.badge === 'top' && this.eng
-        ? (() => { const p = this.eng.topFacePattern(v); return p.cells.concat(p.tabs).map((x, n) => ({ key: 'bc' + n, r: String(x.r), c: String(x.c), face: x.face })); })()
-        : [],
-      sectionLabel: v.section || '',
-      sel: i === S.varIdx ? 'true' : 'false',
-      items: this.renderEntries(v, { index: -1, interactive: false }).map(it => ({
-        key: it.key, isBlock: it.kind === 'block', isSpacer: it.kind === 'spacer',
-        isSep: it.kind === 'spacer' && hasBlocks(v) ? 'true' : 'false',
-        face: it.face, label: it.label, chips: it.chips, dots: it.dots, hasTally: !!(it.dots && it.dots.length),
-        untilText: it.badge || ''
-      })),
-      canvasRef: this.cache('cv-' + i, () => el => { this.varCanvas[i] = el; if (el && this.pool) requestAnimationFrame(() => this.drawThumbs()); }),
-      select: this.cache('var-' + i, () => () => this.selectVar(i)),
-      tilt: this.cache('tilt', () => e => this.tilt(e)),
-      untilt: this.cache('untilt', () => e => this.untilt(e))
-    }));
+    // Only the first heading in the list keeps the tight top inset; the rest
+    // need the gap that tells one section from the last one's cards.
+    let seenSection = false;
+
+    const variations = (alg ? alg.variations : []).map((v, i) => {
+      const likeKey = this.likeId(alg.id, v.label);
+      const vLiked = S.likes.indexOf(likeKey) !== -1;
+      const firstSection = v.section && !seenSection;
+      if (v.section) seenSection = true;
+      return {
+        key: alg.id + ':' + i, label: v.label,
+        structure: this.structureLabel(v),
+        hasBadge: alg.badge === 'top' && this.eng ? 'true' : '',
+        badgeCells: alg.badge === 'top' && this.eng
+          ? (() => { const p = this.eng.topFacePattern(v); return p.cells.concat(p.tabs).map((x, n) => ({ key: 'bc' + n, r: String(x.r), c: String(x.c), face: x.face })); })()
+          : [],
+        sectionLabel: v.section || '',
+        firstSection: firstSection ? 'true' : 'false',
+        sel: i === S.varIdx ? 'true' : 'false',
+        liked: vLiked ? 'true' : 'false',
+        heartTip: vLiked ? 'Remove from Likes' : 'Save to Likes',
+        heartLabel: (vLiked ? 'Remove ' : 'Save ') + v.label + (vLiked ? ' from Likes' : ' to Likes'),
+        toggleLike: this.cache('like-' + alg.id + ':' + i, () => () => this.toggleLike(this.likeId(alg.id, v.label))),
+        items: this.renderEntries(v, { index: -1, interactive: false }).map(it => ({
+          key: it.key, isBlock: it.kind === 'block', isSpacer: it.kind === 'spacer',
+          isSep: it.kind === 'spacer' && hasBlocks(v) ? 'true' : 'false',
+          face: it.face, label: it.label, chips: it.chips, dots: it.dots, hasTally: !!(it.dots && it.dots.length),
+          untilText: it.badge || ''
+        })),
+        canvasRef: this.cache('cv-' + i, () => el => { this.varCanvas[i] = el; if (el && this.pool) requestAnimationFrame(() => this.drawThumbs()); }),
+        select: this.cache('var-' + i, () => () => this.selectVar(i)),
+        tilt: this.cache('tilt', () => e => this.tilt(e)),
+        untilt: this.cache('untilt', () => e => this.untilt(e))
+      };
+    });
 
     const crossAlg = alg && alg.crossLink ? this.algs().find(a => a.id === alg.crossLink) : null;
 
@@ -1100,9 +1170,6 @@ class Component extends DCLogic {
       reset: () => this.resetAll(),
       scrubDown: e => this.scrubDown(e),
 
-      likedState: liked ? 'true' : 'false',
-      heartTip: liked ? 'Remove from Likes' : 'Save to Likes',
-      toggleLike: () => this.toggleLike(),
 
 
       legend: [
