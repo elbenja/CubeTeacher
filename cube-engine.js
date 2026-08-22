@@ -6,6 +6,17 @@ const THREE = window.THREE;
 export const FACE_COLORS = { U: '#ffffff', D: '#ffd500', R: '#ee2b2b', L: '#ff7a18', F: '#16c464', B: '#1e5fe0' };
 export const DIM_COLOR = '#c6c6c6';
 
+// The halo lands in the black gutter between a sticker and the cubie's edge,
+// where white is the one colour the cube itself never puts next to it. The gap
+// is what makes white safe on the white face too: without it a white ring would
+// touch a white sticker and the two would read as one fat sticker rather than a
+// marked piece. A sliver of black between them keeps the ring a ring on all six
+// faces. Width plus gap stay under the gutter's own 0.11, so the ring never
+// reaches the cubie's edge.
+export const HALO_COLOR = '#ffffff';
+const HALO_WIDTH = 0.072;
+const HALO_GAP = 0.018;
+
 const FACE_NAMES = {
   U: 'up face', D: 'down face', R: 'right face', L: 'left face', F: 'front face', B: 'back face',
   M: 'middle slice', E: 'equator slice', S: 'standing slice',
@@ -62,14 +73,31 @@ export function faceColorOf(token) {
 }
 
 // ----------------------------------------------------------------- geometry
-function stickerGeometry(size, r) {
+function stickerShape(size, r) {
   const w = size / 2, s = new THREE.Shape();
   s.moveTo(-w + r, -w);
   s.lineTo(w - r, -w); s.absarc(w - r, -w + r, r, -Math.PI / 2, 0, false);
   s.lineTo(w, w - r); s.absarc(w - r, w - r, r, 0, Math.PI / 2, false);
   s.lineTo(-w + r, w); s.absarc(-w + r, w - r, r, Math.PI / 2, Math.PI, false);
   s.lineTo(-w, -w + r); s.absarc(-w + r, -w + r, r, Math.PI, Math.PI * 1.5, false);
-  return new THREE.ShapeGeometry(s, 6);
+  return s;
+}
+
+function stickerGeometry(size, r) {
+  return new THREE.ShapeGeometry(stickerShape(size, r), 6);
+}
+
+// The halo: a rounded-square band that sits in the black gutter around a
+// sticker, drawn as one shape with the sticker's own outline punched out of it.
+// A wireframe box would have been the obvious way to ring a cubie, but
+// LineBasicMaterial ignores `linewidth` on virtually every WebGL platform, so
+// the stroke would come out a hairline however thick it was asked to be. A mesh
+// takes its thickness from geometry, which nothing can override.
+function ringGeometry(size, r, w, gap) {
+  const inner = size + gap * 2;
+  const outer = stickerShape(inner + w * 2, r + gap + w);
+  outer.holes.push(stickerShape(inner, r + gap));
+  return new THREE.ShapeGeometry(outer, 6);
 }
 
 const STICKER_XFORM = {
@@ -94,7 +122,10 @@ function buildModel(opts = {}) {
   const group = new THREE.Group();
   const bodyGeo = new THREE.BoxGeometry(1, 1, 1);
   const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.7, metalness: 0 });
-  const geo = stickerGeometry(gap, opts.radius != null ? opts.radius : 0.07);
+  const radius = opts.radius != null ? opts.radius : 0.07;
+  const geo = stickerGeometry(gap, radius);
+  const ringGeo = ringGeometry(gap, radius, HALO_WIDTH, HALO_GAP);
+  const ringMat = new THREE.MeshBasicMaterial({ color: HALO_COLOR, side: THREE.DoubleSide });
   const cubies = [];
   const stickers = [];
   const ghosts = [];
@@ -129,11 +160,25 @@ function buildModel(opts = {}) {
       paintGhost(m);
       c.add(g);
       ghosts.push(g);
+      // Each halo band hangs off the sticker it rings rather than off the cubie,
+      // so it inherits the sticker's place on the face for free — and the ghost's
+      // band, being a child of the ghost, is hidden whenever stepHover hides the
+      // panel it belongs to. Lifted clear of the black body so the two never
+      // fight over the same depth.
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.z = 0.004;
+      ring.visible = false;
+      m.add(ring);
+      const ghostRing = new THREE.Mesh(ringGeo, ringMat);
+      ghostRing.visible = false;
+      g.add(ghostRing);
+      m.userData.ring = ring;
+      m.userData.ghostRing = ghostRing;
     });
     group.add(c);
     cubies.push(c);
   }
-  group.userData = { cubies, stickers, ghosts, bodyGeo, bodyMat, geo };
+  group.userData = { cubies, stickers, ghosts, bodyGeo, bodyMat, geo, ringGeo, ringMat };
   return group;
 }
 
@@ -307,6 +352,22 @@ function relevantFor(model, alg) {
   return touchedIds(model, alg.moves);
 }
 
+// The halo set, resolved the same way `keep` is: slot names read in the case
+// position, turned into cubie ids once. Ids rather than slots is the whole
+// point — the ring is bound to the piece, so it travels with it through every
+// turn instead of staying parked on a square of space.
+function focusFor(model, alg) {
+  return alg.focus && alg.focus.length ? keepIds(model, alg.focus) : null;
+}
+
+function paintFocus(model, focus) {
+  model.userData.stickers.forEach(m => {
+    const on = !!(focus && focus.has(m.userData.cubie));
+    m.userData.ring.visible = on;
+    m.userData.ghostRing.visible = on;
+  });
+}
+
 // Default camera swing: the front-right corner faces the viewer. A case whose
 // action happens on the left face asks for the mirror of it (`view: 'left'`),
 // so the slot being filled is in sight from the first move to the last.
@@ -454,6 +515,11 @@ export class CubeEngine {
     });
   }
 
+  setFocus(set) {
+    this.focus = set && set.size ? set : null;
+    paintFocus(this.model, this.focus);
+  }
+
   setRelevant(set) {
     this.relevant = set && set.size && set.size < 27 ? set : null;
     this.colorUntil = performance.now() + 700;
@@ -538,6 +604,7 @@ export class CubeEngine {
       this.want.theta = this.home.theta;
       this.index = 0;
       this.setRelevant(relevantFor(this.model, alg));
+      this.setFocus(focusFor(this.model, alg));
       this.emit();
     });
   }
@@ -583,6 +650,8 @@ export class CubeEngine {
     if (this._ro) this._ro.disconnect();
     this.model.userData.stickers.forEach(m => { m.material.dispose(); m.userData.ghost.material.dispose(); });
     this.model.userData.geo.dispose();
+    this.model.userData.ringGeo.dispose();
+    this.model.userData.ringMat.dispose();
     this.model.userData.bodyGeo.dispose();
     this.model.userData.bodyMat.dispose();
     this.renderer.dispose();
@@ -612,6 +681,16 @@ export class MiniPool {
     const setup = spec.setup != null ? spec.setup : invertMoves(spec.moves);
     resetModel(this.model);
     applyInstant(this.model, setup);
+    // Resolved here, before any `thumb: 'end'` moves run, because `focus` names
+    // slots as they stand in the case position. Ids survive the extra moves, so
+    // an end-state thumbnail still rings the piece the author meant.
+    const focus = focusFor(this.model, spec);
+    // A case's thumbnail is the position you have to recognise, so it stops at
+    // the setup. A pattern has nothing to recognise -- its setup is empty and
+    // the picture would be a solved cube -- so `thumb: 'end'` runs the moves too
+    // and shows what you are aiming for.
+    if (spec.thumb === 'end') applyInstant(this.model, spec.moves);
+    paintFocus(this.model, focus);
     const rel = relevantFor(this.model, spec);
     const dim = new THREE.Color(DIM_COLOR);
     this.model.userData.stickers.forEach(m => {
@@ -640,6 +719,8 @@ export class MiniPool {
   dispose() {
     this.model.userData.stickers.forEach(m => { m.material.dispose(); m.userData.ghost.material.dispose(); });
     this.model.userData.geo.dispose();
+    this.model.userData.ringGeo.dispose();
+    this.model.userData.ringMat.dispose();
     this.model.userData.bodyGeo.dispose();
     this.model.userData.bodyMat.dispose();
     this.renderer.dispose();

@@ -230,6 +230,38 @@ export function badKeepTokens(keep) {
   return bad;
 }
 
+// `focus` names the one to four pieces the halo rides. Same slot syntax as
+// `keep` minus the '*' layer form -- a ringed layer is not a piece you can
+// follow -- and every piece it names has to survive the keep mask, or the halo
+// would ring a cubie that has already been greyed out.
+const slotVec = tok => {
+  const v = [0, 0, 0];
+  for (const ch of tok.replace('*', '')) {
+    const a = FACE_VEC[ch];
+    if (a) { v[0] += a[0]; v[1] += a[1]; v[2] += a[2]; }
+  }
+  return v;
+};
+
+const coveredBy = (slot, tok) => {
+  const v = slotVec(tok);
+  if (tok.indexOf('*') === -1) return slot[0] === v[0] && slot[1] === v[1] && slot[2] === v[2];
+  const axis = v.findIndex(n => n !== 0);
+  return slot[axis] === v[axis];
+};
+
+export function badFocusTokens(focus, keep) {
+  if (!focus) return [];
+  const bad = badKeepTokens(focus);
+  if (focus.length > 4) bad.push(`${focus.length} pieces: at most 4`);
+  for (const raw of focus) {
+    if (raw.indexOf('*') !== -1) { bad.push(`${raw}: '*' names a layer, not a piece`); continue; }
+    if (bad.some(b => b.startsWith(raw + ':'))) continue;
+    if (keep && !keep.some(k => coveredBy(slotVec(raw), k))) bad.push(`${raw}: not in the keep mask`);
+  }
+  return bad;
+}
+
 // ---------------------------------------------------------------- self-tests
 // If the model is wrong every result after it is noise, so this runs first and
 // hard-exits on failure.
@@ -899,6 +931,10 @@ function main() {
       const badKeep = badKeepTokens(v.keep);
       if (badKeep.length) { notes.push('keep: ' + badKeep.join(', ')); verdict = 'mismatch'; }
       if (!v.keep && v.dim !== false) { notes.push('no keep mask (falls back to touched pieces)'); }
+
+      const badFocus = badFocusTokens(v.focus, v.keep);
+      if (badFocus.length) { notes.push('focus: ' + badFocus.join(', ')); verdict = 'mismatch'; }
+      if (!v.focus) { notes.push('no focus piece (no halo)'); }
 
       const dup = adjacentSameFace(v.moves);
       if (dup.length) { notes.push('dead pair: ' + dup.join(', ')); verdict = 'mismatch'; }
