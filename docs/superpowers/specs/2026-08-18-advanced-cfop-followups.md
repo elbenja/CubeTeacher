@@ -28,7 +28,7 @@ the plan's "Done" criteria also assumed the reverse. Zero orphans today.
 
 ## 3. The badge palette is a second source of truth
 
-`Cube Trainer.dc.html` hard-codes the six face hexes as CSS literals; the design
+`CubeTeacher.dc.html` hard-codes the six face hexes as CSS literals; the design
 intended them to come from `FACE_COLORS` in `cube-engine.js`. They match exactly
 today, and nothing enforces it. Note `off` deliberately uses `var(--gray-300)`
 (`#dedede`) rather than `DIM_COLOR` (`#c6c6c6`) — arguably the better design-token

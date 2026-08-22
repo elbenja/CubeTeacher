@@ -623,13 +623,13 @@ class Component extends DCLogic {
         onIndex: (index, total) => this.setState({ index, total })
       });
       this.pool = new eng.MiniPool(256);
-      const likes = this.migrateLikes(this.read('cubetrainer.likes', []));
-      const viewed = this.read('cubetrainer.viewed', []);
-      const legend = this.read('cubetrainer.legend', null);
+      const likes = this.migrateLikes(this.read('cubeteacher.likes', []));
+      const viewed = this.read('cubeteacher.viewed', []);
+      const legend = this.read('cubeteacher.legend', null);
       this.setState({ ready: true, likes, viewed, legendOpen: legend === null }, () => {
         this.loadCurrent(true);
       });
-    } catch (e) { console.error('[cube-trainer]', e); }
+    } catch (e) { console.error('[cubeteacher]', e); }
     this.onKey = e => this.handleKey(e);
     window.addEventListener('keydown', this.onKey);
     this.applyMotion();
@@ -660,7 +660,12 @@ class Component extends DCLogic {
   }
 
   read(k, fallback) {
-    try { const v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); } catch (_) { return fallback; }
+    // Keys were renamed cubetrainer.* -> cubeteacher.*; fall back to the old
+    // name so likes and progress saved before the rename still load.
+    try {
+      const v = localStorage.getItem(k) ?? localStorage.getItem(k.replace('cubeteacher.', 'cubetrainer.'));
+      return v == null ? fallback : JSON.parse(v);
+    } catch (_) { return fallback; }
   }
   write(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
 
@@ -759,7 +764,7 @@ class Component extends DCLogic {
       const id = this.state.algId;
       if (this.state.viewed.indexOf(id) === -1) {
         const viewed = this.state.viewed.concat([id]);
-        this.write('cubetrainer.viewed', viewed);
+        this.write('cubeteacher.viewed', viewed);
         this.setState({ viewed });
       }
     }
@@ -1049,14 +1054,14 @@ class Component extends DCLogic {
       const key = this.likeId(a.id, a.variations[0].label);
       if (out.indexOf(key) === -1) out.push(key);
     });
-    this.write('cubetrainer.likes', out);
+    this.write('cubeteacher.likes', out);
     return out;
   }
 
   toggleLike(key) {
     const on = this.state.likes.indexOf(key) !== -1;
     const likes = on ? this.state.likes.filter(x => x !== key) : this.state.likes.concat([key]);
-    this.write('cubetrainer.likes', likes);
+    this.write('cubeteacher.likes', likes);
     this.setState({ likes }, () => this.bumpBadge());
   }
 
@@ -1254,7 +1259,7 @@ class Component extends DCLogic {
       legendDrag: this.cache('legenddrag', () => e => this.legendDrag(e)),
       legendOpen: S.legendOpen,
       toggleLegend: () => this.setState(s => ({ legendOpen: !s.legendOpen })),
-      dismissLegend: () => { this.write('cubetrainer.legend', 'seen'); this.setState({ legendOpen: false }); },
+      dismissLegend: () => { this.write('cubeteacher.legend', 'seen'); this.setState({ legendOpen: false }); },
 
       tintState: this.props.chipTint ? 'true' : 'false',
       sideCollapsed: S.sideCollapsed ? 'true' : 'false',

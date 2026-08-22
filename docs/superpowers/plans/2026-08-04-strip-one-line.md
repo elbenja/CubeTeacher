@@ -4,13 +4,13 @@
 
 **Goal:** Cut the move strip from 224px to under 80px on the worst case by printing the loop's stop condition once instead of four times, and putting the moves on a single horizontally-scrolling line that follows playback.
 
-**Architecture:** All changes are in `Cube Trainer.dc.html` — CSS in the `<helmet>` block, markup in the template, and three methods on the component class. The `until` string moves from per-block render data to a single caption read off `currentVar().until`. The strip card gains an inner `.ct-strip-track` scroller; `.ct-ring` moves inside it and `positionRing` gains a scroll-offset term. A new `followChip()` runs from `componentDidUpdate` alongside `positionRing`.
+**Architecture:** All changes are in `CubeTeacher.dc.html` — CSS in the `<helmet>` block, markup in the template, and three methods on the component class. The `until` string moves from per-block render data to a single caption read off `currentVar().until`. The strip card gains an inner `.ct-strip-track` scroller; `.ct-ring` moves inside it and `positionRing` gains a scroll-offset term. A new `followChip()` runs from `componentDidUpdate` alongside `positionRing`.
 
 **Tech Stack:** Plain ES modules, no build step, no test framework. `node validate.mjs` covers algorithm logic. Layout is verified by measuring the live DOM in the browser preview — there is no DOM test harness and this plan does not add one.
 
 ## Global Constraints
 
-- No new dependencies. No build step. Single file changed: `Cube Trainer.dc.html`.
+- No new dependencies. No build step. Single file changed: `CubeTeacher.dc.html`.
 - Only design-system tokens for colour and type. Do not invent token names. The tokens this plan uses and their values: `--amber-50: #fff6e0`, `--gray-700: #4f4f4f`, `--type-caption`, `--radius-full`, `--gray-0`, `--border-default`.
 - **Corrected during execution:** the caption originally specified `--text-secondary` (`#757575`) on `--amber-50` with a comment claiming 4.6:1. The real ratio is **4.28:1**, and `--type-caption` is 12px regular, so the AA threshold is 4.5:1 — it failed. The caption uses `--gray-700` (`#4f4f4f`, **7.61:1**). Do not reintroduce `--text-secondary` on the amber pill.
 - The literal `#000` inside a `mask-image` gradient is the exception, and is not a token violation: a mask reads only the alpha channel, so the value is opacity, not colour. There is no token for it and none should be added.
@@ -24,7 +24,7 @@
 Every task's verification runs this in the browser preview. Start the server once:
 
 ```bash
-echo "use preview_start with name 'cube-trainer', then navigate to http://localhost:8934/Cube%20Trainer.dc.html"
+echo "use preview_start with name 'cubeteacher', then navigate to http://localhost:8934/CubeTeacher.dc.html"
 ```
 
 Then run this via `javascript_tool` after every change (it navigates to the worst case and reports the numbers this plan is about):
@@ -66,9 +66,9 @@ Then run this via `javascript_tool` after every change (it navigates to the wors
 Removes the string from both surfaces without adding the caption yet. After this task the strip is shorter but the stop condition is missing — that is expected, Task 2 puts it back once.
 
 **Files:**
-- Modify: `Cube Trainer.dc.html:125-128` (CSS `.ct-loop`)
-- Modify: `Cube Trainer.dc.html:143-145` (CSS `.ct-strip .ct-loop` override + its comment)
-- Modify: `Cube Trainer.dc.html:708` and `:719` (render data)
+- Modify: `CubeTeacher.dc.html:125-128` (CSS `.ct-loop`)
+- Modify: `CubeTeacher.dc.html:143-145` (CSS `.ct-strip .ct-loop` override + its comment)
+- Modify: `CubeTeacher.dc.html:708` and `:719` (render data)
 
 **Interfaces:**
 - Produces: `untilText` in both `stripItems` and `variations[].items` now carries **only** the `×N` badge. The `until` string is no longer in any render item.
@@ -80,7 +80,7 @@ Run the measurement harness. Confirm it matches the baseline JSON above. If `str
 
 - [ ] **Step 2: Drop the `until` branch from both render sites**
 
-At `Cube Trainer.dc.html:708`, in `stripItems`, change:
+At `CubeTeacher.dc.html:708`, in `stripItems`, change:
 
 ```js
       untilText: it.until ? 'repeat loop until ' + it.until : (it.badge || '')
@@ -94,7 +94,7 @@ to:
       untilText: it.badge || ''
 ```
 
-At `Cube Trainer.dc.html:719`, in `variations[].items`, make the identical change:
+At `CubeTeacher.dc.html:719`, in `variations[].items`, make the identical change:
 
 ```js
         untilText: it.badge || ''
@@ -104,7 +104,7 @@ At `Cube Trainer.dc.html:719`, in `variations[].items`, make the identical chang
 
 - [ ] **Step 3: Collapse `.ct-loop` to one row rule**
 
-Replace `Cube Trainer.dc.html:125-128` — the three comment lines and the `.ct-loop` rule — with:
+Replace `CubeTeacher.dc.html:125-128` — the three comment lines and the `.ct-loop` rule — with:
 
 ```css
 /* Moves and the repeat tally on one row. This used to be a column so a block
@@ -117,7 +117,7 @@ The dropped `width:100%` is what forced the trailing spacer onto its own line in
 
 - [ ] **Step 4: Delete the strip-only direction override**
 
-Delete `Cube Trainer.dc.html:143-145` entirely — the two comment lines and:
+Delete `CubeTeacher.dc.html:143-145` entirely — the two comment lines and:
 
 ```css
 .ct-strip .ct-loop{flex-direction:row;align-items:center;flex-wrap:wrap;width:auto;gap:8px}
@@ -146,7 +146,7 @@ Also screenshot the right panel and confirm: each loop block shows `R' D' R D` p
 - [ ] **Step 6: Commit**
 
 ```bash
-git add "Cube Trainer.dc.html"
+git add "CubeTeacher.dc.html"
 git commit -m "refactor: render a block's stop condition from the variation, not each block"
 ```
 
@@ -155,9 +155,9 @@ git commit -m "refactor: render a block's stop condition from the variation, not
 ### Task 2: The caption, once
 
 **Files:**
-- Modify: `Cube Trainer.dc.html` CSS (add `.ct-strip-until` beside `.ct-until` at :131)
-- Modify: `Cube Trainer.dc.html:278` (strip container becomes a column)
-- Modify: `Cube Trainer.dc.html` `render()` (add `stripUntil` to the returned props)
+- Modify: `CubeTeacher.dc.html` CSS (add `.ct-strip-until` beside `.ct-until` at :131)
+- Modify: `CubeTeacher.dc.html:278` (strip container becomes a column)
+- Modify: `CubeTeacher.dc.html` `render()` (add `stripUntil` to the returned props)
 
 **Interfaces:**
 - Consumes: nothing from Task 1 beyond it having removed the per-block string.
@@ -165,7 +165,7 @@ git commit -m "refactor: render a block's stop condition from the variation, not
 
 - [ ] **Step 1: Add the caption style**
 
-Insert after `Cube Trainer.dc.html:131` (the `.ct-until` rule):
+Insert after `CubeTeacher.dc.html:131` (the `.ct-until` rule):
 
 ```css
 /* One per variation, above the moves, so it stays put while the track scrolls.
@@ -175,9 +175,9 @@ Insert after `Cube Trainer.dc.html:131` (the `.ct-until` rule):
 
 - [ ] **Step 2: Expose the string**
 
-In `render()`, immediately after the line `const cv = this.currentVar();` (around `Cube Trainer.dc.html:697`), no change is needed — `cv` already holds it, because `algorithms.js` mutates the authored variation in place rather than replacing it, so `cv.until` survives expansion.
+In `render()`, immediately after the line `const cv = this.currentVar();` (around `CubeTeacher.dc.html:697`), no change is needed — `cv` already holds it, because `algorithms.js` mutates the authored variation in place rather than replacing it, so `cv.until` survives expansion.
 
-Add to the returned props object, next to `stripItems` at `Cube Trainer.dc.html:749`:
+Add to the returned props object, next to `stripItems` at `CubeTeacher.dc.html:749`:
 
 ```js
       stripItems,
@@ -186,7 +186,7 @@ Add to the returned props object, next to `stripItems` at `Cube Trainer.dc.html:
 
 - [ ] **Step 3: Make the strip a column and render the caption**
 
-At `Cube Trainer.dc.html:278`, change the strip's inline style from:
+At `CubeTeacher.dc.html:278`, change the strip's inline style from:
 
 ```
 display:flex;flex-wrap:wrap;justify-content:center;gap:8px
@@ -227,7 +227,7 @@ Also check `First Layer Edges` (4 moves, no `until`): `captions` must be `[]` an
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "Cube Trainer.dc.html"
+git add "CubeTeacher.dc.html"
 git commit -m "feat: render the loop stop condition once above the move strip"
 ```
 
@@ -236,9 +236,9 @@ git commit -m "feat: render the loop stop condition once above the move strip"
 ### Task 3: One scrolling line
 
 **Files:**
-- Modify: `Cube Trainer.dc.html` CSS (add `.ct-strip-track` rules after `.ct-strip-until`)
-- Modify: `Cube Trainer.dc.html:278-306` (wrap chips in the track, move `stripRef` and `.ct-ring` into it)
-- Modify: `Cube Trainer.dc.html:618-630` (`positionRing`)
+- Modify: `CubeTeacher.dc.html` CSS (add `.ct-strip-track` rules after `.ct-strip-until`)
+- Modify: `CubeTeacher.dc.html:278-306` (wrap chips in the track, move `stripRef` and `.ct-ring` into it)
+- Modify: `CubeTeacher.dc.html:618-630` (`positionRing`)
 
 **Interfaces:**
 - Consumes: `stripUntil` from Task 2.
@@ -269,7 +269,7 @@ Insert after the `.ct-strip-until` rule added in Task 2:
 
 - [ ] **Step 2: Wrap the chips in the track**
 
-At `Cube Trainer.dc.html:278`, move `ref="{{ stripRef }}"` **off** the `.ct-strip` div. Then wrap everything from `<div class="ct-ring" ...>` through the closing `</sc-for>` in the new track element, so the block reads:
+At `CubeTeacher.dc.html:278`, move `ref="{{ stripRef }}"` **off** the `.ct-strip` div. Then wrap everything from `<div class="ct-ring" ...>` through the closing `</sc-for>` in the new track element, so the block reads:
 
 ```html
     <div class="ct-strip" data-tint="{{ tintState }}" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:660px;padding:8px 10px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
@@ -289,7 +289,7 @@ At `Cube Trainer.dc.html:278`, move `ref="{{ stripRef }}"` **off** the `.ct-stri
 
 - [ ] **Step 3: Give `positionRing` the scroll offset**
 
-Replace the body of `positionRing` at `Cube Trainer.dc.html:618-630` with:
+Replace the body of `positionRing` at `CubeTeacher.dc.html:618-630` with:
 
 ```js
   positionRing() {
@@ -348,7 +348,7 @@ Finally check `First Layer Edges`: 4 chips, `trackScrollable: false`, and the ro
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "Cube Trainer.dc.html"
+git add "CubeTeacher.dc.html"
 git commit -m "feat: put the move strip on a single scrolling line"
 ```
 
@@ -357,8 +357,8 @@ git commit -m "feat: put the move strip on a single scrolling line"
 ### Task 4: Follow the current move
 
 **Files:**
-- Modify: `Cube Trainer.dc.html:433-437` (`componentDidUpdate`)
-- Modify: `Cube Trainer.dc.html` (add `smoothness()`, `followChip()` and `syncFade()` next to `positionRing`, under the `// ---- ring` banner)
+- Modify: `CubeTeacher.dc.html:433-437` (`componentDidUpdate`)
+- Modify: `CubeTeacher.dc.html` (add `smoothness()`, `followChip()` and `syncFade()` next to `positionRing`, under the `// ---- ring` banner)
 
 **Interfaces:**
 - Consumes: `this.stripEl` (the track) from Task 3.
@@ -366,7 +366,7 @@ git commit -m "feat: put the move strip on a single scrolling line"
 
 - [ ] **Step 1: Add the three methods**
 
-Insert directly after `positionRing()` in `Cube Trainer.dc.html`:
+Insert directly after `positionRing()` in `CubeTeacher.dc.html`:
 
 ```js
   // 'auto' rather than 'smooth' under reduced motion. The CSS route for this is
@@ -421,7 +421,7 @@ against a bare `clientWidth`.
 
 - [ ] **Step 2: Call them**
 
-Replace `componentDidUpdate` at `Cube Trainer.dc.html:433-437` with:
+Replace `componentDidUpdate` at `CubeTeacher.dc.html:433-437` with:
 
 ```js
   componentDidUpdate(prev) {
@@ -482,7 +482,7 @@ Check every surface the change could have touched:
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "Cube Trainer.dc.html"
+git add "CubeTeacher.dc.html"
 git commit -m "feat: scroll the move strip to follow the current move"
 ```
 

@@ -1,4 +1,4 @@
-// Cube Trainer content. One place to edit every algorithm.
+// CubeTeacher content. One place to edit every algorithm.
 //
 // Every beginner variation carries an explicit `setup`. Do not drop it: when
 // `setup` is missing the engine falls back to the inverse of the moves, which

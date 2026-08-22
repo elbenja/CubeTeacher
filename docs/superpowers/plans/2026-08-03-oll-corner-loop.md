@@ -6,7 +6,7 @@
 
 **Architecture:** `algorithms.js` gains an optional `loop` + `run` authoring form. A pure `expandRun()` turns it into the flat `moves` array every consumer already reads, plus a `entries` list (blocks and spacers) and an index map from flat move index into that list. Both chip surfaces — the playback strip and the variation cards in the right panel — render from `entries` instead of from `moves`. `validate.mjs` gains a unit test for the expansion and a proof that the four authored cards' procedure solves all seven corner-orientation cases.
 
-**Tech Stack:** Plain ES modules, no build step, no test framework. Tests live in `validate.mjs` and run with `node validate.mjs`. UI is a DesignCode component (`Cube Trainer.dc.html`) — a class with a `render()` returning a props object, consumed by `<sc-for>` / `<sc-if>` template directives.
+**Tech Stack:** Plain ES modules, no build step, no test framework. Tests live in `validate.mjs` and run with `node validate.mjs`. UI is a DesignCode component (`CubeTeacher.dc.html`) — a class with a `render()` returning a props object, consumed by `<sc-for>` / `<sc-if>` template directives.
 
 ## Global Constraints
 
@@ -656,7 +656,7 @@ git commit -m "Replace the corner-orientation cards with four keyed by arrangeme
 ### Task 6: A shared render model for entries
 
 **Files:**
-- Modify: `Cube Trainer.dc.html` (helper method on the component class, near `currentVar()` around line 348)
+- Modify: `CubeTeacher.dc.html` (helper method on the component class, near `currentVar()` around line 348)
 
 **Interfaces:**
 - Consumes: `v.entries` and `v.runMap` from Task 2.
@@ -739,7 +739,7 @@ Expected: no errors from `renderEntries` on any variation. Cycle every beginner 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "Cube Trainer.dc.html"
+git add "CubeTeacher.dc.html"
 git commit -m "Add a shared render model for run entries"
 ```
 
@@ -748,7 +748,7 @@ git commit -m "Add a shared render model for run entries"
 ### Task 7: Render blocks in the variation cards
 
 **Files:**
-- Modify: `Cube Trainer.dc.html:109-113` (card CSS), `:249-264` (card template), `:534-543` (the `variations` prop)
+- Modify: `CubeTeacher.dc.html:109-113` (card CSS), `:249-264` (card template), `:534-543` (the `variations` prop)
 
 **Interfaces:**
 - Consumes: `structureLabel`, `renderEntries` from Task 6.
@@ -830,7 +830,7 @@ Open the app, select **Orient Last Layer Corners**. Expected: four cards; each s
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "Cube Trainer.dc.html"
+git add "CubeTeacher.dc.html"
 git commit -m "Render variation cards as loop blocks with a stop condition"
 ```
 
@@ -839,7 +839,7 @@ git commit -m "Render variation cards as loop blocks with a stop condition"
 ### Task 8: Render blocks in the playback strip
 
 **Files:**
-- Modify: `Cube Trainer.dc.html:209-216` (strip template), `:527-532` (the `chips` prop), `:440-455` (`positionRing`)
+- Modify: `CubeTeacher.dc.html:209-216` (strip template), `:527-532` (the `chips` prop), `:440-455` (`positionRing`)
 
 **Interfaces:**
 - Consumes: `renderEntries` from Task 6 with `{ index: S.index, interactive: true }`.
@@ -905,7 +905,7 @@ Open **Orient Last Layer Corners → All four corners twisted**. Expected:
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "Cube Trainer.dc.html"
+git add "CubeTeacher.dc.html"
 git commit -m "Render the playback strip as loop blocks with a live tally"
 ```
 

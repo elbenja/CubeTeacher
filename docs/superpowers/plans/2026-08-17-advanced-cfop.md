@@ -25,7 +25,7 @@
 | `validate.mjs` | Case predicates, goals, the whole test suite | Modify: stub fix, filter, per-case goals, 3 predicates, 4 CHECKS entries, probe mode |
 | `algorithms.js` | All content | Modify: 2 keep constants, 4 advanced entries rewritten |
 | `cube-engine.js` | Cube state and rendering | Modify: add `topFacePattern` export |
-| `Cube Trainer.dc.html` | View model and markup | Modify: badge cells, section headings, CSS |
+| `CubeTeacher.dc.html` | View model and markup | Modify: badge cells, section headings, CSS |
 
 ---
 
@@ -943,7 +943,7 @@ git commit -m "feat: derive the flat top-face pattern for a case"
 ### Task 9: Render the badge
 
 **Files:**
-- Modify: `Cube Trainer.dc.html` (CSS block near the variation-card styles; the view model at ~line 990; the variation header at ~line 470)
+- Modify: `CubeTeacher.dc.html` (CSS block near the variation-card styles; the view model at ~line 990; the variation header at ~line 470)
 
 **Interfaces:**
 - Consumes: `topFacePattern` from Task 8, `badge: 'top'` from Tasks 4-5.
@@ -1029,7 +1029,7 @@ Expected:
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "Cube Trainer.dc.html"
+git add "CubeTeacher.dc.html"
 git commit -m "feat: top-face recognition badge and two-look section headings"
 ```
 

@@ -1,4 +1,4 @@
-// Cube Trainer — Three.js cube engine.
+// CubeTeacher — Three.js cube engine.
 // Requires window.THREE (UMD build loaded in <helmet>).
 
 const THREE = window.THREE;

@@ -121,7 +121,7 @@ usable at 328px, and less at the ≤1180px breakpoint where the panel narrows to
 own line on the widest blocks, mobile does not. Both are correct for their
 width.
 
-The CSS comment at `Cube Trainer.dc.html:143` explaining why the strip opts back
+The CSS comment at `CubeTeacher.dc.html:143` explaining why the strip opts back
 into a row no longer describes a difference between the two surfaces, and goes.
 
 ## Unchanged

@@ -164,7 +164,7 @@ non-corner positions. One `sc-for` over a flat 21-item list, each item carrying
 its grid position and `on` state. Colours come from the same `FACE_COLORS` and
 `DIM_COLOR` the 3D uses, so badge and cube cannot disagree.
 
-**Placement:** the variation header row in `Cube Trainer.dc.html` becomes a flex
+**Placement:** the variation header row in `CubeTeacher.dc.html` becomes a flex
 row — a 40px badge on the left, the existing label/structure stack on the right —
 wrapped in `sc-if` on `v.hasBadge`. Beginner, patterns, cross and F2L rows render
 exactly as they do today.

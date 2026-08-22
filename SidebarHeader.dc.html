@@ -35,13 +35,13 @@
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:72},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Silverdesk&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;badge&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Lab&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;subtitle&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Cube Trainer&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Collapse sidebar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:72},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Silverdesk&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;badge&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Lab&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;subtitle&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;CubeTeacher&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Collapse sidebar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
 class Component extends DCLogic {
   renderVals() {
     return {
       title: this.props.title ?? "Silverdesk",
       badge: this.props.badge ?? "Lab",
-      subtitle: this.props.subtitle ?? "Cube Trainer",
+      subtitle: this.props.subtitle ?? "CubeTeacher",
       tip: this.props.tip ?? "Collapse sidebar",
       onToggle: this.props.onToggle ?? (() => {})
     };
