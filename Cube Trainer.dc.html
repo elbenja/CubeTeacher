@@ -101,6 +101,21 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 /* ---- mini chips (right panel) ---- */
 .ct-mini{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-full);background:var(--gray-0);box-shadow:inset 0 0 0 1px var(--border-default);font:var(--type-mono);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-primary)}
 
+/* ---- notation legend ---- */
+/* The panel moves by transform and keeps its layout slot, so a drag costs no
+   reflow and the offset survives a re-render of everything around it. */
+.ct-legend{pointer-events:auto;width:100%;padding:18px;border-radius:var(--radius-xl);background:var(--surface-float);box-shadow:var(--shadow-pop),inset 0 0 0 1px var(--border-hairline)}
+.ct-legend[data-dragging="true"]{box-shadow:var(--shadow-pop),inset 0 0 0 1px var(--border-default)}
+/* The whole header is the drag surface; the icon is what says so. Negative
+   margins let the grab area reach the panel's padding without moving the row. */
+.ct-legend-head{display:flex;align-items:center;gap:8px;margin:-6px -6px 0;padding:6px 6px 0;cursor:grab;touch-action:none}
+.ct-legend[data-dragging="true"] .ct-legend-head{cursor:grabbing}
+.ct-legend-grab{flex:0 0 auto;font-size:18px;color:var(--icon-muted);transition:color calc(130ms*var(--m)) var(--ease-out)}
+.ct-legend-head:hover .ct-legend-grab{color:var(--icon-default)}
+.ct-legend-rows{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:10px 12px;margin-top:16px;align-items:center}
+.ct-legend-turns{display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border-subtle)}
+.ct-legend-keys{display:grid;grid-template-columns:auto 1fr;gap:9px 12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border-subtle);align-items:center}
+
 /* ---- tooltips (400ms, token-built) ---- */
 .ct-tip{position:relative;display:inline-flex}
 .ct-tip::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(4px);padding:6px 9px;border-radius:var(--radius-md);background:var(--surface-inverse);color:var(--text-inverse);font:var(--type-caption);white-space:nowrap;box-shadow:var(--shadow-inverse);opacity:0;pointer-events:none;z-index:60;transition:opacity calc(130ms*var(--m)) var(--ease-out),transform calc(190ms*var(--m)) var(--ease-out)}
@@ -394,27 +409,28 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
 
     <div style="position:relative;flex:1 1 auto;width:100%;min-height:0;pointer-events:none">
       <sc-if value="{{ legendOpen }}" hint-placeholder-val="{{ false }}">
-        <div style="position:absolute;right:8px;top:8px;bottom:8px;width:250px;display:flex;align-items:flex-start;justify-content:flex-end;pointer-events:none;z-index:20">
-          <div style="pointer-events:auto;padding:12px;border-radius:var(--radius-xl);background:var(--surface-float);box-shadow:var(--shadow-pop),inset 0 0 0 1px var(--border-hairline)">
-            <div style="display:flex;align-items:center;gap:6px">
+        <div style="position:absolute;right:8px;top:8px;bottom:8px;width:min(286px,100%);display:flex;align-items:flex-start;justify-content:flex-end;pointer-events:none;z-index:20">
+          <div class="ct-legend" ref="{{ legendRef }}">
+            <div class="ct-legend-head" onPointerDown="{{ legendDrag }}">
+              <i class="ct-legend-grab hgi-stroke hgi-drag-drop-vertical"></i>
               <span style="font:var(--type-section-label);flex:1 1 auto">Move notation</span>
               <span class="ct-tip" data-tip="Dismiss" data-side="below">
                 <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="cancel-01" label="Dismiss notation help" size="sm" onClick="{{ dismissLegend }}" hint-size="28px,28px"></x-import>
               </span>
             </div>
-            <div style="display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px 7px;margin-top:10px;align-items:center">
+            <div class="ct-legend-rows">
               <sc-for list="{{ legend }}" as="l" hint-placeholder-count="6">
                 <span class="ct-chip" data-face="{{ l.face }}" style="height:26px;pointer-events:none"><span class="ct-dot"></span>{{ l.face }}</span>
                 <span style="font:var(--type-caption);color:var(--text-secondary)">{{ l.text }}</span>
               </sc-for>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-subtle)">
+            <div class="ct-legend-turns">
               <span class="ct-mini">X&prime;</span>
               <span style="font:var(--type-caption);color:var(--text-secondary);flex:1 1 auto">anti-clockwise</span>
               <span class="ct-mini">X2</span>
               <span style="font:var(--type-caption);color:var(--text-secondary);flex:1 1 auto">half turn</span>
             </div>
-            <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-subtle);align-items:center">
+            <div class="ct-legend-keys">
               <sc-for list="{{ shortcuts }}" as="s" hint-placeholder-count="4">
                 <span style="font:var(--type-mono);font-size:var(--text-xs);color:var(--text-primary);white-space:nowrap">{{ s.k }}</span>
                 <span style="font:var(--type-caption);color:var(--text-secondary)">{{ s.t }}</span>
@@ -585,6 +601,11 @@ class Component extends DCLogic {
   // scrollTop lands on fractions after a smooth scroll, so "at the start" is
   // a couple of pixels wide rather than exactly zero.
   SCROLL_EPSILON = 2;
+
+  // Where the user has dragged the notation panel, relative to its layout slot.
+  // Kept off state on purpose: it changes on every pointermove, and nothing in
+  // the render depends on it.
+  legendPos = { x: 0, y: 0 };
 
   // ------------------------------------------------------------ lifecycle
   async componentDidMount() {
@@ -823,6 +844,47 @@ class Component extends DCLogic {
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
+  }
+
+  // --------------------------------------------------- notation panel drag
+  legendDrag(e) {
+    const el = this.legendEl;
+    // The dismiss button sits in the same header row: a press on it is a
+    // click, not the start of a drag.
+    if (!el || (e.target.closest && e.target.closest('button'))) return;
+    e.preventDefault();
+    const handle = e.currentTarget;
+    const from = { x: this.legendPos.x, y: this.legendPos.y };
+    const r = el.getBoundingClientRect();
+    // Subtracting the offset already applied gives where the panel's layout
+    // slot sits, which is what the window-edge clamp has to be measured from.
+    const slotX = r.left - from.x, slotY = r.top - from.y;
+    const minX = 8 - slotX, maxX = window.innerWidth - 8 - r.width - slotX;
+    const minY = 8 - slotY, maxY = window.innerHeight - 8 - r.height - slotY;
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const startX = e.clientX, startY = e.clientY;
+    try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+    el.setAttribute('data-dragging', 'true');
+    const move = ev => {
+      this.legendPos = {
+        x: clamp(from.x + ev.clientX - startX, minX, maxX),
+        y: clamp(from.y + ev.clientY - startY, minY, maxY)
+      };
+      this.placeLegend();
+    };
+    const up = () => {
+      el.removeAttribute('data-dragging');
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  }
+
+  placeLegend() {
+    if (this.legendEl) this.legendEl.style.transform = 'translate(' + this.legendPos.x + 'px,' + this.legendPos.y + 'px)';
   }
 
   // ----------------------------------------------------------------- ring
@@ -1186,6 +1248,10 @@ class Component extends DCLogic {
         { key: 'c', k: 'R', t: 'Reset to start' },
         { key: 'd', k: '⇧ ← →', t: 'Jump to start / end' }
       ],
+      // Re-opening the panel puts it back where it was left, not back at the
+      // top right corner.
+      legendRef: this.cache('legend', () => el => { this.legendEl = el; this.placeLegend(); }),
+      legendDrag: this.cache('legenddrag', () => e => this.legendDrag(e)),
       legendOpen: S.legendOpen,
       toggleLegend: () => this.setState(s => ({ legendOpen: !s.legendOpen })),
       dismissLegend: () => { this.write('cubetrainer.legend', 'seen'); this.setState({ legendOpen: false }); },
