@@ -30,6 +30,7 @@
           <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="0">
             <button class="ct-row ct-hide" data-active="{{ it.active }}" data-done="{{ it.done }}" onClick="{{ it.select }}">
               <span class="ct-tick"></span>
+              <i class="ct-check hgi-stroke hgi-tick-02" aria-hidden="true"></i>
               <span style="overflow:hidden;text-overflow:ellipsis">{{ it.name }}</span>
               <i class="ct-go hgi-stroke hgi-arrow-right-01"></i>
             </button>

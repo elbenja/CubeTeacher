@@ -41,14 +41,26 @@ a:hover{color:var(--blue-600);text-decoration:underline}
 .ct{--m:1}
 
 /* ---- sidebar rows ---- */
-.ct-row{position:relative;display:flex;align-items:center;gap:8px;width:100%;height:34px;padding:0 8px 0 18px;border:0;border-radius:10px;background:none;cursor:pointer;text-align:left;color:var(--text-secondary);font:var(--type-label);white-space:nowrap;transition:background-color calc(130ms*var(--m)) var(--ease-out),color calc(130ms*var(--m)) var(--ease-out),transform calc(280ms*var(--m)) var(--ease-spring-out)}
+.ct-row{position:relative;display:flex;align-items:center;gap:8px;width:100%;height:34px;padding:0 8px 0 20px;border:0;border-radius:10px;background:none;cursor:pointer;text-align:left;color:var(--text-secondary);font:var(--type-label);white-space:nowrap;transition:background-color calc(130ms*var(--m)) var(--ease-out),color calc(130ms*var(--m)) var(--ease-out),transform calc(280ms*var(--m)) var(--ease-spring-out)}
 .ct-row:hover{background:var(--surface-hover);color:var(--text-primary)}
 .ct-row:active{transform:scale(.985)}
 .ct-row[data-active="true"]{background:var(--surface-selected);color:var(--text-primary);font-weight:var(--weight-semibold)}
 .ct-tick{position:absolute;left:7px;top:50%;width:2px;height:13px;margin-top:-6.5px;border-radius:2px;background:var(--border-strong);transform:scaleY(.4);transition:transform calc(190ms*var(--m)) var(--ease-out),background-color calc(130ms*var(--m)) var(--ease-out)}
 .ct-row:hover .ct-tick{transform:scaleY(.82)}
 .ct-row[data-active="true"] .ct-tick{background:var(--gray-900);transform:scaleY(1)}
-.ct-row[data-done="true"] .ct-tick{background:var(--green-500)}
+/* Completion is a glyph, not a hue: the tick bar is 2px wide, where a colour
+   change is close to unreadable and invisible to a red-green eye. The check
+   takes the bar's place in the same absolutely-positioned gutter so labels
+   stay on one left edge whether or not a row is done, and it sits a step
+   darker than the label so the marker is what the eye lands on first.
+   `.hgi-stroke` wins the cascade on font-size, so the glyph draws at 18px and
+   the offsets below are half of that 18px line box plus a 1px nudge: the tick
+   glyph's ink centre sits a hair under the label's, and matching the ink is
+   what the eye reads. The 20px gutter on .ct-row is what keeps ~5px of air
+   between that ink and the first letter. */
+.ct-check{position:absolute;left:0;top:50%;margin-top:-8px;font-size:14px;line-height:1;color:var(--text-primary);opacity:0;transform:scale(.5);transition:opacity calc(130ms*var(--m)) var(--ease-out),transform calc(280ms*var(--m)) var(--ease-spring-out)}
+.ct-row[data-done="true"] .ct-check{opacity:1;transform:none}
+.ct-row[data-done="true"] .ct-tick{opacity:0}
 .ct-go{margin-left:auto;font-size:13px;color:var(--text-tertiary);opacity:0;transform:translateX(-4px);transition:opacity calc(130ms*var(--m)) var(--ease-out),transform calc(190ms*var(--m)) var(--ease-out)}
 .ct-row:hover .ct-go,.ct-row[data-active="true"] .ct-go{opacity:1;transform:none}
 
@@ -588,7 +600,7 @@ class Component extends DCLogic {
     ready: false, algId: 'b-first-layer-edges', varIdx: 0,
     index: 0, total: 0, playing: false,
     open: { beginner: true, advanced: false, patterns: false, likes: false },
-    likes: [], viewed: [], legendOpen: false,
+    likes: [], done: [], legendOpen: false,
     sideCollapsed: false, rightCollapsed: false, drawer: false, sheet: false,
     stripExpanded: false, stackOverflows: false
   };
@@ -620,14 +632,17 @@ class Component extends DCLogic {
       this.eng = eng;
       this.engine = new eng.CubeEngine(this.cubeEl, {
         finish: this.props.cubeFinish || 'flat',
-        onIndex: (index, total) => this.setState({ index, total })
+        onIndex: (index, total) => {
+          this.setState({ index, total });
+          if (this.creditArmed && total > 0 && index >= total) this.markDone();
+        }
       });
       this.pool = new eng.MiniPool(256);
       const likes = this.migrateLikes(this.read('cubeteacher.likes', []));
-      const viewed = this.read('cubeteacher.viewed', []);
+      const done = this.read('cubeteacher.done', []);
       const legend = this.read('cubeteacher.legend', null);
-      this.setState({ ready: true, likes, viewed, legendOpen: legend === null }, () => {
-        this.loadCurrent(true);
+      this.setState({ ready: true, likes, done, legendOpen: legend === null }, () => {
+        this.loadCurrent();
       });
     } catch (e) { console.error('[cubeteacher]', e); }
     this.onKey = e => this.handleKey(e);
@@ -747,27 +762,25 @@ class Component extends DCLogic {
     });
   }
 
-  loadCurrent(markViewed) {
+  loadCurrent() {
     const v = this.currentVar();
     if (!this.engine || !v) return;
     this.stopPlay();
+    // An `open: 'end'` case emits an at-the-end index from the load itself, so
+    // crediting every such emit would check off all 22 patterns the moment they
+    // were opened. Crediting is armed only after the load settles; from then on
+    // the end can only be reached by playing, stepping or scrubbing to it.
+    this.creditArmed = false;
     // The toggle has to be re-derived here, not only from componentDidUpdate:
     // it reads the stack's scrollHeight, which this load can change with no
     // state change to trigger an update.
     this.engine.load(v).then(() => {
+      this.creditArmed = true;
       this.drawThumbs();
       this.positionRing();
       this.syncFade();
       this.syncStackOverflow();
     });
-    if (markViewed) {
-      const id = this.state.algId;
-      if (this.state.viewed.indexOf(id) === -1) {
-        const viewed = this.state.viewed.concat([id]);
-        this.write('cubeteacher.viewed', viewed);
-        this.setState({ viewed });
-      }
-    }
   }
 
   drawThumbs() {
@@ -782,12 +795,12 @@ class Component extends DCLogic {
   selectAlg(id) {
     if (id === this.state.algId) return;
     // A new case means looking at the cube first, so the stack starts collapsed.
-    this.setState({ algId: id, varIdx: 0, stripExpanded: false }, () => this.loadCurrent(true));
+    this.setState({ algId: id, varIdx: 0, stripExpanded: false }, () => this.loadCurrent());
   }
 
   selectVar(i) {
     if (i === this.state.varIdx) return;
-    this.setState({ varIdx: i, stripExpanded: false }, () => this.loadCurrent(false));
+    this.setState({ varIdx: i, stripExpanded: false }, () => this.loadCurrent());
   }
 
   // The Likes rail lists variations, so its rows have to land on one. Within
@@ -795,7 +808,7 @@ class Component extends DCLogic {
   // selectAlg's job, minus the reset to variation 0.
   selectCase(id, i) {
     if (id === this.state.algId) return this.selectVar(i);
-    this.setState({ algId: id, varIdx: i, stripExpanded: false }, () => this.loadCurrent(true));
+    this.setState({ algId: id, varIdx: i, stripExpanded: false }, () => this.loadCurrent());
   }
 
   // ------------------------------------------------------------ transport
@@ -1058,6 +1071,26 @@ class Component extends DCLogic {
     return out;
   }
 
+  // Completion is stored per variation, keyed the same way likes are, so the
+  // Likes rail -- whose rows are variations -- can check a single row.
+  markDone() {
+    const a = this.current(), v = this.currentVar();
+    if (!a || !v) return;
+    const key = this.likeId(a.id, v.label);
+    if (this.state.done.indexOf(key) !== -1) return;
+    const done = this.state.done.concat([key]);
+    this.write('cubeteacher.done', done);
+    this.setState({ done });
+  }
+
+  // A case row checks as soon as any one of its variations has been played to
+  // the end. Requiring all of them would mean nine playthroughs before First
+  // Two Layers gave any sign it had been worked on, and the check is meant to
+  // mark where you have been, not to certify mastery.
+  caseDone(a) {
+    return (a.variations || []).some(v => this.state.done.indexOf(this.likeId(a.id, v.label)) !== -1);
+  }
+
   toggleLike(key) {
     const on = this.state.likes.indexOf(key) !== -1;
     const likes = on ? this.state.likes.filter(x => x !== key) : this.state.likes.concat([key]);
@@ -1110,7 +1143,7 @@ class Component extends DCLogic {
       likedRows.push({
         key, name: v.label,
         active: a.id === S.algId && i === S.varIdx ? 'true' : 'false',
-        done: S.viewed.indexOf(a.id) !== -1 ? 'true' : 'false',
+        done: S.done.indexOf(key) !== -1 ? 'true' : 'false',
         select: this.cache('sel-like-' + key, () => () => this.selectCase(a.id, i))
       });
     }));
@@ -1121,7 +1154,7 @@ class Component extends DCLogic {
         : this.algs().filter(a => a.group === g.key).map(a => ({
             key: a.id, name: a.name,
             active: a.id === S.algId ? 'true' : 'false',
-            done: S.viewed.indexOf(a.id) !== -1 ? 'true' : 'false',
+            done: this.caseDone(a) ? 'true' : 'false',
             select: this.cache('sel-' + g.key + '-' + a.id, () => () => this.selectAlg(a.id))
           }));
       return {
