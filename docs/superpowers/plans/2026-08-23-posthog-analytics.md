@@ -739,7 +739,7 @@ Delivers `playback_abandoned` — per the spec, the most actionable event in the
     if (c) {
       this.A.setVia('play');
       this.A.track('playback_started', Object.assign({}, c, {
-        replay_index: this.replayIndex = (this.replayIndex || 0),
+        replay_index: this.replayIndex,
         from_move: this.engine.index
       }));
       this.replayIndex++;
@@ -929,15 +929,19 @@ git commit -m "feat: completion, like and progress milestone events"
   handleKey(e) {
     if (e.target && /input|textarea/i.test(e.target.tagName)) return;
     const total = this.state.total;
-    if (e.key === 'ArrowRight') { e.preventDefault(); this.A.bump('steps_keyboard'); this.A.bump('steps_manual', -1); e.shiftKey ? this.jump(total) : this.step(1); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); this.A.bump('steps_keyboard'); this.A.bump('steps_manual', -1); e.shiftKey ? this.jump(0) : this.step(-1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); this.A.bump('steps_keyboard'); if (e.shiftKey) this.jump(total); else { this.A.bump('steps_manual', -1); this.step(1); } }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); this.A.bump('steps_keyboard'); if (e.shiftKey) this.jump(0); else { this.A.bump('steps_manual', -1); this.step(-1); } }
     else if (e.key === ' ') { e.preventDefault(); this.play(); }
     else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); this.resetAll(); }
     else if (e.key === 'Escape') this.setState({ drawer: false, sheet: false, legendOpen: false });
   }
 ```
 
-The `-1` looks odd and is deliberate: `step` cannot tell who called it, so the keyboard path corrects the count it just caused rather than every call site learning to pass a source.
+The `-1` looks odd and is deliberate: `step` cannot tell who called it, so the
+keyboard path corrects the count it is about to cause rather than every call site
+learning to pass a source. It sits inside the non-shift branch only — shift+arrow
+calls `jump`, which never bumps `steps_manual`, so correcting there would drive
+the counter negative.
 
 - [ ] **Step 2: Count scrubs and resets**
 
