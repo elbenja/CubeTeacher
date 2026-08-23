@@ -143,10 +143,21 @@ indistinguishable.
 Everything above is mechanical. Three things are not, and getting them wrong
 produces data that looks fine and is false.
 
-**`active_seconds` must exclude idle time.** The timer accrues only while
-`document.visibilityState === 'visible'`, and any single gap longer than 60s is
-clamped to 60s. Without this, a tab left open overnight reports a nine-hour
-study session and every dwell-time average is ruined by it.
+**`active_seconds` must exclude idle time.** Without this, a tab left open
+overnight reports a nine-hour study session and every dwell-time average is
+ruined by it.
+
+The mechanism is a heartbeat, not a stopwatch. A 1s interval adds a second to
+the total only when both are true: the document is visible, **and** there has
+been user activity within the last 60s. Activity means a pointer event, a
+keypress, or a playback step — playback counts, so watching a long algorithm
+run is not mistaken for idling.
+
+The tempting simpler version — start a stopwatch, stop it on
+`visibilitychange`, clamp the segment to 60s — is wrong, and wrong in the
+direction that looks fine. It clamps *active* viewing too: five minutes of
+attentive study in a visible tab records 60 seconds. The clamp has to apply to
+the idle gap, never to the elapsed segment.
 
 **`case_closed` must survive the tab closing.** It flushes on `pagehide` and on
 `visibilitychange` to hidden, using `posthog.capture(name, props, { transport:
