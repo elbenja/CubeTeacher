@@ -16,9 +16,48 @@
 <meta name="twitter:title" content="CubeTeacher — Silverdesk Lab">
 <meta name="twitter:image" content="https://elbenja.github.io/CubeTeacher/social-preview.png">
 <meta name="twitter:image:alt" content="Silverdesk Lab CubeTeacher">
+<style>
+/* ---- boot overlay ----------------------------------------------------
+   Painted straight from the raw document, ahead of support.js, React and the
+   design-system stylesheets, so the first frame of the page is this and not a
+   white field followed by the UI popping in a piece at a time. Nothing here
+   can use a token: the helmet injects those, and at this point it has not run
+   yet, so --surface-canvas and --gray-900 are written out as literals.
+   The component removes the element once the first cube has drawn. */
+#ct-boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#f4f4f4;transition:opacity 420ms cubic-bezier(0.22,1,0.36,1)}
+#ct-boot.is-done{opacity:0;pointer-events:none}
+/* Held back a beat: a warm cache is done inside this delay, and a spinner that
+   flashes for 200ms is worse than no spinner at all. */
+#ct-boot svg{width:104px;height:104px;animation:ct-boot-in 320ms 260ms cubic-bezier(0.22,1,0.36,1) backwards}
+#ct-boot g{transform-origin:50% 50%;animation:ct-boot-turn 2600ms cubic-bezier(0.62,0.02,0.34,1) infinite}
+@keyframes ct-boot-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
+/* An isometric cube maps onto itself every 120 degrees, so each third of a flat
+   rotation lands on a frame identical to the one it started from -- what the
+   eye reads is the cube tumbling about its body diagonal, not a picture being
+   spun. The hold after each turn is what sells the face change; without it the
+   symmetry gives it away as a flat spin. */
+@keyframes ct-boot-turn{
+  0%,8%{transform:rotate(0deg)}
+  34%,42%{transform:rotate(120deg)}
+  68%,76%{transform:rotate(240deg)}
+  100%{transform:rotate(360deg)}
+}
+@media (prefers-reduced-motion:reduce){
+  #ct-boot g{animation:none}
+  #ct-boot svg{animation-delay:0ms}
+}
+</style>
 <script src="./support.js"></script>
 </head>
 <body>
+<div id="ct-boot" aria-hidden="true">
+  <svg viewBox="0 0 100 100" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <g>
+      <path d="M42.21 10.5Q50 6 57.79 10.5L80.31 23.5Q88.1 28 88.1 37V63Q88.1 72 80.31 76.5L57.79 89.5Q50 94 42.21 89.5L19.69 76.5Q11.9 72 11.9 63V37Q11.9 28 19.69 23.5Z"/>
+      <path d="M17.1 31 50 50v38M50 50l32.9-19"/>
+    </g>
+  </svg>
+</div>
 <x-dc>
 <helmet>
 <link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
@@ -621,6 +660,10 @@ class Component extends DCLogic {
 
   // ------------------------------------------------------------ lifecycle
   async componentDidMount() {
+    // Nothing below is allowed to leave the overlay up: a CDN that never
+    // answers would otherwise park the user in front of a spinning cube with
+    // the app behind it, working, and unreachable.
+    this._bootTimer = setTimeout(() => this.hideBoot(), 12000);
     this.varCanvas = [];
     this._refs = {};
     try {
@@ -644,13 +687,14 @@ class Component extends DCLogic {
       this.setState({ ready: true, likes, done, legendOpen: legend === null }, () => {
         this.loadCurrent();
       });
-    } catch (e) { console.error('[cubeteacher]', e); }
+    } catch (e) { console.error('[cubeteacher]', e); this.hideBoot(); }
     this.onKey = e => this.handleKey(e);
     window.addEventListener('keydown', this.onKey);
     this.applyMotion();
   }
 
   componentWillUnmount() {
+    clearTimeout(this._bootTimer);
     window.removeEventListener('keydown', this.onKey);
     if (this.engine) this.engine.dispose();
     if (this.pool) this.pool.dispose();
@@ -664,6 +708,21 @@ class Component extends DCLogic {
     this.syncStackOverflow();
     this.applyMotion();
     if (this.engine && this.props.cubeFinish !== prev.cubeFinish) this.engine.setFinish(this.props.cubeFinish || 'flat');
+  }
+
+  // The overlay lives outside <x-dc> -- it is in the raw document so it can
+  // paint before this component exists -- which is also why it is torn down by
+  // hand rather than by a render. It goes when the first cube is on screen,
+  // not when state says ready: ready is a beat too early and the handover
+  // would flash an empty stage.
+  hideBoot() {
+    if (this._bootGone) return;
+    this._bootGone = true;
+    clearTimeout(this._bootTimer);
+    const el = document.getElementById('ct-boot');
+    if (!el) return;
+    el.classList.add('is-done');
+    setTimeout(() => el.remove(), 500);
   }
 
   waitFor(fn, ms = 15000) {
@@ -776,6 +835,7 @@ class Component extends DCLogic {
     // state change to trigger an update.
     this.engine.load(v).then(() => {
       this.creditArmed = true;
+      this.hideBoot();
       this.drawThumbs();
       this.positionRing();
       this.syncFade();
