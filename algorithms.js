@@ -28,6 +28,9 @@
 //
 // `thumb: 'end'` draws the thumbnail after the moves have run rather than at
 // the start position. Patterns want it; a case you have to recognise does not.
+//
+// `open: 'end'` is the same idea for the player: the case opens on the finished
+// position instead of move one. Also patterns only.
 
 const CROSS_AND_CENTRES = ['U', 'UR', 'UB', 'UL', 'F', 'R', 'B', 'L', 'D'];
 const WHITE_LAYER = ['U', 'UF', 'UR', 'UB', 'UL', 'UFL', 'UBR', 'UBL', 'F', 'R', 'B', 'L', 'D'];
@@ -547,8 +550,8 @@ export const ALGORITHMS = [
     // No mask and no greying: a pattern is about the whole cube, and a dimmed
     // sticker just reads as a colour you cannot identify. `thumb: 'end'` makes
     // the thumbnail the finished pattern instead of the solved cube it starts
-    // from.
-    variations: [{ label: 'From solved', moves: seq.split(/\s+/), setup: [], dim: false, thumb: 'end' }]
+    // from, and `open: 'end'` does the same for the player.
+    variations: [{ label: 'From solved', moves: seq.split(/\s+/), setup: [], dim: false, thumb: 'end', open: 'end' }]
   }))
 ];
 

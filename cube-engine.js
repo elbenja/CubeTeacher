@@ -605,6 +605,16 @@ export class CubeEngine {
       this.index = 0;
       this.setRelevant(relevantFor(this.model, alg));
       this.setFocus(focusFor(this.model, alg));
+      // A pattern's setup is empty, so move one is a plain solved cube -- the
+      // same picture for all of them, and nothing to tell one apart from
+      // another while browsing. `open: 'end'` opens on the finished pattern
+      // instead; Replay and "reset to start" both run it from solved. Ordered
+      // after setFocus for the reason MiniPool resolves focus first: focus
+      // names slots as they stand in the case position.
+      if (alg.open === 'end') {
+        applyInstant(this.model, this.moves);
+        this.index = this.moves.length;
+      }
       this.emit();
     });
   }
