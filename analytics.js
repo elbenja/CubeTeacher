@@ -43,6 +43,12 @@ export function send(path) {
   // Queued rather than dropped: the very first case event of a cold load fires
   // before count.js has arrived, and it is the one most likely to matter.
   if (!ready()) { queue.push(path); return; }
+  // drain()'s retry budget is bounded, so a script that arrives later than that
+  // -- slow network rather than blocked outright -- would leave the backlog
+  // stranded for the life of the page, losing exactly the first case view the
+  // queue exists to protect. Reaching here proves the script is up, so the next
+  // event to fire flushes the backlog ahead of itself, in order.
+  if (queue.length) drain();
   fire(path);
 }
 
