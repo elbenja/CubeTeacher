@@ -663,7 +663,15 @@ class Component extends DCLogic {
         this.A.watchCube(this.cubeEl);
         this.loadCurrent();
       });
-    } catch (e) { console.error('[cubeteacher]', e); }
+    } catch (e) {
+      console.error('[cubeteacher]', e);
+      // No stack and no message text: this is a health signal, not a crash
+      // reporter, and a message could carry a path from the user's machine.
+      // this.AC may still be undefined here -- the failure can happen before
+      // its own dynamic import resolves -- so guard the read rather than let
+      // reporting the first error throw a second one.
+      this.A.send(this.AC && this.AC.eventPath ? this.AC.eventPath('fail', e && e.name ? e.name : 'unknown') : 'fail/unknown');
+    }
     this.onKey = e => this.handleKey(e);
     window.addEventListener('keydown', this.onKey);
     this.applyMotion();
@@ -868,15 +876,15 @@ class Component extends DCLogic {
 
   // "Reset to start" puts the whole view back to how the case opened: move
   // one, and the camera angle the user may have dragged away from.
-  resetAll() { this.jump(0); if (this.engine) this.engine.resetView(); }
+  resetAll() { this.A.ui('reset'); this.jump(0); if (this.engine) this.engine.resetView(); }
 
   handleKey(e) {
     if (e.target && /input|textarea/i.test(e.target.tagName)) return;
     const total = this.state.total;
-    if (e.key === 'ArrowRight') { e.preventDefault(); e.shiftKey ? this.jump(total) : this.step(1); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); e.shiftKey ? this.jump(0) : this.step(-1); }
-    else if (e.key === ' ') { e.preventDefault(); this.play(); }
-    else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); this.resetAll(); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); this.A.ui('keyboard'); e.shiftKey ? this.jump(total) : this.step(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); this.A.ui('keyboard'); e.shiftKey ? this.jump(0) : this.step(-1); }
+    else if (e.key === ' ') { e.preventDefault(); this.A.ui('keyboard'); this.play(); }
+    else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); this.A.ui('keyboard'); this.resetAll(); }
     else if (e.key === 'Escape') this.setState({ drawer: false, sheet: false, legendOpen: false });
   }
 
@@ -891,6 +899,7 @@ class Component extends DCLogic {
       if (n !== this.engine.index) this.engine.goTo(n, false);
     };
     const up = () => {
+      this.A.ui('scrub');
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
       el.removeEventListener('pointercancel', up);
@@ -1311,7 +1320,7 @@ class Component extends DCLogic {
       stackOverflows: S.stackOverflows,
       stackToggleIcon: S.stripExpanded ? 'collapse' : 'expand',
       stackToggleTip: S.stripExpanded ? 'Collapse moves' : 'Expand moves',
-      toggleStack: () => this.setState(s => ({ stripExpanded: !s.stripExpanded })),
+      toggleStack: () => this.setState(s => { if (!s.stripExpanded) this.A.ui('stack'); return { stripExpanded: !s.stripExpanded }; }),
       stripScroll: () => this.stripScroll(),
       tipOver: e => this.tipOver(e),
       tipOut: e => this.tipOut(e),
@@ -1350,7 +1359,7 @@ class Component extends DCLogic {
       legendRef: this.cache('legend', () => el => { this.legendEl = el; this.placeLegend(); }),
       legendDrag: this.cache('legenddrag', () => e => this.legendDrag(e)),
       legendOpen: S.legendOpen,
-      toggleLegend: () => this.setState(s => ({ legendOpen: !s.legendOpen })),
+      toggleLegend: () => this.setState(s => { if (!s.legendOpen) this.A.ui('legend'); return { legendOpen: !s.legendOpen }; }),
       dismissLegend: () => { this.write('cubeteacher.legend', 'seen'); this.setState({ legendOpen: false }); },
 
       tintState: this.props.chipTint ? 'true' : 'false',
