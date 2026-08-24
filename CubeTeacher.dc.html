@@ -33,6 +33,8 @@
 <link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
 <script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script data-goatcounter="https://cubeteacher.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 <style>
 html,body{margin:0;height:100%;background:var(--surface-canvas);overflow:hidden}
 a{color:var(--text-accent);text-decoration:none}
@@ -619,10 +621,18 @@ class Component extends DCLogic {
   // the render depends on it.
   legendPos = { x: 0, y: 0 };
 
+  // Replaced by the real module once componentDidMount's import resolves. The
+  // stub exists so a click in that window is a no-op rather than a TypeError:
+  // analytics must never be the reason something in the app breaks.
+  A = new Proxy({}, { get: () => () => {} });
+
   // ------------------------------------------------------------ lifecycle
   async componentDidMount() {
     this.varCanvas = [];
     this._refs = {};
+    this.A = await import('./analytics.js');
+    this.AC = await import('./analytics-core.mjs');
+    this.A.init();
     try {
       const data = await import('./algorithms.js');
       this.ALGORITHMS = data.ALGORITHMS;
@@ -642,6 +652,7 @@ class Component extends DCLogic {
       const done = this.read('cubeteacher.done', []);
       const legend = this.read('cubeteacher.legend', null);
       this.setState({ ready: true, likes, done, legendOpen: legend === null }, () => {
+        this.A.watchCube(this.cubeEl);
         this.loadCurrent();
       });
     } catch (e) { console.error('[cubeteacher]', e); }
@@ -776,6 +787,9 @@ class Component extends DCLogic {
     // state change to trigger an update.
     this.engine.load(v).then(() => {
       this.creditArmed = true;
+      // openCase closes the previous one first, so the time/ hit for the case
+      // being left is emitted here rather than at every call site that switches.
+      this.A.openCase(this.current().id);
       this.drawThumbs();
       this.positionRing();
       this.syncFade();
