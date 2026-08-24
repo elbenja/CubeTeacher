@@ -261,8 +261,9 @@ Create `analytics.js`:
 
 import { createHeartbeat, createOnce, eventPath, timeBucket } from './analytics-core.mjs';
 
-// Filled in at Task 4 with the real site code.
-const ENDPOINT = 'https://SITE-CODE.goatcounter.com/count';
+// The site's own GoatCounter endpoint. Public by design -- it ships in the
+// page on every GoatCounter site -- so it lives in the repo, not in a secret.
+const ENDPOINT = 'https://cubeteacher.goatcounter.com/count';
 
 const heartbeat = createHeartbeat();
 const once = createOnce();
@@ -396,30 +397,29 @@ git commit -m "feat: fail-open GoatCounter wrapper"
 
 The first task whose result is visible in the dashboard. Nothing after this is worth doing until `case/…` is confirmed arriving.
 
-**Required input:** the GoatCounter site code, from the human. If it has not been supplied, report NEEDS_CONTEXT rather than guessing — a wrong code sends every hit to someone else's dashboard.
+**Site code:** `cubeteacher`, giving the endpoint `https://cubeteacher.goatcounter.com/count`. Already wired into `analytics.js` by Task 3. Use exactly this — a wrong code sends every hit to a stranger's dashboard, silently and irreversibly.
 
 **Files:**
-- Modify: `analytics.js` — the `ENDPOINT` constant
 - Modify: `CubeTeacher.dc.html` — the `<helmet>` block (~line 35), `componentDidMount` (~line 623), `loadCurrent` (~line 765)
 
 **Interfaces:**
 - Consumes: `init`, `openCase`, `watchCube` from `analytics.js`.
 - Produces: `case/<case_id>` and `time/<case_id>/<bucket>` in the dashboard.
 
-- [ ] **Step 1: Set the endpoint**
+- [ ] **Step 1: Confirm the endpoint**
 
-In `analytics.js`, replace `SITE-CODE` in the `ENDPOINT` constant with the real site code.
+Check that `analytics.js` reads `const ENDPOINT = 'https://cubeteacher.goatcounter.com/count';`. If Task 3 left a placeholder there, fix it before going further — the keepalive flush builds its URL from this constant and would otherwise post to nowhere.
 
 - [ ] **Step 2: Add the script tag**
 
-In the `<helmet>` block of `CubeTeacher.dc.html`, immediately after the three.js `<script>` line:
+In the `<helmet>` block of `CubeTeacher.dc.html`, immediately after the three.js `<script>` line, exactly as GoatCounter supplies it:
 
 ```html
-<script data-goatcounter="https://SITE-CODE.goatcounter.com/count"
+<script data-goatcounter="https://cubeteacher.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 ```
 
-Same site code as Step 1. It goes in `<helmet>` rather than the document `<head>` because that is where this file already keeps its third-party runtime scripts.
+It goes in `<helmet>` rather than the document `<head>` because that is where this file already keeps its third-party runtime scripts.
 
 - [ ] **Step 3: Declare the stub, import the module, start it**
 
