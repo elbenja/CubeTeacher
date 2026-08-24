@@ -211,7 +211,7 @@ export function groupComplete(algs, group, isDone) {
 node --test analytics-core.test.mjs
 ```
 
-Expected: PASS, 20 tests (7 from Task 1 + 13 new).
+Expected: PASS, 18 tests (7 from Task 1 + 11 new).
 
 - [ ] **Step 5: Confirm nothing else broke**
 
@@ -708,7 +708,7 @@ The plan's last task exists because instrumentation fails silently. A missing ev
 node --test analytics-core.test.mjs && node validate.mjs
 ```
 
-Expected: 20 analytics tests pass; the algorithm table prints with no failures.
+Expected: 18 analytics tests pass; the algorithm table prints with no failures.
 
 - [ ] **Step 2: Walk the spec's own test list**
 
