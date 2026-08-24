@@ -790,6 +790,7 @@ class Component extends DCLogic {
     // were opened. Crediting is armed only after the load settles; from then on
     // the end can only be reached by playing, stepping or scrubbing to it.
     this.creditArmed = false;
+    this.playCount = 0;
     // The toggle has to be re-derived here, not only from componentDidUpdate:
     // it reads the stack's scrollHeight, which this load can change with no
     // state change to trigger an update.
@@ -834,16 +835,29 @@ class Component extends DCLogic {
   }
 
   // ------------------------------------------------------------ transport
-  stopPlay() { this._playing = false; if (this.state.playing) this.setState({ playing: false }); }
+  stopPlay() {
+    // Abandonment is judged here rather than in play(), because every route out
+    // of a running playback -- pause, stepping, switching case -- passes
+    // through this one method.
+    if (this._playing && this.engine && this.engine.index < this.engine.moves.length) {
+      const id = this.A.currentCase();
+      if (id) this.A.send(this.AC.eventPath('quit', id, 'm' + this.engine.index));
+    }
+    this._playing = false;
+    if (this.state.playing) this.setState({ playing: false });
+  }
 
   async play() {
     if (!this.engine) return;
     if (this._playing) { this.stopPlay(); return; }
+    if (this.playCount) this.A.ui('replay');
+    this.playCount = (this.playCount || 0) + 1;
     if (this.engine.index >= this.engine.moves.length) await this.engine.reset();
     this._playing = true;
     this.setState({ playing: true });
     while (this._playing && this.engine.index < this.engine.moves.length) {
       await this.engine.step(1);
+      this.A.activity();
     }
     this._playing = false;
     this.setState({ playing: false });
@@ -1100,9 +1114,26 @@ class Component extends DCLogic {
     if (!a || !v) return;
     const key = this.likeId(a.id, v.label);
     if (this.state.done.indexOf(key) !== -1) return;
+    const prevCount = this.state.done.length;
     const done = this.state.done.concat([key]);
     this.write('cubeteacher.done', done);
-    this.setState({ done });
+    this.setState({ done }, () => this.reportCompletion(a, prevCount, done));
+  }
+
+  // Kept out of markDone so the storage write stays the short, obvious thing it
+  // was; everything here is reporting, and none of it may throw into the caller.
+  reportCompletion(a, prevCount, done) {
+    this.A.send(this.AC.eventPath('done', a.id));
+
+    // Variations, not cases: `done` is keyed per variation, and mixing the two
+    // would fire every milestone early.
+    const total = this.algs().reduce((n, x) => n + (x.variations || []).length, 0);
+    this.AC.milestonesCrossed(prevCount, done.length, total)
+      .forEach(pct => this.A.send(this.AC.eventPath('milestone', String(pct))));
+
+    if (this.AC.groupComplete(this.algs(), a.group, x => this.caseDone(x))) {
+      this.A.send(this.AC.eventPath('section', a.group));
+    }
   }
 
   // A case row checks as soon as any one of its variations has been played to
@@ -1117,7 +1148,13 @@ class Component extends DCLogic {
     const on = this.state.likes.indexOf(key) !== -1;
     const likes = on ? this.state.likes.filter(x => x !== key) : this.state.likes.concat([key]);
     this.write('cubeteacher.likes', likes);
-    this.setState({ likes }, () => this.bumpBadge());
+    this.setState({ likes }, () => {
+      // The Likes rail can toggle a row belonging to a case other than the open
+      // one, so the id comes from the key, not from currentCase().
+      const caseId = key.split('::')[0];
+      this.A.send(this.AC.eventPath(on ? 'unlike' : 'like', caseId));
+      this.bumpBadge();
+    });
   }
 
   bumpBadge() {
