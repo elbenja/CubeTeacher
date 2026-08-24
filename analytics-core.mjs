@@ -1,6 +1,6 @@
-// Pure analytics logic. No DOM, no PostHog, no globals -- everything here is
-// unit-tested headlessly by analytics-core.test.mjs. The impure shell that
-// binds this to the browser and to PostHog lives in analytics.js.
+// Pure analytics logic. No DOM, no GoatCounter, no globals -- everything here
+// is unit-tested headlessly by analytics-core.test.mjs. The impure shell that
+// binds this to the browser and to GoatCounter lives in analytics.js.
 
 // How long after the last interaction a visible tab still counts as "being
 // watched". Long enough to cover reading the teach card and watching a slow
@@ -49,7 +49,9 @@ export const TIME_BUCKETS = Object.freeze([
   { max: 15, label: '0-15s' },
   { max: 60, label: '15-60s' },
   { max: 180, label: '1-3m' },
-  { max: Infinity, label: '3m+' }
+  // Not '3m+': eventPath's charset strip turns '+' into '-' and then trims a
+  // trailing one, so that label would silently ship as 'time/<id>/3m'.
+  { max: Infinity, label: '3m-plus' }
 ]);
 
 export function timeBucket(seconds) {

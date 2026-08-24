@@ -726,7 +726,7 @@ The plan's last task exists because instrumentation fails silently. A missing ev
 node --test analytics-core.test.mjs && node validate.mjs
 ```
 
-Expected: 18 analytics tests pass; the algorithm table prints with no failures.
+Expected: 20 analytics tests pass; the algorithm table prints with no failures.
 
 - [ ] **Step 2: Walk the spec's own test list**
 

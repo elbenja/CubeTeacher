@@ -101,8 +101,8 @@ test('timeBucket puts each duration in exactly one bucket', () => {
   assert.equal(timeBucket(59), '15-60s');
   assert.equal(timeBucket(60), '1-3m');
   assert.equal(timeBucket(179), '1-3m');
-  assert.equal(timeBucket(180), '3m+');
-  assert.equal(timeBucket(99999), '3m+');
+  assert.equal(timeBucket(180), '3m-plus');
+  assert.equal(timeBucket(99999), '3m-plus');
 });
 
 test('timeBucket degrades instead of throwing on an unmeasurable duration', () => {

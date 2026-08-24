@@ -3,7 +3,14 @@
 // visitors it will be, because ad blockers catch it. Analytics failing must
 // never be visible in the app.
 
-import { createHeartbeat, createOnce, eventPath, timeBucket } from './analytics-core.mjs';
+import { createHeartbeat, createOnce, eventPath, timeBucket, groupComplete, milestonesCrossed } from './analytics-core.mjs';
+
+// Re-exported rather than wrapped: these two are decisions about app state
+// (is this group done, which milestones did a completion cross), not about
+// analytics transport, so there is nothing for a wrapper to add. Passing them
+// through here -- instead of the app importing analytics-core.mjs itself --
+// keeps `CubeTeacher.dc.html` calling only this module, per the architecture.
+export { groupComplete, milestonesCrossed };
 
 // The site's own GoatCounter endpoint. Public by design -- it ships in the
 // page on every GoatCounter site -- so it lives in the repo, not in a secret.
@@ -42,7 +49,10 @@ export function send(path) {
   if (!on || !path) return;
   // Queued rather than dropped: the very first case event of a cold load fires
   // before count.js has arrived, and it is the one most likely to matter.
-  if (!ready()) { queue.push(path); return; }
+  // Capped, though: when GoatCounter is blocked outright -- a normal case, not
+  // an edge one -- there is no drain to ever empty it, and an uncapped array
+  // would grow for the life of the page.
+  if (!ready()) { if (queue.length < 50) queue.push(path); return; }
   // drain()'s retry budget is bounded, so a script that arrives later than that
   // -- slow network rather than blocked outright -- would leave the backlog
   // stranded for the life of the page, losing exactly the first case view the
@@ -69,6 +79,11 @@ function drain() {
 // be the one hit that never arrives. A hand-built GET with keepalive survives
 // it. sendBeacon is not used: it POSTs, and this endpoint expects a GET.
 function fireKeepalive(path) {
+  // Safe today because pagehide's only caller of this is closeCase, which is
+  // itself only reachable once openCase has run under the `on` guard in
+  // init() -- but that invariant belongs on the network path itself, not on
+  // trust that every future caller will re-check it.
+  if (!on) return;
   try {
     // `e=true`, not `e=1`: this is the form GoatCounter's own count.js emits,
     // and the time/ hit can only ever travel this path. If the server were to
@@ -111,7 +126,24 @@ export function watchCube(el) {
   el.addEventListener('pointerdown', () => { activity(); ui('rotate'); }, { passive: true });
 }
 
+// Thin path-builders for the app's own events. These exist so the host never
+// needs to import analytics-core.mjs (or know the shape of a path) to fire an
+// event -- see the Architecture note in the design spec: `CubeTeacher.dc.html`
+// calls only this module.
+export function done(id) { send(eventPath('done', id)); }
+export function quit(id, moveIndex) { send(eventPath('quit', id, 'm' + moveIndex)); }
+export function like(id, isLiked) { send(eventPath(isLiked ? 'like' : 'unlike', id)); }
+export function milestone(pct) { send(eventPath('milestone', String(pct))); }
+export function section(group) { send(eventPath('section', group)); }
+export function fail(name) { send(eventPath('fail', name)); }
+
 export function init() {
+  // The DC editor hot-reloads this file, which remounts the component and
+  // calls init() again against the same module singletons. componentWillUnmount
+  // never tears analytics down, so without this a remount would add a second
+  // 1s ticker and a second set of window listeners -- double-counted dwell
+  // time and doubled events, not just a leaked timer.
+  if (ticker) return;
   on = shouldEnable();
   if (!on || typeof window === 'undefined') return;
 

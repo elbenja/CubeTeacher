@@ -104,7 +104,7 @@ Three properties of the wrapper matter:
 | `done/<case_id>` | a variation is completed for the first time |
 | `like/<case_id>` · `unlike/<case_id>` | a like is toggled |
 | `quit/<case_id>/m<N>` | playback is abandoned at move N |
-| `time/<case_id>/<bucket>` | a case closes; bucket ∈ `0-15s` `15-60s` `1-3m` `3m+` |
+| `time/<case_id>/<bucket>` | a case closes; bucket ∈ `0-15s` `15-60s` `1-3m` `3m-plus` |
 | `ui/<control>` | first use per case; control ∈ `legend` `scrub` `stack` `keyboard` `rotate` `reset` `replay` |
 | `milestone/<pct>` | 25 / 50 / 75 / 100 percent of variations done |
 | `section/<group>` | every case in a group is done |

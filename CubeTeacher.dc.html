@@ -36,10 +36,12 @@
 <script>
   // count.js refuses to count loopback hosts -- `filter()` returns "localhost"
   // for 127.0.0.1 too -- so without this, no browser verification of this
-  // instrumentation can ever observe a real request. The same ?gc=1 flag that
-  // switches analytics on locally lifts the refusal. The deployed site never
+  // instrumentation can ever observe a real request. The same `gc` flag that
+  // switches analytics on locally (see shouldEnable() in analytics.js -- kept
+  // as the same expression so the two can't drift apart, e.g. `?gc=0` reading
+  // as enabled here but not there) lifts the refusal. The deployed site never
   // carries the flag, so this is never true in production.
-  if (location.search.indexOf('gc=1') !== -1) window.goatcounter = { allow_local: true };
+  if (new URLSearchParams(location.search).has('gc')) window.goatcounter = { allow_local: true };
 </script>
 <script data-goatcounter="https://cubeteacher.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
@@ -638,9 +640,14 @@ class Component extends DCLogic {
   async componentDidMount() {
     this.varCanvas = [];
     this._refs = {};
-    this.A = await import('./analytics.js');
-    this.AC = await import('./analytics-core.mjs');
-    this.A.init();
+
+    // Fired without awaiting: analytics has no vote on whether the app boots.
+    // Kicking it off here, alongside the app's own imports below rather than
+    // ahead of them, keeps a blocked/404'd/slow analytics.js off the critical
+    // path for time-to-interactive -- it used to add two full round-trips
+    // before algorithms.js even started loading.
+    this.loadAnalytics();
+
     try {
       const data = await import('./algorithms.js');
       this.ALGORITHMS = data.ALGORITHMS;
@@ -667,14 +674,29 @@ class Component extends DCLogic {
       console.error('[cubeteacher]', e);
       // No stack and no message text: this is a health signal, not a crash
       // reporter, and a message could carry a path from the user's machine.
-      // this.AC may still be undefined here -- the failure can happen before
-      // its own dynamic import resolves -- so guard the read rather than let
-      // reporting the first error throw a second one.
-      this.A.send(this.AC && this.AC.eventPath ? this.AC.eventPath('fail', e && e.name ? e.name : 'unknown') : 'fail/unknown');
+      // Safe to call even if analytics.js never loaded: this.A is still the
+      // stub Proxy from the class field above, so this is a no-op rather than
+      // a second throw on top of the first.
+      this.A.fail(e && e.name ? e.name : 'unknown');
     }
     this.onKey = e => this.handleKey(e);
     window.addEventListener('keydown', this.onKey);
     this.applyMotion();
+  }
+
+  // Split out from componentDidMount, and never awaited by it, so that a
+  // failure here -- a blocklist rule matching "analytics.js", a partial
+  // deploy, a 404, a flaky network -- degrades to the no-op stub on `A`
+  // instead of throwing an unhandled rejection that skips the rest of mount.
+  // support.js's DC runtime guard only wraps the synchronous call into
+  // componentDidMount, not an unrelated promise it happens to have started.
+  async loadAnalytics() {
+    try {
+      this.A = await import('./analytics.js');
+      this.A.init();
+    } catch (e) {
+      console.error('[cubeteacher]', e);
+    }
   }
 
   componentWillUnmount() {
@@ -849,7 +871,7 @@ class Component extends DCLogic {
     // through this one method.
     if (this._playing && this.engine && this.engine.index < this.engine.moves.length) {
       const id = this.A.currentCase();
-      if (id) this.A.send(this.AC.eventPath('quit', id, 'm' + this.engine.index));
+      if (id) this.A.quit(id, this.engine.index);
     }
     this._playing = false;
     if (this.state.playing) this.setState({ playing: false });
@@ -1123,34 +1145,48 @@ class Component extends DCLogic {
     if (!a || !v) return;
     const key = this.likeId(a.id, v.label);
     if (this.state.done.indexOf(key) !== -1) return;
-    const prevCount = this.state.done.length;
-    const done = this.state.done.concat([key]);
+    const prevDone = this.state.done;
+    const done = prevDone.concat([key]);
     this.write('cubeteacher.done', done);
-    this.setState({ done }, () => this.reportCompletion(a, prevCount, done));
+    this.setState({ done }, () => this.reportCompletion(a, prevDone, done));
   }
 
   // Kept out of markDone so the storage write stays the short, obvious thing it
   // was; everything here is reporting, and none of it may throw into the caller.
-  reportCompletion(a, prevCount, done) {
-    this.A.send(this.AC.eventPath('done', a.id));
+  reportCompletion(a, prevDone, done) {
+    this.A.done(a.id);
 
     // Variations, not cases: `done` is keyed per variation, and mixing the two
     // would fire every milestone early.
     const total = this.algs().reduce((n, x) => n + (x.variations || []).length, 0);
-    this.AC.milestonesCrossed(prevCount, done.length, total)
-      .forEach(pct => this.A.send(this.AC.eventPath('milestone', String(pct))));
+    // `|| []`: if analytics.js never loaded, this.A is still the no-op Proxy
+    // stub, and every property on it -- including milestonesCrossed -- returns
+    // a function that returns undefined, not an array. Calling .forEach on
+    // that would throw into the very code path this function's opening
+    // comment promises never throws.
+    (this.A.milestonesCrossed(prevDone.length, done.length, total) || [])
+      .forEach(pct => this.A.milestone(pct));
 
-    if (this.AC.groupComplete(this.algs(), a.group, x => this.caseDone(x))) {
-      this.A.send(this.AC.eventPath('section', a.group));
-    }
+    // Evaluated before and after this one completion, and fired only on the
+    // crossing. groupComplete alone is true for every completion once the
+    // group is already done -- caseDone only needs one variation done per
+    // case -- so testing it against `done` alone would refire section/<group>
+    // for every remaining variation in the group (up to 26x for Advanced).
+    const wasComplete = this.A.groupComplete(this.algs(), a.group, x => this.caseDoneIn(prevDone, x));
+    const isComplete = this.A.groupComplete(this.algs(), a.group, x => this.caseDoneIn(done, x));
+    if (!wasComplete && isComplete) this.A.section(a.group);
   }
 
   // A case row checks as soon as any one of its variations has been played to
   // the end. Requiring all of them would mean nine playthroughs before First
   // Two Layers gave any sign it had been worked on, and the check is meant to
   // mark where you have been, not to certify mastery.
+  caseDoneIn(list, a) {
+    return (a.variations || []).some(v => list.indexOf(this.likeId(a.id, v.label)) !== -1);
+  }
+
   caseDone(a) {
-    return (a.variations || []).some(v => this.state.done.indexOf(this.likeId(a.id, v.label)) !== -1);
+    return this.caseDoneIn(this.state.done, a);
   }
 
   toggleLike(key) {
@@ -1161,7 +1197,7 @@ class Component extends DCLogic {
       // The Likes rail can toggle a row belonging to a case other than the open
       // one, so the id comes from the key, not from currentCase().
       const caseId = key.split('::')[0];
-      this.A.send(this.AC.eventPath(on ? 'unlike' : 'like', caseId));
+      this.A.like(caseId, !on);
       this.bumpBadge();
     });
   }
