@@ -70,7 +70,11 @@ function drain() {
 // it. sendBeacon is not used: it POSTs, and this endpoint expects a GET.
 function fireKeepalive(path) {
   try {
-    fetch(ENDPOINT + '?p=' + encodeURIComponent(path) + '&e=1',
+    // `e=true`, not `e=1`: this is the form GoatCounter's own count.js emits,
+    // and the time/ hit can only ever travel this path. If the server were to
+    // parse the flag differently, every dwell-time hit would silently land as
+    // a pageview instead of an event.
+    fetch(ENDPOINT + '?p=' + encodeURIComponent(path) + '&e=true',
       { keepalive: true, mode: 'no-cors' });
   } catch (_) {}
 }

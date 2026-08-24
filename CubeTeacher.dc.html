@@ -33,6 +33,14 @@
 <link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
 <script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script>
+  // count.js refuses to count loopback hosts -- `filter()` returns "localhost"
+  // for 127.0.0.1 too -- so without this, no browser verification of this
+  // instrumentation can ever observe a real request. The same ?gc=1 flag that
+  // switches analytics on locally lifts the refusal. The deployed site never
+  // carries the flag, so this is never true in production.
+  if (location.search.indexOf('gc=1') !== -1) window.goatcounter = { allow_local: true };
+</script>
 <script data-goatcounter="https://cubeteacher.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 <style>
