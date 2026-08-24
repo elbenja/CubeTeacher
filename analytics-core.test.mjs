@@ -105,6 +105,13 @@ test('timeBucket puts each duration in exactly one bucket', () => {
   assert.equal(timeBucket(99999), '3m+');
 });
 
+test('timeBucket degrades instead of throwing on an unmeasurable duration', () => {
+  assert.equal(timeBucket(NaN), '0-15s');
+  assert.equal(timeBucket(Infinity), '0-15s');
+  assert.equal(timeBucket(-Infinity), '0-15s');
+  assert.equal(timeBucket(-5), '0-15s');
+});
+
 test('createOnce reports the first sighting of a key and nothing after', () => {
   const o = createOnce();
   assert.equal(o.first('keyboard'), true);
@@ -128,7 +135,11 @@ test('milestonesCrossed reports only newly crossed thresholds', () => {
 });
 
 test('milestonesCrossed can report two at once on a big jump', () => {
-  assert.deepEqual(milestonesCrossed(0, 3, 4), [25, 50]);
+  assert.deepEqual(milestonesCrossed(0, 2, 4), [25, 50]);
+});
+
+test('milestonesCrossed reports three when a jump clears three thresholds', () => {
+  assert.deepEqual(milestonesCrossed(0, 3, 4), [25, 50, 75]);
 });
 
 test('milestonesCrossed is safe before the algorithm list loads', () => {

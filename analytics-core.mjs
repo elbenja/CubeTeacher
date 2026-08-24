@@ -53,7 +53,13 @@ export const TIME_BUCKETS = Object.freeze([
 ]);
 
 export function timeBucket(seconds) {
-  return TIME_BUCKETS.find(b => seconds < b.max).label;
+  // A duration that is not a finite positive number can only come from a bug
+  // upstream -- the heartbeat counts integer ticks and cannot produce one.
+  // Folding it into the shortest bucket keeps the caller alive and errs toward
+  // under-counting: letting it land in `3m+` would dress a measurement failure
+  // up as the strongest engagement signal the dashboard has.
+  const s = Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+  return TIME_BUCKETS.find(b => s < b.max).label;
 }
 
 // One hit per control per case viewing. Twenty arrow presses is one
@@ -71,7 +77,7 @@ export function createOnce() {
   };
 }
 
-export const MILESTONES = Object.freeze([25, 50, 100]);
+export const MILESTONES = Object.freeze([25, 50, 75, 100]);
 
 // Crossing is derived from the before/after counts rather than from a stored
 // list of milestones already sent, so there is no new persisted state to keep
