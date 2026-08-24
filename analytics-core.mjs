@@ -27,3 +27,62 @@ export function createHeartbeat({ now = () => Date.now(), idleMs = IDLE_MS } = {
     reset() { seconds = 0; lastActivity = now(); }
   };
 }
+
+// GoatCounter records a path and an event flag and carries no properties, so
+// every distinction this design wants has to survive as a path segment.
+// Segments are lowercased and stripped to [a-z0-9-] because the dashboard
+// groups by exact string: one stray space or capital splits a case's hits
+// across two rows that look identical to a reader.
+export function eventPath(...parts) {
+  return parts
+    .map(p => String(p == null ? '' : p).toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, ''))
+    .filter(Boolean)
+    .join('/');
+}
+
+// Buckets rather than seconds: a path per distinct second would be thousands
+// of rows saying nothing. Four buckets answer the only question being asked --
+// glanced at, read, or studied.
+export const TIME_BUCKETS = Object.freeze([
+  { max: 15, label: '0-15s' },
+  { max: 60, label: '15-60s' },
+  { max: 180, label: '1-3m' },
+  { max: Infinity, label: '3m+' }
+]);
+
+export function timeBucket(seconds) {
+  return TIME_BUCKETS.find(b => seconds < b.max).label;
+}
+
+// One hit per control per case viewing. Twenty arrow presses is one
+// ui/keyboard hit, because the question is "is this control used at all" and a
+// per-case boolean answers it; a raw press count would drown every other path.
+export function createOnce() {
+  let seen = new Set();
+  return {
+    first(key) {
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    },
+    reset() { seen = new Set(); }
+  };
+}
+
+export const MILESTONES = Object.freeze([25, 50, 100]);
+
+// Crossing is derived from the before/after counts rather than from a stored
+// list of milestones already sent, so there is no new persisted state to keep
+// in sync -- and no double-fire if the same completion is processed twice.
+export function milestonesCrossed(prevDone, nextDone, total) {
+  if (!total) return [];
+  const pct = n => (n / total) * 100;
+  return MILESTONES.filter(m => pct(prevDone) < m && pct(nextDone) >= m);
+}
+
+export function groupComplete(algs, group, isDone) {
+  const inGroup = algs.filter(a => a.group === group);
+  return inGroup.length > 0 && inGroup.every(isDone);
+}
