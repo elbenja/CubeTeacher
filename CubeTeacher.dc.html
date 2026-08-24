@@ -16,9 +16,177 @@
 <meta name="twitter:title" content="CubeTeacher — Silverdesk Lab">
 <meta name="twitter:image" content="https://elbenja.github.io/CubeTeacher/social-preview.png">
 <meta name="twitter:image:alt" content="Silverdesk Lab CubeTeacher">
+<style>
+/* ---- boot overlay ----------------------------------------------------
+   Painted straight from the raw document, ahead of support.js, React and the
+   design-system stylesheets, so the first frame of the page is this and not a
+   white field followed by the UI popping in a piece at a time. Nothing here
+   can use a token: the helmet injects those, and at this point it has not run
+   yet, so --surface-canvas and --gray-900 are written out as literals.
+   The component removes the element once the first cube has drawn. */
+#ct-boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#f4f4f4;transition:opacity 420ms cubic-bezier(0.22,1,0.36,1)}
+#ct-boot.is-done{opacity:0;pointer-events:none}
+/* Held back a beat: a warm cache is done inside this delay, and a spinner that
+   flashes for 200ms is worse than no spinner at all. */
+#ct-boot svg{width:104px;height:104px;animation:ct-boot-in 320ms 260ms cubic-bezier(0.22,1,0.36,1) backwards}
+@keyframes ct-boot-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#ct-boot svg{animation-delay:0ms}}
+</style>
 <script src="./support.js"></script>
 </head>
 <body>
+<div id="ct-boot" aria-hidden="true">
+  <svg id="ct-boot-cube" viewBox="0 0 100 100" fill="#f4f4f4" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></svg>
+</div>
+<script>
+/* ---- boot cube -------------------------------------------------------
+   A real cube turned on its vertical axis: eight points projected each frame,
+   then the outline rebuilt from whichever faces are pointing at us. It is
+   deliberately not three.js -- three is fetched from a CDN, and waiting for it
+   is most of what this overlay is here to cover, so the loader cannot be built
+   on the thing it is covering for.
+
+   What gets stroked is the silhouette plus the edges where two visible faces
+   meet, and nothing else. Stroking the faces themselves is the obvious way to
+   do it and it is wrong: neighbours stroke their shared edge twice, and once
+   the corners are rounded the two strokes bow apart and the seam reads as a
+   double line. Deriving the outline from the visible set draws every edge once
+   and never draws a hidden one at all. */
+(function () {
+  var svg = document.getElementById('ct-boot-cube');
+  if (!svg) return;
+
+  var S = 26,                          // half-extent in viewBox units
+      C = 50,                          // centre
+      D = 8,                           // corner cut, measured along the edge
+      SPOKE = 6,                       // how far an inner edge stops short
+      BASE = Math.PI / 4,              // the pose the reference drawing sits in
+      TILT = Math.atan(Math.SQRT1_2);  // 35.26deg: the isometric elevation
+  var ct = Math.cos(TILT), st = Math.sin(TILT);
+
+  var V = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+  // Wound counter-clockwise seen from outside, which is what lets the signed
+  // area of the projection stand in for a front/back test.
+  var F = [[4,5,6,7],[1,0,3,2],[5,1,2,6],[0,4,7,3],[7,6,2,3],[0,1,5,4]];
+
+  // The twelve edges, each tagged with the two faces that meet along it.
+  var E = [], seen = {};
+  for (var f = 0; f < 6; f++) for (var i = 0; i < 4; i++) {
+    var a = F[f][i], b = F[f][(i + 1) % 4], key = Math.min(a, b) + ':' + Math.max(a, b);
+    if (seen[key] === undefined) { seen[key] = E.length; E.push([a, b, f, -1]); }
+    else E[seen[key]][3] = f;
+  }
+
+  function project(th) {
+    var c = Math.cos(th), s = Math.sin(th), P = [], i, p, x1, z1, y2;
+    for (i = 0; i < 8; i++) {
+      p = V[i];
+      x1 = p[0] * c + p[2] * s;
+      z1 = p[2] * c - p[0] * s;
+      y2 = p[1] * ct - z1 * st;
+      P.push([C + x1 * S, C - y2 * S]);
+    }
+    return P;
+  }
+
+  // Negative in SVG's y-down space means the winding still reads
+  // counter-clockwise to the viewer, i.e. the face is turned towards us.
+  function facing(P, f) {
+    var q = F[f], a = 0, i, p, n;
+    for (i = 0; i < 4; i++) { p = P[q[i]]; n = P[q[(i + 1) % 4]]; a += p[0] * n[1] - n[0] * p[1]; }
+    return a < 0;
+  }
+
+  function xy(p) { return p[0].toFixed(2) + ' ' + p[1].toFixed(2); }
+
+  // Corners are cut a fixed distance back along each edge rather than to a
+  // fixed radius: as the cube turns, its outline angles swing from about 90 to
+  // 150 degrees, and holding the radius instead would swing the cut length by
+  // a factor of three and visibly bloat the sharp corners.
+  function rounded(pts) {
+    var n = pts.length, seg = [], i, p, a, b, ax, ay, bx, by, la, lb, k, d, g;
+    for (i = 0; i < n; i++) {
+      p = pts[i]; a = pts[(i + n - 1) % n]; b = pts[(i + 1) % n];
+      ax = a[0] - p[0]; ay = a[1] - p[1]; bx = b[0] - p[0]; by = b[1] - p[1];
+      la = Math.sqrt(ax * ax + ay * ay); lb = Math.sqrt(bx * bx + by * by);
+      // An edge seen exactly end-on has no length and so no corner to cut.
+      if (la < 1e-6 || lb < 1e-6) { seg.push([p, p, p]); continue; }
+      k = Math.min(D, la * 0.42, lb * 0.42);
+      seg.push([[p[0] + ax / la * k, p[1] + ay / la * k], p, [p[0] + bx / lb * k, p[1] + by / lb * k]]);
+    }
+    d = 'M' + xy(seg[0][2]);
+    for (i = 1; i <= n; i++) { g = seg[i % n]; d += 'L' + xy(g[0]) + 'Q' + xy(g[1]) + ' ' + xy(g[2]); }
+    return d + 'Z';
+  }
+
+  // The silhouette edges form one closed loop; walk it so the corners come out
+  // in order, which is what rounded() needs.
+  function loop(edges) {
+    var used = [], ring = [edges[0][0], edges[0][1]], i, e, last;
+    used[0] = 1;
+    for (var step = 1; step < edges.length; step++) {
+      last = ring[ring.length - 1];
+      for (i = 0; i < edges.length; i++) {
+        if (used[i]) continue;
+        e = edges[i];
+        if (e[0] === last) { ring.push(e[1]); used[i] = 1; break; }
+        if (e[1] === last) { ring.push(e[0]); used[i] = 1; break; }
+      }
+    }
+    ring.pop(); // the walk closes back onto the vertex it started from
+    return ring;
+  }
+
+  var outline = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'path'));
+  var inner = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'path'));
+  inner.setAttribute('fill', 'none');
+
+  function render(th) {
+    var P = project(th), vis = [], rim = [], inner2 = [], onRim = {}, spokes = '', i, e, n, a, b, dx, dy, L;
+    for (i = 0; i < 6; i++) vis[i] = facing(P, i);
+    for (i = 0; i < 12; i++) {
+      e = E[i];
+      n = (vis[e[2]] ? 1 : 0) + (vis[e[3]] ? 1 : 0);
+      if (n === 1) { rim.push(e); onRim[e[0]] = onRim[e[1]] = 1; }
+      else if (n === 2) inner2.push(e);
+    }
+    for (i = 0; i < inner2.length; i++) {
+      // Held back only where it runs into the outline, so that end stops at the
+      // corner cut instead of crossing it. The other end is the near corner of
+      // the cube, where all three of these meet and a gap would show.
+      e = inner2[i]; a = P[e[0]]; b = P[e[1]];
+      dx = b[0] - a[0]; dy = b[1] - a[1];
+      L = Math.sqrt(dx * dx + dy * dy) || 1;
+      dx = dx / L * Math.min(SPOKE, L * 0.4); dy = dy / L * Math.min(SPOKE, L * 0.4);
+      spokes += 'M' + xy(onRim[e[0]] ? [a[0] + dx, a[1] + dy] : a) +
+                'L' + xy(onRim[e[1]] ? [b[0] - dx, b[1] - dy] : b);
+    }
+    var ring = loop(rim), poly = [];
+    for (i = 0; i < ring.length; i++) poly.push(P[ring[i]]);
+    outline.setAttribute('d', rounded(poly));
+    inner.setAttribute('d', spokes);
+  }
+
+  render(BASE);
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  // A quarter turn at a time: four-fold symmetry about the vertical means every
+  // rest lands back on the reference pose, and the pause between turns is what
+  // reads as one face handing over to the next. Negative because the angle runs
+  // anticlockwise about the up axis and the cube should turn the other way --
+  // the face nearest the viewer travels to the left.
+  var TURN = 780, HOLD = 300, STEP = TURN + HOLD, t0 = 0;
+  function frame(now) {
+    var host = document.getElementById('ct-boot');
+    if (!host || host.classList.contains('is-done')) return;
+    if (!t0) t0 = now;
+    var e = now - t0, n = Math.floor(e / STEP), t = Math.min(1, (e - n * STEP) / TURN);
+    render(BASE - (n + (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(2 - 2 * t, 3) / 2)) * Math.PI / 2);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
 <x-dc>
 <helmet>
 <link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
@@ -638,6 +806,10 @@ class Component extends DCLogic {
 
   // ------------------------------------------------------------ lifecycle
   async componentDidMount() {
+    // Nothing below is allowed to leave the overlay up: a CDN that never
+    // answers would otherwise park the user in front of a spinning cube with
+    // the app behind it, working, and unreachable.
+    this._bootTimer = setTimeout(() => this.hideBoot(), 12000);
     this.varCanvas = [];
     this._refs = {};
 
@@ -672,6 +844,10 @@ class Component extends DCLogic {
       });
     } catch (e) {
       console.error('[cubeteacher]', e);
+      // The overlay comes down before anything else: a failure here must not
+      // leave the user in front of a spinning cube forever, and reporting the
+      // failure has no business delaying their recovery.
+      this.hideBoot();
       // No stack and no message text: this is a health signal, not a crash
       // reporter, and a message could carry a path from the user's machine.
       // Safe to call even if analytics.js never loaded: this.A is still the
@@ -700,6 +876,7 @@ class Component extends DCLogic {
   }
 
   componentWillUnmount() {
+    clearTimeout(this._bootTimer);
     window.removeEventListener('keydown', this.onKey);
     if (this.engine) this.engine.dispose();
     if (this.pool) this.pool.dispose();
@@ -713,6 +890,21 @@ class Component extends DCLogic {
     this.syncStackOverflow();
     this.applyMotion();
     if (this.engine && this.props.cubeFinish !== prev.cubeFinish) this.engine.setFinish(this.props.cubeFinish || 'flat');
+  }
+
+  // The overlay lives outside <x-dc> -- it is in the raw document so it can
+  // paint before this component exists -- which is also why it is torn down by
+  // hand rather than by a render. It goes when the first cube is on screen,
+  // not when state says ready: ready is a beat too early and the handover
+  // would flash an empty stage.
+  hideBoot() {
+    if (this._bootGone) return;
+    this._bootGone = true;
+    clearTimeout(this._bootTimer);
+    const el = document.getElementById('ct-boot');
+    if (!el) return;
+    el.classList.add('is-done');
+    setTimeout(() => el.remove(), 500);
   }
 
   waitFor(fn, ms = 15000) {
@@ -826,6 +1018,9 @@ class Component extends DCLogic {
     // state change to trigger an update.
     this.engine.load(v).then(() => {
       this.creditArmed = true;
+      // Hand over to the real cube first -- the overlay coming down is what the
+      // user is waiting for, and it must not sit behind an analytics call.
+      this.hideBoot();
       // openCase closes the previous one first, so the time/ hit for the case
       // being left is emitted here rather than at every call site that switches.
       this.A.openCase(this.current().id);

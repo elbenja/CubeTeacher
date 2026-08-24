@@ -442,7 +442,7 @@ export class CubeEngine {
     };
     const move = e => {
       if (!drag) return;
-      this.want.theta = drag.t + (e.clientX - drag.x) * 0.0085;
+      this.want.theta = drag.t - (e.clientX - drag.x) * 0.0085;
       this.want.phi = Math.min(Math.PI - 0.22, Math.max(0.22, drag.p - (e.clientY - drag.y) * 0.0085));
     };
     const up = e => { drag = null; cv.style.cursor = 'grab'; try { cv.releasePointerCapture(e.pointerId); } catch (_) {} };
