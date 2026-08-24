@@ -326,7 +326,11 @@ function drain() {
 // it. sendBeacon is not used: it POSTs, and this endpoint expects a GET.
 function fireKeepalive(path) {
   try {
-    fetch(ENDPOINT + '?p=' + encodeURIComponent(path) + '&e=1',
+    // `e=true`, not `e=1`: this is the form GoatCounter's own count.js emits,
+    // and the time/ hit can only ever travel this path. If the server were to
+    // parse the flag differently, every dwell-time hit would silently land as
+    // a pageview instead of an event.
+    fetch(ENDPOINT + '?p=' + encodeURIComponent(path) + '&e=true',
       { keepalive: true, mode: 'no-cors' });
   } catch (_) {}
 }
@@ -421,11 +425,19 @@ Check that `analytics.js` reads `const ENDPOINT = 'https://cubeteacher.goatcount
 In the `<helmet>` block of `CubeTeacher.dc.html`, immediately after the three.js `<script>` line, exactly as GoatCounter supplies it:
 
 ```html
+<script>
+  // count.js refuses to count loopback hosts -- `filter()` returns "localhost"
+  // for 127.0.0.1 too -- so without this, no browser verification of this
+  // instrumentation can ever observe a real request. The same ?gc=1 flag that
+  // switches analytics on locally lifts the refusal. The deployed site never
+  // carries the flag, so this is never true in production.
+  if (location.search.indexOf('gc=1') !== -1) window.goatcounter = { allow_local: true };
+</script>
 <script data-goatcounter="https://cubeteacher.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 ```
 
-It goes in `<helmet>` rather than the document `<head>` because that is where this file already keeps its third-party runtime scripts.
+Both go in `<helmet>` rather than the document `<head>` because that is where this file already keeps its third-party runtime scripts. Order matters: the settings object must exist before `count.js` reads it.
 
 - [ ] **Step 3: Declare the stub, import the module, start it**
 
