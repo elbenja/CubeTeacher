@@ -17,7 +17,7 @@
 </helmet>
 
 <div class="ct-frow" style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-subtle)">
-  <a class="ct-link ct-hide" href="{{ emailHref }}"><i class="hgi-stroke hgi-mail-01" style="font-size:16px"></i>Email</a>
+  <a class="ct-link ct-hide" href="https://x.com/silverdesk" target="_blank" rel="noopener"><i class="hgi-stroke hgi-new-twitter" style="font-size:16px"></i>@silverdesk</a>
   <a class="ct-link ct-hide" href="https://calendar.app.google/QzXeC9CXjyySAENm6" target="_blank" rel="noopener"><i class="hgi-stroke hgi-calendar-03" style="font-size:16px"></i>Calendar</a>
   <span class="ct-tip ct-ib ct-fend" data-tip="Move notation help">
     <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="help-circle" label="Move notation help" selected="{{ legendOpen }}" onClick="{{ toggleLegend }}" hint-size="34px,34px"></x-import>
@@ -25,12 +25,10 @@
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:44},&quot;email&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;elbenja@gmail.com&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;legendOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;toggleLegend&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:44},&quot;legendOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;toggleLegend&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
 class Component extends DCLogic {
   renderVals() {
-    const email = this.props.email ?? "elbenja@gmail.com";
     return {
-      emailHref: "mailto:" + email,
       legendOpen: this.props.legendOpen,
       toggleLegend: this.props.toggleLegend ?? (() => {})
     };
