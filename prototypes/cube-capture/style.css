@@ -37,3 +37,4 @@ main{padding-bottom:25px}.intro{display:flex;align-items:flex-end;justify-conten
 @keyframes cue-bob{50%{transform:translateX(-9px)}}
 @media(max-width:760px){.progress-visual{height:250px;margin:14px 22px 0}.choice-card{padding:24px}.feed-turn{right:5%;top:40%}.feed-turn span{font-size:53px}.feed-turn strong{font-size:10px}.camera-controls{gap:5px}.camera-controls .camera-switch{font-size:10px;padding:7px 8px}.workspace.is-manual:not(.is-complete) .guide{min-height:600px}}
 @media(max-width:420px){.progress-visual{height:220px}.feed-turn{right:3%;max-width:85px}.mode-switch{font-size:10px;padding:8px}}
+.progress-visual.is-mirrored{transform:scaleX(-1)}

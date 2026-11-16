@@ -140,6 +140,7 @@ function render() {
   }
   document.querySelector('.workspace').classList.toggle('is-manual', state.mode === 'manual');
   document.querySelector('.workspace').classList.toggle('is-complete', complete);
+  updateMirror();
   updateProgress(); renderDemo(); renderGuide();
   $('camera-foot-status').textContent = complete ? '3D preview · drag to inspect' : state.mode === 'manual' ? 'Enter each sticker by hand' : state.stream ? 'Live camera · automatic capture when aligned' : 'Camera is off';
   document.querySelector('.camera-foot > span:last-child').textContent = complete ? 'Drag the cube to inspect every side' : 'Keep the cube upright between side scans';
@@ -355,6 +356,8 @@ async function toggleCamera() {
 }
 function updateMirror() {
   $('viewfinder').classList.toggle('is-mirrored', state.mirrored);
+  $('progress-visual').classList.toggle('is-mirrored', state.mode === 'camera' && state.mirrored);
+  $('progress-cube').setAttribute('aria-label', state.mode === 'camera' && state.mirrored ? 'Mirrored 3D progress cube showing three adjacent sides' : '3D progress cube showing three adjacent sides');
   $('mirror-switch').textContent = state.mirrored ? 'Mirror on' : 'Mirror off';
   $('mirror-switch').setAttribute('aria-pressed', String(state.mirrored));
   if (state.index > 0 && state.index < 4) $('feed-turn-arrow').textContent = state.mirrored ? '↷' : '↶';
