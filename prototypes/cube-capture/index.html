@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f4f2">
+  <title>Cube capture · CubeTeacher prototype</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>CubeTeacher</span><span class="brand-divider"></span><span class="brand-sub">Capture study</span></div>
+      <span class="prototype-tag">Interactive prototype <span>↗</span></span>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">01 / SET UP YOUR CUBE</p>
+          <h1 id="page-title">Show us every side.</h1>
+          <p class="intro-copy">Point each face at the camera, check the colors, then follow the cue to turn your cube.</p>
+        </div>
+        <div class="progress-summary"><strong id="progress-count">0<span> / 6</span></strong><span>faces captured</span></div>
+      </section>
+
+      <nav class="face-progress" aria-label="Capture progress" id="face-progress"></nav>
+
+      <section class="workspace" aria-label="Cube capture workspace">
+        <div class="camera-column">
+          <div class="viewfinder" id="viewfinder">
+            <video id="camera" autoplay muted playsinline aria-label="Camera preview"></video>
+            <div class="demo-scene" id="demo-scene" aria-hidden="true">
+              <div class="demo-orbit orbit-one"></div><div class="demo-orbit orbit-two"></div>
+              <div class="demo-cube" id="demo-cube"></div>
+              <span class="demo-spark spark-one"></span><span class="demo-spark spark-two"></span>
+            </div>
+            <div class="result-stage" id="result-stage"><div class="result-stage-head"><span>YOUR CUBE</span><span>DRAG TO ROTATE</span></div><div class="result-cube" id="result-cube" tabindex="0" aria-label="3D view of your captured cube. Drag or use arrow keys to rotate."></div><div class="result-stage-foot"><span>Captured stickers · physical orientation</span><button type="button" id="reset-view">Reset view ↗</button></div></div>
+            <div class="viewfinder-top"><span class="live-pill"><span class="live-dot"></span><span id="camera-label">DEMO PREVIEW</span></span><button class="camera-switch" id="camera-switch" type="button">Enable camera <span aria-hidden="true">↗</span></button></div>
+            <div class="scan-frame" id="scan-frame" aria-hidden="true"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span><div class="scan-grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="scan-line"></span></div>
+            <div class="flash" id="flash" aria-hidden="true"></div>
+            <div class="viewfinder-bottom"><span class="target-icon" aria-hidden="true">⌖</span><span id="viewfinder-note" role="status">Line up one face inside the frame</span><span class="auto-hold" id="auto-hold" aria-hidden="true"><span></span></span></div>
+          </div>
+          <div class="camera-foot"><span><span class="foot-dot"></span><span id="camera-foot-status">Sample cube shown until camera is enabled</span></span><span>Keep the cube upright between side scans</span></div>
+        </div>
+
+        <aside class="guide" id="guide" aria-live="polite">
+          <div class="guide-top"><span class="step-index" id="step-index">FACE 01 OF 06</span><span class="state-pill" id="state-pill">READY TO CAPTURE</span></div>
+          <div class="guide-main" id="guide-main"></div>
+        </aside>
+      </section>
+
+      <footer class="footer"><span>CubeTeacher <span class="footer-divider">/</span> Silverdesk Lab</span><span>Camera colors are a starting point. Tap any sticker to correct it.</span></footer>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+  <script type="module" src="./script.js"></script>
+</body>
+</html>
