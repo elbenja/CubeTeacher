@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { normalizeCaptured, validateCube } from './cube-state.mjs';
+import { captureFromPhysical, normalizeCaptured, validateCube } from './cube-state.mjs';
 import { solvedCube, applyMoves, sticker } from '../../validate.mjs';
 
 const mirror = cells => [2, 1, 0, 5, 4, 3, 8, 7, 6].map(i => cells[i]);
@@ -20,6 +20,12 @@ function fromMoves(moves) {
   const captured = [mirror(faces.F), mirror(faces.R), mirror(faces.B), mirror(faces.L),
     mirror(counterclockwise(faces.U)), mirror(clockwise(faces.D))];
   assert.deepEqual(normalizeCaptured(captured), faces);
+  const unmirrored = captured.map(mirror);
+  assert.deepEqual(normalizeCaptured(unmirrored, Array(6).fill(false)), faces);
+  const mixed = captured.map((cells, index) => index % 2 ? mirror(cells) : cells);
+  assert.deepEqual(normalizeCaptured(mixed, [true, false, true, false, true, false]), faces);
+  const editable = ['F', 'R', 'B', 'L', 'U', 'D'].map((face, index) => captureFromPhysical(index, faces[face]));
+  assert.deepEqual(normalizeCaptured(editable, Array(6).fill(false)), faces);
   return { faces, captured };
 }
 
@@ -31,10 +37,12 @@ for (const moves of ['', 'R', 'U F', "R U R' U'", "R U F' L2 D B"]) {
 const changedColor = structuredClone(fromMoves('').faces);
 changedColor.F[0] = 'R';
 assert.equal(validateCube(changedColor).ok, false);
+assert.ok(validateCube(changedColor).suspects.includes('F'));
 
 const flippedEdge = structuredClone(fromMoves('').faces);
 [flippedEdge.U[7], flippedEdge.F[1]] = [flippedEdge.F[1], flippedEdge.U[7]];
 assert.equal(validateCube(flippedEdge).ok, false);
+assert.deepEqual(validateCube(flippedEdge).suspects, []);
 
 const twistedCorner = structuredClone(fromMoves('').faces);
 [twistedCorner.U[8], twistedCorner.R[0], twistedCorner.F[2]] = [twistedCorner.R[0], twistedCorner.F[2], twistedCorner.U[8]];
