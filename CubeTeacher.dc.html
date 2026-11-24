@@ -593,7 +593,7 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
 
   <div ref="{{ cubeRef }}" style="position:absolute;inset:0;z-index:0"></div>
 
-  <dc-import name="Sidebar" drawer-state="{{ drawerState }}" collapsed="{{ sideCollapsed }}" sidebar-tip="{{ sidebarTip }}" toggle-sidebar="{{ toggleSidebar }}" groups="{{ groups }}" start-beginner="{{ startBeginner }}" legend-open="{{ legendOpen }}" toggle-legend="{{ toggleLegend }}" hint-size="288px,100%"></dc-import>
+  <dc-import name="Sidebar" drawer-state="{{ drawerState }}" collapsed="{{ sideCollapsed }}" guided="{{ guided }}" sidebar-tip="{{ sidebarTip }}" toggle-sidebar="{{ toggleSidebar }}" groups="{{ groups }}" start-beginner="{{ startBeginner }}" legend-open="{{ legendOpen }}" toggle-legend="{{ toggleLegend }}" hint-size="288px,100%"></dc-import>
 
   <main class="ct-stage" style="pointer-events:none;position:absolute;left:328px;right:368px;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;transition:left 280ms var(--ease-out),right 280ms var(--ease-out)">
 
@@ -782,7 +782,7 @@ class Component extends DCLogic {
     open: { beginner: true, advanced: false, patterns: false, likes: false },
     likes: [], done: [], legendOpen: false,
     sideCollapsed: false, rightCollapsed: false, drawer: false, sheet: false,
-    stripExpanded: false, stackOverflows: false
+    stripExpanded: false, stackOverflows: false, guided: false
   };
 
   // The ring overhangs its chip by 4px on every side, so parked on a chip in
@@ -810,6 +810,11 @@ class Component extends DCLogic {
     // answers would otherwise park the user in front of a spinning cube with
     // the app behind it, working, and unreachable.
     this._bootTimer = setTimeout(() => this.hideBoot(), 12000);
+    // Guided solve is in preview until it reads the user's own cube: ?guided turns its
+    // sidebar card on for this browser, ?guided=off turns it off again.
+    const guidedParam = new URLSearchParams(location.search).get('guided');
+    if (guidedParam != null) this.write('cubeteacher.guided', guidedParam !== 'off');
+    if (this.read('cubeteacher.guided', false) === true) this.setState({ guided: true });
     this.varCanvas = [];
     this._refs = {};
 
@@ -1595,6 +1600,7 @@ class Component extends DCLogic {
 
       tintState: this.props.chipTint ? 'true' : 'false',
       sideCollapsed: S.sideCollapsed ? 'true' : 'false',
+      guided: S.guided,
       sidebarTip: S.sideCollapsed ? 'Expand sidebar' : 'Collapse sidebar',
       toggleSidebar: () => this.setState(s => ({ sideCollapsed: !s.sideCollapsed })),
       rightCollapsed: S.rightCollapsed ? 'true' : 'false',
