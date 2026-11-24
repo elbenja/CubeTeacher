@@ -29,13 +29,15 @@
       <span style="display:block;margin-top:1px;font:var(--type-caption);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis">{{ subtitle }}</span>
     </span>
   </a>
-  <span class="ct-tip ct-ib" data-tip="{{ tip }}" data-side="below">
-    <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="sidebar-left" label="{{ tip }}" onClick="{{ onToggle }}" hint-size="34px,34px"></x-import>
-  </span>
+  <sc-if value="{{ canCollapse }}" hint-placeholder-val="{{ true }}">
+    <span class="ct-tip ct-ib" data-tip="{{ tip }}" data-side="below">
+      <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="sidebar-left" label="{{ tip }}" onClick="{{ onToggle }}" hint-size="34px,34px"></x-import>
+    </span>
+  </sc-if>
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:72},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Silverdesk&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;badge&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Lab&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;subtitle&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;CubeTeacher&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Collapse sidebar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:72},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Silverdesk&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;badge&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Lab&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;subtitle&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;CubeTeacher&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Collapse sidebar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;canCollapse&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   renderVals() {
     return {
@@ -43,7 +45,9 @@ class Component extends DCLogic {
       badge: this.props.badge ?? "Lab",
       subtitle: this.props.subtitle ?? "CubeTeacher",
       tip: this.props.tip ?? "Collapse sidebar",
-      onToggle: this.props.onToggle ?? (() => {})
+      onToggle: this.props.onToggle ?? (() => {}),
+      // Pages without a collapsible sidebar (the solve guide) leave the button out rather than show a dead one.
+      canCollapse: this.props.canCollapse ?? true
     };
   }
 }

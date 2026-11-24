@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guided solve: solving</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/typography.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/radius.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/elevation.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/motion.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/interactions.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
+<script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<link rel="stylesheet" href="cube-tokens.css">
+<link rel="stylesheet" href="guided-solve.css">
+<style>
+/* --m scales every duration in the move strip, as on the lessons page; reduced motion sets it near zero. */
+:root{--m:1}
+@media (prefers-reduced-motion:reduce){:root{--m:0.001}}
+.ct-side,.ct-side *{box-sizing:border-box}
+.sv-back{margin-top:auto}
+
+/* ---------- centre ---------- */
+.sv-stage{position:absolute;left:328px;right:368px;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;container-type:inline-size}
+@container (max-width:620px){.sv-tag-x{display:none}}
+.sv-top{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);margin-top:var(--space-9);z-index:3}
+/* stage bar: seven segments, one per stage of the method */
+.sv-bar{display:flex;align-items:center;gap:var(--space-6);padding:var(--space-3) var(--space-7) var(--space-3) var(--space-4);border-radius:var(--radius-full);background:var(--surface-float);box-shadow:var(--shadow-float)}
+.sv-tag{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 var(--space-5);border-radius:var(--radius-full);background:var(--blue-50);color:var(--blue-600);font:var(--type-mono);font-size:var(--text-2xs);letter-spacing:var(--tracking-caps)}
+.sv-tag i{width:6px;height:6px;border-radius:50%;background:var(--blue-500);animation:sv-live 2s var(--ease-in-out) infinite}
+@keyframes sv-live{50%{box-shadow:0 0 0 4px var(--beam-track)}}
+.sv-segs{display:flex;gap:4px}
+.sv-seg{position:relative;width:30px;height:6px;border-radius:var(--radius-full);background:var(--gray-200);overflow:hidden}
+.sv-seg i{position:absolute;inset:0;width:var(--p);border-radius:inherit;background:var(--green-500);transition:width var(--dur-slower) var(--ease-out)}
+.sv-seg.is-now i{background:var(--gradient-guided)}
+.sv-seg.is-done::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.8) 50%,transparent 70%);background-size:300% 100%;animation:sv-sheen 900ms var(--ease-out) 1 backwards;animation-delay:var(--d,0ms)}
+@keyframes sv-sheen{from{background-position:120% 0}to{background-position:-120% 0}}
+.sv-bar-t{font:var(--type-label);white-space:nowrap}
+.sv-bar-n{font:var(--type-mono);color:var(--text-tertiary)}
+/* stage finished: a short note under the bar */
+.sv-toast{display:inline-flex;align-items:center;gap:var(--space-4);height:32px;padding:0 var(--space-7) 0 var(--space-3);border-radius:var(--radius-full);background:var(--surface-inverse);color:var(--text-inverse);font:var(--type-label);box-shadow:var(--shadow-inverse);animation:sv-toast 2600ms var(--ease-out) both}
+.sv-toast b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--green-500);font-weight:400}
+@keyframes sv-toast{0%{opacity:0;transform:translateY(-6px) scale(.96)}10%,82%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-4px)}}
+
+.sv-cube{position:relative;flex:1 1 auto;min-height:0;width:100%}
+.sv-host{position:absolute;inset:0}
+
+/* bottom dock: one card per beat (hold, do, check) */
+.sv-dock{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);margin-bottom:var(--space-9);z-index:3}
+.sv-card{display:flex;flex-direction:column;align-items:center;gap:var(--space-6);min-width:380px;max-width:560px;padding:var(--space-7) var(--space-8);box-sizing:border-box;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)}
+.sv-card.is-new{animation:sv-in var(--dur-slow) var(--ease-out)}
+@keyframes sv-in{from{opacity:0;transform:translateY(8px) scale(.985)}}
+.sv-say{display:flex;align-items:center;gap:var(--space-5);font:var(--weight-medium) var(--text-lg)/var(--leading-snug) var(--font-sans);text-align:center}
+.sv-sw{width:18px;height:18px;flex:0 0 auto;border-radius:6px;background:var(--c);box-shadow:var(--sticker-edge-light)}
+.sv-sub{margin-top:-6px;font:var(--type-mono);color:var(--text-tertiary)}
+.sv-row{display:flex;align-items:center;gap:var(--space-4)}
+/* hold: the up / front sides as two swatches */
+.sv-hold{display:flex;gap:var(--space-8);font:var(--type-mono);color:var(--text-secondary)}
+.sv-hold .hh{display:inline-flex;align-items:center;gap:var(--space-3)}
+
+/* move strip + transport: a copy of the lessons page rules (CubeTeacher.dc.html), so both read the same.
+   Keep the two in step until the strip is its own component. */
+.ct-tip{position:relative;display:inline-flex}
+.ct-tip::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(4px);padding:6px 9px;border-radius:var(--radius-md);background:var(--surface-inverse);color:var(--text-inverse);font:var(--type-caption);white-space:nowrap;box-shadow:var(--shadow-inverse);opacity:0;pointer-events:none;z-index:60;transition:opacity calc(130ms*var(--m)) var(--ease-out),transform calc(190ms*var(--m)) var(--ease-out)}
+.ct-tip:hover::after{opacity:1;transform:translateX(-50%);transition-delay:400ms}
+.ct-chip{position:relative;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px 0 9px;border:0;border-radius:var(--radius-full);background:var(--gray-75);color:var(--text-primary);box-shadow:inset 0 0 0 1px var(--border-subtle);font:var(--type-mono);font-size:var(--text-base);font-weight:var(--weight-semibold);cursor:pointer;transition:background-color calc(130ms*var(--m)) var(--ease-out),color calc(130ms*var(--m)) var(--ease-out),box-shadow calc(130ms*var(--m)) var(--ease-out),transform calc(280ms*var(--m)) var(--ease-spring-out),opacity calc(190ms*var(--m)) var(--ease-out)}
+.ct-chip:hover{background:var(--gray-150);transform:translateY(-2px) scale(1.05)}
+.ct-chip:active{transform:scale(.93)}
+.ct-chip[data-state="past"]{background:var(--gray-300);color:var(--text-secondary);box-shadow:none}
+.ct-chip[data-state="past"] .ct-dot{opacity:.45}
+.ct-chip[data-state="past"]:hover{background:var(--gray-400);color:var(--text-primary)}
+.ct-chip[data-state="past"]:hover .ct-dot{opacity:1}
+.ct-chip[data-state="current"]{background:var(--surface-inverse);color:var(--text-inverse);box-shadow:none}
+.ct-chip[data-state="current"]:hover{background:var(--gray-800)}
+.ct-dot{width:7px;height:7px;border-radius:50%;background:var(--gray-500);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2);flex:0 0 auto}
+.ct-chip[data-face="U"] .ct-dot{background:var(--cube-white)}
+.ct-chip[data-face="D"] .ct-dot{background:var(--cube-yellow)}
+.ct-chip[data-face="R"] .ct-dot{background:var(--cube-red)}
+.ct-chip[data-face="L"] .ct-dot{background:var(--cube-orange)}
+.ct-chip[data-face="F"] .ct-dot{background:var(--cube-green)}
+.ct-chip[data-face="B"] .ct-dot{background:var(--cube-blue)}
+.ct-loop{display:flex;align-items:center;flex-wrap:nowrap;gap:6px;padding:7px 9px;border-radius:10px;background:var(--gray-0);box-shadow:inset 0 0 0 1px var(--border-default)}
+.ct-loop-moves{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.ct-loop-meta{display:flex;align-items:center;gap:8px;min-width:0}
+.ct-until{font:var(--type-caption);color:var(--text-secondary)}
+.ct{--stack-cap:139px}
+.ct-strip-until{padding:2px 10px;border-radius:var(--radius-full);background:var(--amber-50);color:var(--gray-700);font:var(--type-caption)}
+.ct-strip-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%}
+.ct-strip-head .ct-strip-until{grid-column:2;justify-self:center}
+.ct-strip-stack{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:100%;padding:4px;max-height:var(--stack-cap);overflow-y:auto;scrollbar-width:none}
+.ct-strip-stack::-webkit-scrollbar{display:none}
+.ct-strip-stack[data-expanded="true"]{max-height:min(60vh,100%)}
+.ct-strip-stack[data-fade="start"]{mask-image:linear-gradient(180deg,transparent 0,#000 24px)}
+.ct-strip-stack[data-fade="end"]{mask-image:linear-gradient(180deg,#000 calc(100% - 24px),transparent 100%)}
+.ct-strip-stack[data-fade="both"]{mask-image:linear-gradient(180deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
+.ct-tally{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
+.ct-pip{width:8px;height:8px;border-radius:50%;background:var(--gray-400)}
+.ct-pip[data-on="true"]{background:var(--text-primary)}
+.ct-strip .ct-chip[data-spacer="true"][data-state="future"]{background:var(--gray-150);box-shadow:none}
+.ct-scrub{display:flex;align-items:center;justify-content:center;min-width:60px;height:32px;padding:0 10px;border:0;border-radius:10px;background:var(--gray-100);color:var(--text-primary);font:var(--type-mono);font-size:var(--text-base);font-variant-numeric:tabular-nums;cursor:ew-resize;transition:background-color calc(130ms*var(--m)) var(--ease-out)}
+.ct-scrub:hover{background:var(--gray-200)}
+.ct-scrub{cursor:default}
+/* check */
+.sv-alt{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);padding-top:var(--space-5);border-top:1px solid var(--border-subtle);width:100%}
+.sv-alt p{margin:0;font:var(--type-caption);color:var(--text-secondary)}
+/* solved */
+.sv-win{display:flex;flex-direction:column;align-items:center;gap:var(--space-4)}
+.sv-win h2{margin:var(--space-2) 0 0;font:var(--type-heading);letter-spacing:var(--tracking-tight)}
+
+/* ---------- right panel: the solve, stage by stage ---------- */
+.sv-right{position:absolute;right:20px;top:20px;bottom:20px;width:328px;display:flex;flex-direction:column;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-panel),inset 0 0 0 1px var(--border-hairline)}
+.sv-rh{display:flex;align-items:center;gap:var(--space-6);padding:var(--space-8) var(--space-8) var(--space-6)}
+.sv-rh h1{margin:0;font:var(--type-panel-title);letter-spacing:var(--tracking-tight)}
+.sv-rh small{display:block;margin-top:2px;font:var(--type-mono);color:var(--text-secondary)}
+.sv-time{margin-left:auto;font:var(--type-mono);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.sv-list{flex:1 1 auto;min-height:0;overflow-y:auto;padding:0 var(--space-6) var(--space-8);scroll-behavior:smooth}
+.sv-sh{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-7) var(--space-3) var(--space-3);font:var(--type-mono);font-size:var(--text-2xs);letter-spacing:var(--tracking-caps);color:var(--text-tertiary);text-transform:uppercase}
+.sv-sh b{font-weight:inherit}
+.sv-sh em{margin-left:auto;font-style:normal}
+.sv-sh.is-done{color:var(--green-600)}
+.sv-sh.is-now{color:var(--text-primary)}
+.sv-it{display:grid;grid-template-rows:auto 0fr;border-radius:var(--radius-xl);transition:grid-template-rows var(--dur-slow) var(--ease-out),background-color var(--dur-base) var(--ease-out),opacity var(--dur-base) var(--ease-out)}
+.sv-it.is-now{grid-template-rows:auto 1fr;margin:var(--space-2) 0 var(--space-4);background:var(--surface-float);box-shadow:0 0 0 2px var(--blue-500),0 10px 24px -14px rgba(0,0,0,.28)}
+.sv-it-h{display:flex;align-items:center;gap:var(--space-5);min-height:36px;padding:var(--space-3) var(--space-4)}
+.sv-it.is-now .sv-it-h{padding:var(--space-6) var(--space-6) var(--space-2)}
+.sv-it-i{display:grid;place-items:center;width:20px;height:20px;flex:0 0 auto;border-radius:50%;font-size:12px;color:var(--text-tertiary);box-shadow:inset 0 0 0 1.5px var(--gray-300)}
+.sv-it.is-done .sv-it-i{background:var(--green-500);color:var(--gray-0);box-shadow:none;animation:sv-tick 420ms var(--ease-spring-out)}
+@keyframes sv-tick{from{transform:scale(.5)}}
+.sv-it.is-now .sv-it-i{background:var(--blue-500);color:var(--gray-0);box-shadow:0 0 0 4px var(--blue-50)}
+.sv-it-t{flex:1 1 auto;min-width:0;font:var(--type-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-it.is-now .sv-it-t{font:var(--type-section-label);font-size:var(--text-lg)}
+.sv-it-m{font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary)}
+.sv-it.is-done .sv-it-t{color:var(--text-secondary)}
+.sv-it.is-later{opacity:.42}
+.sv-it.is-next .sv-it-m::before{content:"NEXT · ";color:var(--text-secondary)}
+.sv-it-b{min-height:0;overflow:hidden}
+.sv-it-b>div{padding:0 var(--space-6) var(--space-6)}
+.sv-thumb{display:block;width:100%;aspect-ratio:1.5;object-fit:contain;margin:var(--space-2) 0 var(--space-4);border-radius:var(--radius-lg);background:var(--surface-sunken)}
+.sv-mini{display:flex;flex-wrap:wrap;gap:4px}
+.sv-mini .mm{display:inline-grid;place-items:center;min-width:28px;height:24px;padding:0 6px;border-radius:var(--radius-full);font:var(--type-mono);font-size:var(--text-2xs);font-weight:var(--weight-semibold);background:var(--gray-75);box-shadow:inset 0 0 0 1px var(--border-subtle);transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
+.sv-mini .mm[data-state="past"]{background:var(--gray-200);color:var(--text-tertiary);box-shadow:none}
+.sv-mini .mm[data-state="current"]{background:var(--surface-inverse);color:var(--text-inverse);box-shadow:none}
+
+@media (max-width:1100px){.sv-stage{right:20px}.sv-right{display:none}}
+@media (max-width:760px){
+  aside.ct-side{display:none!important}
+  .sv-stage{left:0;right:0}
+  .sv-card{min-width:0;width:calc(100vw - 32px)}
+  .sv-bar-t{display:none}
+  .sv-tag-x{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .sv-tag i,.sv-seg.is-done::after,.sv-card.is-new,.ct-strip,.sv-it.is-done .sv-it-i{animation:none}
+  .sv-toast{animation-duration:1ms;animation-delay:2600ms}
+  .sv-it,.sv-seg i{transition:none}
+  .sv-list{scroll-behavior:auto}
+}
+</style>
+</helmet>
+
+<div class="ct" style="position:fixed;inset:0;background:var(--surface-canvas);font-family:var(--font-sans);letter-spacing:var(--tracking-snug);color:var(--text-primary);overflow:hidden">
+
+  <aside class="ct-side" style="position:absolute;left:20px;top:20px;bottom:20px;width:288px;z-index:2;display:flex;flex-direction:column;padding:16px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-panel),inset 0 0 0 1px var(--border-hairline)">
+    <div style="padding:2px 2px 0">
+      <dc-import name="SidebarHeader" title="Silverdesk" badge="Lab" subtitle="CubeTeacher" can-collapse="{{ no }}" hint-size="100%,72px"></dc-import>
+    </div>
+    <dc-import name="GuidedSolveCard" variant="running" title="{{ runTitle }}" progress="{{ pct }}" hint-size="100%,120px"></dc-import>
+    <a class="gs-linkbtn sv-back" href="CubeTeacher.dc.html"><i class="hgi-stroke hgi-mortarboard-01" aria-hidden="true"></i>Back to lessons</a>
+  </aside>
+
+  <main class="sv-stage">
+    <div class="sv-top">
+      <div class="sv-bar" role="progressbar" aria-label="Stages" aria-valuemin="0" aria-valuemax="7" aria-valuenow="{{ stagesDone }}">
+        <span class="sv-tag"><i></i>GUIDED<span class="sv-tag-x">&nbsp;SOLVE</span></span>
+        <span class="sv-segs">
+          <sc-for list="{{ segs }}" as="g" hint-placeholder-count="7">
+            <span class="sv-seg {{ g.cls }}" style="--p:{{ g.p }};--d:{{ g.d }}" title="{{ g.name }}"><i></i></span>
+          </sc-for>
+        </span>
+        <span class="sv-bar-t">{{ stageName }}</span>
+        <span class="sv-bar-n">{{ stageNum }}</span>
+      </div>
+      <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+        <div class="sv-toast" role="status"><b><i class="hgi-stroke hgi-tick-02" aria-hidden="true"></i></b>{{ toast }}</div>
+      </sc-if>
+    </div>
+
+    <div class="sv-cube">
+      <div class="sv-host" ref="{{ hostRef }}" role="img" aria-label="Your cube in 3D"></div>
+    </div>
+
+    <div class="sv-dock">
+      <sc-if value="{{ isHold }}" hint-placeholder-val="{{ false }}">
+        <div class="sv-card {{ cardNew }}">
+          <div class="sv-say"><span class="sv-sw" style="--c:{{ hold.sayHex }}"></span>{{ hold.text }}</div>
+          <div class="sv-hold">
+            <span class="hh"><span class="sv-sw" style="--c:{{ hold.upHex }}"></span>{{ hold.upName }} on top</span>
+            <span class="hh"><span class="sv-sw" style="--c:{{ hold.frontHex }}"></span>{{ hold.frontName }} in front</span>
+          </div>
+          <div class="sv-row">
+            <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="quiet" icon="reload" onClick="{{ showTurn }}" hint-size="120px,34px">Show again</x-import>
+            <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="accent" icon-end="arrow-right-02" onClick="{{ ready }}" hint-size="150px,34px">I’m holding it</x-import>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDo }}" hint-placeholder-val="{{ true }}">
+        <div class="ct-strip" style="pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:min(660px,100%);padding:8px 6px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline);animation:sv-in var(--dur-slow) var(--ease-out)">
+          <sc-if value="{{ stripUntil }}" hint-placeholder-val="{{ false }}">
+            <div class="ct-strip-head"><span class="ct-strip-until">{{ stripUntil }}</span></div>
+          </sc-if>
+          <div class="ct-strip-stack" data-fade="none">
+            <sc-for list="{{ stripItems }}" as="it" hint-placeholder-count="4">
+              <sc-if value="{{ it.isBlock }}">
+                <span class="ct-loop">
+                  <span class="ct-loop-moves">
+                    <sc-for list="{{ it.chips }}" as="c" hint-placeholder-count="4">
+                      <button class="ct-chip ct-tip" data-face="{{ c.face }}" data-state="{{ c.state }}" data-tip="{{ c.tip }}" onClick="{{ c.jump }}" aria-label="{{ c.tip }}"><span class="ct-dot"></span>{{ c.label }}</button>
+                    </sc-for>
+                  </span>
+                  <span class="ct-loop-meta">
+                    <sc-if value="{{ it.untilText }}"><span class="ct-until">{{ it.untilText }}</span></sc-if>
+                    <sc-if value="{{ it.hasTally }}">
+                      <span class="ct-tally"><sc-for list="{{ it.dots }}" as="d" hint-placeholder-count="2"><span class="ct-pip" data-on="{{ d.on }}"></span></sc-for></span>
+                    </sc-if>
+                  </span>
+                </span>
+              </sc-if>
+              <sc-if value="{{ it.isSpacer }}">
+                <button class="ct-chip ct-tip" data-spacer="{{ it.isSep }}" data-face="{{ it.face }}" data-state="{{ it.state }}" data-tip="{{ it.tip }}" onClick="{{ it.jump }}" aria-label="{{ it.tip }}"><span class="ct-dot"></span>{{ it.label }}</button>
+              </sc-if>
+            </sc-for>
+          </div>
+        </div>
+        <div class="ct-transport" style="pointer-events:auto;display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--border-hairline)">
+          <span class="ct-tip" data-tip="Reset to start (R)">
+            <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="refresh" label="Reset to start" onClick="{{ restartAlg }}" hint-size="36px,36px"></x-import>
+          </span>
+          <span class="ct-tip" data-tip="Previous move (&larr;)">
+            <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="arrow-left-01" label="Previous move" onClick="{{ prevMove }}" disabled="{{ atStart }}" hint-size="36px,36px"></x-import>
+          </span>
+          <span class="ct-scrub">{{ counter }}</span>
+          <span class="ct-tip" data-tip="Next move (&rarr;)">
+            <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="arrow-right-01" label="Next move" onClick="{{ nextMove }}" hint-size="36px,36px"></x-import>
+          </span>
+          <span class="ct-tip" data-tip="{{ playTip }}">
+            <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.IconButton" icon="{{ playIcon }}" label="{{ playTip }}" variant="solid" onClick="{{ play }}" hint-size="36px,36px"></x-import>
+          </span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isCheck }}" hint-placeholder-val="{{ false }}">
+        <div class="sv-card {{ cardNew }}">
+          <div class="sv-say">Does your cube look like this?</div>
+          <div class="sv-sub">{{ checkSub }}</div>
+          <div class="sv-row">
+            <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="neutral" onClick="{{ notQuite }}" hint-size="110px,34px">Not quite</x-import>
+            <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="accent" icon-end="tick-02" magnetic="{{ yes }}" onClick="{{ confirm }}" hint-size="140px,34px">{{ yesLabel }}</x-import>
+          </div>
+          <sc-if value="{{ helpOpen }}" hint-placeholder-val="{{ false }}">
+            <div class="sv-alt">
+              <p>A move probably went the other way. Replay it slowly, or scan the cube again.</p>
+              <div class="sv-row">
+                <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="quiet" icon="refresh" onClick="{{ restartAlg }}" hint-size="140px,34px">Replay moves</x-import>
+                <a class="gs-linkbtn" href="CameraCapture.dc.html?fresh=1"><i class="hgi-stroke hgi-camera-01" aria-hidden="true"></i>Scan again</a>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSolved }}" hint-placeholder-val="{{ false }}">
+        <div class="sv-card {{ cardNew }}">
+          <div class="sv-win">
+            <span class="gs-badge is-ok"><i class="hgi-stroke hgi-tick-02" aria-hidden="true"></i></span>
+            <h2>Cube solved</h2>
+            <div class="sv-sub" style="margin:0">{{ winSub }}</div>
+          </div>
+          <div class="sv-row">
+            <a class="gs-linkbtn" href="CubeTeacher.dc.html"><i class="hgi-stroke hgi-mortarboard-01" aria-hidden="true"></i>Back to lessons</a>
+            <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="accent" icon-end="arrow-right-02" magnetic="{{ yes }}" onClick="{{ again }}" hint-size="150px,34px">Solve another</x-import>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </main>
+
+  <aside class="sv-right" aria-label="Your solve">
+    <div class="sv-rh">
+      <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.ProgressRing" value="{{ pct }}" size="{{ ringSize }}" stroke-width="{{ ringStroke }}" hint-size="40px,40px"></x-import>
+      <div>
+        <h1>Solve your cube</h1>
+        <small>{{ algCounter }}</small>
+      </div>
+    </div>
+    <div class="sv-list" ref="{{ listRef }}">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="7">
+        <div class="sv-sh {{ g.cls }}"><b>{{ g.name }}</b><em>{{ g.count }}</em></div>
+        <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="2">
+          <div class="sv-it {{ it.cls }}" data-k="{{ it.k }}">
+            <div class="sv-it-h">
+              <span class="sv-it-i"><i class="hgi-stroke hgi-{{ it.icon }}" aria-hidden="true"></i></span>
+              <span class="sv-it-t">{{ it.label }}</span>
+              <span class="sv-it-m">{{ it.meta }}</span>
+            </div>
+            <div class="sv-it-b">
+              <div>
+                <canvas class="sv-thumb" width="256" height="256" data-thumb="{{ it.k }}" aria-hidden="true"></canvas>
+                <div class="sv-mini">
+                  <sc-for list="{{ it.mini }}" as="m" hint-placeholder-count="4"><b class="mm" data-state="{{ m.state }}">{{ m.label }}</b></sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </sc-for>
+    </div>
+  </aside>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900},"scene":{"editor":"enum","options":["auto","hold","do","check","help","stageDone","solved"],"default":"auto","tsType":"string","section":"Review a state"},"alg":{"editor":"int","min":1,"max":17,"default":1,"tsType":"number","section":"Review a state"}}'>
+// Orientation bookkeeping by centre colour. Colours and names come from cube-capture.mjs.
+const OPP = { W: 'Y', Y: 'W', R: 'O', O: 'R', G: 'B', B: 'G' };
+
+// The demo solve: real beginner algorithms from the library, in order, with the whole-cube turns between them.
+// PREVIEW: until a solver reads the scanned cube, the starting position is built backwards from these steps,
+// so every stage really completes on screen, but it is not the user's own cube yet. The lessons page keeps
+// the entry behind ?guided until that's true. [algorithm id, variation label, turn of the whole cube before it]
+const PLAN = [
+  ['b-first-layer-edges', 'Edge in the middle layer', null],
+  ['b-first-layer-edges', 'Edge on the front face', 'y'],
+  ['b-first-layer-edges', 'Same case mirrored', 'y'],
+  ['b-first-layer-edges', 'Flip the last edge', 'y'],
+  ['b-first-layer-corners', 'White faces right', 'y'],
+  ['b-first-layer-corners', 'White faces you', 'y'],
+  ['b-first-layer-corners', 'White points down', 'y'],
+  ['b-first-layer-corners', 'White faces right', 'y'],
+  ['b-second-layer', 'Insert to the right', 'z2'],
+  ['b-second-layer', 'Insert to the left', 'y'],
+  ['b-second-layer', 'Insert to the right', 'y'],
+  ['b-second-layer', 'Insert to the left', 'y'],
+  ['b-yellow-cross', 'L-shape (hook back-left)', null],
+  ['b-yellow-cross', 'Line (hold horizontal)', null],
+  ['b-swap-yellow-edges', 'Two adjacent edges', null],
+  ['b-position-yellow-corners', 'One corner already home', null],
+  ['b-orient-last-corners', 'Two corners twisted, side by side', null]
+];
+
+class Component extends DCLogic {
+  state = { k: 0, phase: 'boot', idx: 0, help: false, toast: '', ready: false, cardKey: 0, playing: false };
+
+  async componentDidMount() {
+    this.onKey = e => {
+      if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+      const S = this.state;
+      if (S.phase === 'do' && e.key === 'ArrowRight') { e.preventDefault(); this.nextMove(); }
+      else if (S.phase === 'do' && e.key === 'ArrowLeft') { e.preventDefault(); this.prevMove(); }
+      else if (S.phase === 'do' && e.key === ' ') { e.preventDefault(); this.play(); }
+      else if (S.phase === 'do' && (e.key === 'r' || e.key === 'R')) { e.preventDefault(); this.restartAlg(); }
+      else if (S.phase === 'hold' && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); this.ready(); }
+      else if (S.phase === 'check' && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); this.confirm(); }
+    };
+    window.addEventListener('keydown', this.onKey);
+    try {
+      const url = p => new URL(p, document.baseURI).href;
+      const [data, cc] = await Promise.all([import(url('./algorithms.js')), import(url('./cube-capture.mjs'))]);
+      this.cc = cc;
+      await new Promise((res, rej) => { const t0 = Date.now(); const p = () => window.THREE ? res() : Date.now() - t0 > 15000 ? rej(new Error('three')) : setTimeout(p, 40); p(); });
+      this.eng = await import(url('./cube-engine.js'));
+      this.build(data);
+      this.viewer = new this.eng.CubeEngine(this.host, { onIndex: (i, n) => this.onIndex(i, n) });
+      // Closer than the engine's default fit: it's the user's own cube, it gets the room.
+      this.viewer._zoomed = true; this.viewer.want.r = this.viewer.home.r * 0.72;
+      this.pool = new this.eng.MiniPool(256);
+      this.setState({ ready: true });
+      this.boot();
+    } catch (e) { console.error('[solve]', e); }
+  }
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this.onKey);
+    clearInterval(this.clock); clearTimeout(this.t); clearTimeout(this.tt); clearInterval(this.spin); clearTimeout(this.auto);
+    if (this.viewer) this.viewer.dispose(); if (this.pool) this.pool.dispose();
+  }
+  componentDidUpdate(prev) {
+    prev = prev || {};
+    if ((prev.scene !== this.props.scene || prev.alg !== this.props.alg) && this.state.ready) this.boot();
+    const S = this.state, o = this._ps || {};
+    if (o.k !== S.k || o.phase !== S.phase) { this.drawThumb(); this.scrollToNow(); }
+    this._ps = { k: S.k, phase: S.phase };
+  }
+
+  // ---------------------------------------------------------------- the plan
+  build(data) {
+    const { parseMoves, invertMoves } = this.eng;
+    const byId = Object.fromEntries(data.ALGORITHMS.map(a => [a.id, a]));
+    this.stages = [];
+    let before = [], ori = { U: 'W', F: 'G', R: 'R' };
+    this.steps = PLAN.map(([id, label, turn], k) => {
+      const a = byId[id], v = a.variations.find(x => x.label === label);
+      let st = this.stages.find(s => s.id === id);
+      if (!st) { st = { id, name: a.name, steps: [] }; this.stages.push(st); }
+      st.steps.push(k);
+      const turnTok = turn ? parseMoves(turn) : [];
+      const prevOri = { ...ori };
+      turnTok.forEach(t => {
+        if (t === 'y') ori = { U: ori.U, F: ori.R, R: OPP[ori.F] };
+        if (t === 'z2') ori = { U: OPP[ori.U], F: ori.F, R: OPP[ori.R] };
+      });
+      const moves = parseMoves(v.moves);
+      const s = { k, stage: this.stages.length - 1, name: a.name, label: v.label, turn: turnTok, moves, keep: v.keep, focus: v.focus, dim: v.dim,
+        entries: v.entries || moves.map(m => ({ kind: 'spacer', move: m })), runMap: v.runMap || moves.map((m, i) => ({ entry: i })), until: v.until || '',
+        beforeTurn: before.slice(), before: before.concat(turnTok), ori: { ...ori }, prevOri };
+      before = before.concat(turnTok, moves);
+      return s;
+    });
+    // Start from a cube that these exact steps solve, held white up / green front like the scan.
+    const rotations = before.filter(t => /^[xyz]/.test(t));
+    this.scramble = rotations.concat(invertMoves(before));
+    this.total = this.steps.length;
+  }
+  specFor(s, extra) {
+    return Object.assign({ setup: this.scramble.concat(s.before), moves: s.moves, keep: s.keep, focus: s.focus, dim: s.dim }, extra || {});
+  }
+
+  boot() {
+    clearTimeout(this.t); clearTimeout(this.auto); clearInterval(this.spin);
+    const scene = this.props.scene || 'auto', k = Math.min(this.total, Math.max(1, this.props.alg ?? 1)) - 1;
+    clearInterval(this.clock);
+    if (scene === 'auto') {
+      this.setState({ toast: '' });
+      return this.enter(0);
+    }
+    if (scene === 'solved') return this.finish(true);
+    if (scene === 'stageDone') {
+      // The last step of a stage, confirmed: the stage bar fills and the note shows.
+      const st = this.steps.find(x => x.k >= k && this.stages[x.stage].steps.slice(-1)[0] === x.k) || this.steps[3];
+      return this.enter(Math.min(this.total - 1, st.k + 1), { toast: `${this.stages[st.stage].name} done` });
+    }
+    const s = this.steps[k];
+    if (scene === 'hold') {
+      const h = this.steps.slice(k).find(x => x.turn.length) || this.steps[1];
+      return this.enter(h.k);
+    }
+    if (scene === 'do') { this.enter(k, { phase: 'do' }); return setTimeout(() => this.viewer && this.viewer.goTo(Math.floor(s.moves.length / 2), false), 200); }
+    if (scene === 'check' || scene === 'help') {
+      this.enter(k, { phase: 'do' });
+      setTimeout(() => { this.viewer.goTo(s.moves.length, false); this.setState({ phase: 'check', help: scene === 'help', cardKey: Date.now() }); this.viewer.setRelevant(null); this.viewer.setFocus(null); }, 200);
+    }
+  }
+
+  // Each algorithm is hold (only when the cube has to turn) → do → check.
+  enter(k, extra) {
+    const s = this.steps[k];
+    this.stopPlay(); clearTimeout(this.auto);
+    const phase = (extra && extra.phase) || (s.turn.length ? 'hold' : 'do');
+    this.setState(Object.assign({ k, phase, idx: 0, help: false, cardKey: Date.now() }, extra || {}, { phase }));
+    if (extra && extra.toast) { clearTimeout(this.tt); this.tt = setTimeout(() => this.setState({ toast: '' }), 2700); }
+    if (phase === 'hold') this.loadHold(s, true);
+    else this.loadDo(s);
+  }
+  loadHold(s, play) {
+    this.viewer.load({ setup: this.scramble.concat(s.beforeTurn), moves: s.turn, dim: false });
+    if (play) { clearTimeout(this.t); this.t = setTimeout(() => this.viewer.goTo(s.turn.length > 0 ? 1 : 0, true).then(() => s.turn.length > 1 && this.viewer.goTo(2, true)), 500); }
+  }
+  loadDo(s) { this.viewer.load(this.specFor(s)); }
+  onIndex(i, n) {
+    if (this.state.phase !== 'do') return;
+    this.setState({ idx: i });
+    clearTimeout(this.auto);
+    if (n && i >= n) this.auto = setTimeout(() => { this.stopPlay(); this.toCheck(); }, 650);
+  }
+
+  showTurn = () => { const s = this.steps[this.state.k]; this.loadHold(s, true); };
+  ready = () => { const s = this.steps[this.state.k]; this.setState({ phase: 'do', idx: 0, cardKey: Date.now() }); this.loadDo(s); };
+  nextMove = () => {
+    const S = this.state, s = this.steps[S.k], v = this.viewer;
+    if (!v || S.phase !== 'do') return;
+    this.stopPlay();
+    if (v.index >= s.moves.length) return this.toCheck();
+    v.step(1);
+  };
+  prevMove = () => { if (this.viewer && this.state.phase === 'do') { this.stopPlay(); this.viewer.step(-1); } };
+  restartAlg = () => { const s = this.steps[this.state.k]; this.stopPlay(); clearTimeout(this.auto); this.setState({ phase: 'do', idx: 0, help: false, cardKey: Date.now() }); this.loadDo(s); };
+  jumpTo(i) { if (this.viewer && this.state.phase === 'do') { this.stopPlay(); this.viewer.goTo(i, Math.abs(i - this.viewer.index) === 1); } }
+  // Play runs the rest of the algorithm move by move, as on the lessons page.
+  play = () => {
+    const v = this.viewer, s = this.steps[this.state.k];
+    if (!v || this.state.phase !== 'do') return;
+    if (this.state.playing) return this.stopPlay();
+    if (v.index >= s.moves.length) v.goTo(0, false);
+    this.setState({ playing: true });
+    const run = ++this.playRun;
+    const tick = () => {
+      if (run !== this.playRun || !this.state.playing) return;
+      if (v.index >= s.moves.length) return this.setState({ playing: false });
+      v.step(1).then(() => { this.pt = setTimeout(tick, 220); });
+    };
+    tick();
+  };
+  stopPlay() { this.playRun = (this.playRun || 0) + 1; clearTimeout(this.pt); if (this.state.playing) this.setState({ playing: false }); }
+  toCheck() {
+    if (this.state.phase !== 'do') return;
+    this.stopPlay();
+    // Show the whole cube in colour, so it can be compared with the real one.
+    this.viewer.setRelevant(null); this.viewer.setFocus(null);
+    this.setState({ phase: 'check', help: false, cardKey: Date.now() });
+  }
+  notQuite = () => this.setState(s => ({ help: !s.help }));
+  confirm = () => {
+    const S = this.state, s = this.steps[S.k];
+    if (S.k >= this.total - 1) return this.finish();
+    const lastOfStage = this.stages[s.stage].steps.slice(-1)[0] === s.k;
+    this.enter(S.k + 1, lastOfStage ? { toast: `${this.stages[s.stage].name} done` } : null);
+  };
+  finish(pinned) {
+    const last = this.steps[this.total - 1];
+    this.viewer.load({ setup: this.scramble.concat(last.before, last.moves), moves: [], dim: false });
+    this.setState({ k: this.total, phase: 'solved', help: false, cardKey: Date.now(), toast: pinned ? '' : `${this.stages[last.stage].name} done` });
+    clearTimeout(this.tt); this.tt = setTimeout(() => this.setState({ toast: '' }), 2700);
+    clearInterval(this.spin);
+    this.spin = setInterval(() => { if (this.viewer) this.viewer.want.theta += 0.01; }, 16);
+  }
+  again = () => { clearInterval(this.spin); this.boot(); };
+
+  drawThumb() {
+    const S = this.state, s = this.steps && this.steps[S.k];
+    if (!this.pool || !s || !this.listEl) return;
+    const c = this.listEl.querySelector(`canvas[data-thumb="${S.k}"]`);
+    if (c) this.pool.draw(c, this.specFor(s, { theta: 0 }));
+  }
+  scrollToNow() {
+    const el = this.listEl && this.listEl.querySelector('.sv-it.is-now');
+    if (!el) return;
+    clearTimeout(this.st);
+    // After the card has opened, so the scroll lands on its final size.
+    this.st = setTimeout(() => el.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }), 300);
+  }
+
+  // ---------------------------------------------------------------- view
+  renderVals() {
+    const S = this.state, ready = !!this.steps;
+    const steps = this.steps || [], stages = this.stages || [], total = this.total || PLAN.length;
+    const solved = S.phase === 'solved';
+    const k = Math.min(S.k, total - 1), s = steps[k];
+    // Done = confirmed; the current one counts as done once it's being checked.
+    const doneN = solved ? total : S.k + (S.phase === 'check' ? 1 : 0);
+    const pct = Math.round(doneN / total * 100);
+    const curStage = s ? s.stage : 0;
+    const stageProg = i => {
+      const st = stages[i]; if (!st) return 0;
+      const n = st.steps.filter(x => x < S.k || (x === S.k && S.phase === 'check') || solved).length;
+      return n / st.steps.length;
+    };
+    const stagesDone = stages.filter((_, i) => stageProg(i) >= 1).length;
+    const pretty = t => t.replace("'", '′');
+    const idx = S.idx || 0;
+    const describe = t => this.eng ? this.eng.describeMove(t) : t;
+    const hasBlocks = s && s.entries.some(e => e.kind === 'block');
+    const at = s && idx < s.runMap.length ? s.runMap[idx] : null;
+    let flat = 0;
+    const stripItems = s ? s.entries.map((e, ei) => {
+      if (e.kind === 'spacer') {
+        const i = flat++;
+        return { isBlock: false, isSpacer: true, face: e.move[0], label: pretty(e.move), tip: describe(e.move), isSep: hasBlocks ? 'true' : 'false',
+          state: i < idx ? 'past' : i === idx ? 'current' : 'future', jump: () => this.jumpTo(i), chips: [], dots: [], hasTally: false, untilText: '' };
+      }
+      const first = flat; flat += e.repeat * e.moves.length;
+      const live = at && at.entry === ei, iteration = live ? at.iteration : (idx >= first ? e.repeat : 0);
+      return {
+        isBlock: true, isSpacer: false, untilText: e.until ? '' : (e.repeat > 1 ? '×' + e.repeat : ''),
+        dots: e.repeat > 1 ? Array.from({ length: e.repeat }, (_, n) => ({ on: n < iteration ? 'true' : 'false' })) : [], hasTally: e.repeat > 1,
+        chips: e.moves.map((m, off) => {
+          const target = first + (live ? at.iteration : 0) * e.moves.length + off;
+          return { face: m[0], label: pretty(m), tip: describe(m), state: live && off < at.offset ? 'past' : live && off === at.offset ? 'current' : (!live && idx > target ? 'past' : 'future'), jump: () => this.jumpTo(target) };
+        })
+      };
+    }) : [];
+    const C = this.cc, name = k => C ? C.titleCase(C.NAMES[k]) : '', colour = k => C ? C.colourVar(k) : 'transparent';
+    const hold = s ? {
+      text: s.turn.join('') === 'z2' ? `Flip the cube: ${C.NAMES[s.ori.U]} on top` : `Turn the cube: ${C.NAMES[s.ori.F]} in front`,
+      upName: name(s.ori.U), frontName: name(s.ori.F), upHex: colour(s.ori.U), frontHex: colour(s.ori.F),
+      sayHex: s.turn.join('') === 'z2' ? colour(s.ori.U) : colour(s.ori.F)
+    } : { text: '', upName: '', frontName: '', upHex: '', frontHex: '', sayHex: '' };
+    const groups = stages.map((st, gi) => {
+      const p = stageProg(gi);
+      return {
+        name: st.name, count: `${st.steps.filter(x => x < S.k || solved || (x === S.k && S.phase === 'check')).length}/${st.steps.length}`,
+        cls: p >= 1 ? 'is-done' : gi === curStage && !solved ? 'is-now' : '',
+        items: st.steps.map(x => {
+          const it = steps[x];
+          const done = solved || x < S.k;
+          const now = !solved && x === S.k;
+          return {
+            k: x, label: it.label, meta: `${it.moves.length} moves`,
+            icon: done ? 'tick-02' : now ? 'arrow-right-01' : 'circle',
+            cls: [done ? 'is-done' : '', now ? 'is-now' : '', !done && !now ? 'is-later' : '', x === S.k + 1 && !solved ? 'is-next' : ''].join(' '),
+            mini: now ? it.moves.map((t, i) => ({ label: pretty(t), state: S.phase === 'check' || i < idx ? 'past' : i === idx && S.phase === 'do' ? 'current' : 'future' })) : []
+          };
+        })
+      };
+    });
+    return {
+      yes: true, no: false, ready,
+      pct, pctText: `${pct}%`, ringSize: 40, ringStroke: 3,
+      runTitle: solved ? 'Cube solved' : 'Solving your cube',
+      algCounter: solved ? `${total} of ${total} · solved` : `Algorithm ${Math.min(S.k + 1, total)} of ${total}`,
+      segs: stages.map((st, i) => ({ name: st.name, p: `${Math.round(stageProg(i) * 100)}%`, d: `${i * 60}ms`, cls: [stageProg(i) >= 1 ? 'is-done' : '', i === curStage && !solved ? 'is-now' : ''].join(' ') })),
+      stagesDone, stageName: solved ? 'All stages' : (stages[curStage] || {}).name || '', stageNum: `${solved ? stages.length : curStage + 1}/${stages.length || 7}`,
+      toast: S.toast,
+      isHold: S.phase === 'hold', isDo: S.phase === 'do' || S.phase === 'boot', isCheck: S.phase === 'check', isSolved: solved,
+      cardNew: 'is-new', hold,
+      stripItems, stripUntil: s && hasBlocks ? (s.entries.find(e => e.until) || {}).until || '' : '',
+      playIcon: S.playing ? 'pause' : 'play', playTip: S.playing ? 'Pause (Space)' : 'Play (Space)', play: this.play,
+      counter: s ? `${Math.min(idx, s.moves.length)} / ${s.moves.length}` : '0 / 0',
+      atStart: idx === 0,
+      nextMove: this.nextMove, prevMove: this.prevMove, restartAlg: this.restartAlg, showTurn: this.showTurn, ready: this.ready,
+      checkSub: s ? `${s.label} · ${s.moves.length} moves done` : '',
+      yesLabel: S.k >= total - 1 ? 'Yes, finish' : 'Yes, next',
+      notQuite: this.notQuite, confirm: this.confirm, helpOpen: S.help, again: this.again,
+      winSub: `${total} algorithms, ${stages.length} stages`,
+      groups,
+      hostRef: this._h || (this._h = el => { this.host = el; }),
+      listRef: this._l || (this._l = el => { this.listEl = el; })
+    };
+  }
+}
+</script>
+</body>
+</html>

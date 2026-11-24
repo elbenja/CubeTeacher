@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guided solve: camera capture</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/typography.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/radius.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/elevation.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/motion.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/interactions.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
+<script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
+<link rel="stylesheet" href="cube-tokens.css">
+<link rel="stylesheet" href="guided-solve.css">
+<style>
+/* ---------- viewfinder ---------- */
+.cc-vf{position:relative;min-height:0;overflow:hidden;isolation:isolate;border-radius:var(--radius-3xl);background:var(--viewfinder-bg);box-shadow:var(--shadow-panel)}
+.cc-vf video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform var(--dur-slow) var(--ease-out)}
+.cc-vf.is-mirror video{transform:scaleX(-1)}
+.cc-vf::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:var(--viewfinder-vignette)}
+
+/* simulated feed (?demo): a held cube face going through the same scenes a real scan does */
+.cc-demo{position:absolute;left:50%;top:47%;z-index:1;width:var(--frame-size);aspect-ratio:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));border-radius:var(--face-radius);background:var(--cube-body);box-shadow:var(--face-held);transform:translate(-50%,-50%) rotate(-3deg) scale(.96);transition:transform 520ms var(--ease-out),filter var(--dur-slower) var(--ease-out),opacity var(--dur-slower) var(--ease-out)}
+.cc-demo i{margin:9%;border-radius:var(--sticker-radius);background:var(--c);box-shadow:var(--sticker-gloss);transition:background-color var(--dur-slow) var(--ease-out)}
+.cc-vf[data-scene="hold"] .cc-demo,.cc-vf[data-scene="captured"] .cc-demo{transform:translate(-50%,-50%)}
+.cc-vf[data-scene="fit"] .cc-demo{transform:translate(-18%,-30%) rotate(-14deg) scale(.86);filter:blur(1.5px)}
+.cc-vf[data-scene="closer"] .cc-demo{transform:translate(-50%,-50%) rotate(-4deg) scale(.5)}
+.cc-vf[data-scene="dark"] .cc-demo{filter:brightness(.32) saturate(.5)}
+.cc-vf[data-scene="glare"] .cc-demo::after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(40% 34% at 64% 30%,rgba(255,255,255,.96),rgba(255,255,255,.55) 45%,transparent 72%)}
+.cc-vf[data-scene="turn"] .cc-demo{opacity:.14;filter:blur(3px);transform:translate(-50%,-50%) rotate(6deg) scale(.82)}
+.cc-vf:is([data-scene="done"],[data-scene="blocked"],[data-scene="start"]) .cc-demo{opacity:0}
+.cc-vf[data-scene="dark"]::before{content:"";position:absolute;inset:0;z-index:1;background:rgba(13,13,13,.45);pointer-events:none}
+
+/* top bar */
+.cc-top{position:absolute;left:var(--space-9);right:var(--space-9);top:var(--space-9);z-index:6;display:flex;align-items:center;gap:var(--space-4)}
+.cc-top .cc-sp{flex:1}
+/* nothing to mirror or label while the camera is refused */
+.cc-vf[data-scene="blocked"] .cc-top{visibility:hidden}
+.cc-pill{display:inline-flex;align-items:center;gap:var(--space-3);height:24px;padding:0 var(--space-5);border-radius:var(--radius-full);background:var(--glass-dark);-webkit-backdrop-filter:var(--blur-glass);backdrop-filter:var(--blur-glass);color:var(--text-inverse);font:var(--type-mono);font-size:var(--text-2xs);letter-spacing:var(--tracking-caps)}
+.cc-pill i{width:6px;height:6px;border-radius:50%;background:var(--gray-400)}
+.cc-pill.is-live i{background:var(--red-500);animation:cc-live 1.2s var(--ease-in-out) infinite}
+@keyframes cc-live{50%{opacity:.2}}
+/* Mirror view on = near-black (the system's selected state); a faint ring keeps it findable over a dark feed */
+.cc-top .dc-btn--solid{box-shadow:var(--shadow-float),0 0 0 1px rgba(255,255,255,.3)}
+
+/* scan frame: corners breathe outward while looking, close in as the hold fills */
+.cc-frame{position:absolute;left:50%;top:47%;z-index:3;width:var(--frame-size);aspect-ratio:1;transform:translate(-50%,-50%)}
+.cc-corner{position:absolute;width:26px;height:26px;border:3px solid var(--gray-0);filter:drop-shadow(0 1px 4px rgba(0,0,0,.4));transition:border-color var(--dur-base) var(--ease-out),translate 120ms linear}
+.cc-corner.tl{--dx:-1;--dy:-1;left:-3px;top:-3px;border-right:0;border-bottom:0;border-top-left-radius:10px}
+.cc-corner.tr{--dx:1;--dy:-1;right:-3px;top:-3px;border-left:0;border-bottom:0;border-top-right-radius:10px}
+.cc-corner.bl{--dx:-1;--dy:1;left:-3px;bottom:-3px;border-right:0;border-top:0;border-bottom-left-radius:10px}
+.cc-corner.br{--dx:1;--dy:1;right:-3px;bottom:-3px;border-left:0;border-top:0;border-bottom-right-radius:10px}
+.cc-vf:is([data-scene="fit"],[data-scene="show"],[data-scene="closer"]) .cc-corner{animation:cc-breathe 1.8s var(--ease-in-out) infinite}
+@keyframes cc-breathe{50%{translate:calc(var(--dx) * 5px) calc(var(--dy) * 5px)}}
+.cc-frame.is-ok .cc-corner{border-color:var(--scan-ok);translate:calc(var(--dx) * -8px * var(--hold,0)) calc(var(--dy) * -8px * var(--hold,0))}
+.cc-frame.is-warn .cc-corner{border-color:var(--scan-warn)}
+.cc-frame.is-warn{animation:cc-shake 360ms var(--ease-out)}
+@keyframes cc-shake{20%{margin-left:-7px}45%{margin-left:6px}70%{margin-left:-3px}}
+.cc-frame.is-off{opacity:0;transition:opacity var(--dur-base) var(--ease-out)}
+.cc-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));transition:opacity var(--dur-base) var(--ease-out)}
+.cc-grid b{position:relative;display:grid;place-items:center;border-right:1px solid rgba(255,255,255,.34);border-bottom:1px solid rgba(255,255,255,.34)}
+.cc-grid b:nth-child(3n){border-right:0}
+.cc-grid b:nth-child(n+7){border-bottom:0}
+.cc-frame:is(.is-turn,.is-done) .cc-grid{opacity:0}
+/* read-back dots while holding, full tiles the moment a side is captured */
+.cc-grid b i{width:16%;aspect-ratio:1;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px rgba(255,255,255,.9),0 2px 6px rgba(0,0,0,.35);opacity:0;transform:scale(.4);transition:opacity var(--dur-base) var(--ease-out),transform var(--dur-slow) var(--ease-spring-out)}
+.cc-frame.is-ok .cc-grid b i{opacity:1;transform:none}
+.cc-frame.is-snap .cc-grid b i{width:78%;border-radius:18%;box-shadow:var(--sticker-edge),0 4px 12px rgba(0,0,0,.3);animation:cc-tile var(--dur-slower) var(--ease-spring-out) backwards;animation-delay:calc(var(--k) * 30ms)}
+@keyframes cc-tile{from{opacity:0;transform:scale(.3)}}
+.cc-scanline{position:absolute;left:-4%;right:-4%;top:0;height:2px;z-index:2;background:var(--gray-0);box-shadow:0 0 18px 2px rgba(255,255,255,.75);opacity:0}
+.cc-frame.is-snap .cc-scanline{animation:cc-scan 620ms var(--ease-out)}
+@keyframes cc-scan{0%{top:0;opacity:1}100%{top:100%;opacity:0}}
+
+.cc-flash{position:absolute;inset:0;z-index:5;background:var(--gray-0);opacity:0;pointer-events:none}
+.cc-flash.is-on{animation:cc-flash 460ms var(--ease-out)}
+@keyframes cc-flash{12%{opacity:.6}100%{opacity:0}}
+
+/* the status line, always in the same place at the bottom of the feed */
+.cc-vf [data-sc-name="StatusLine"]{position:absolute;left:50%;bottom:var(--space-9);z-index:6;max-width:calc(100% - 40px);transform:translateX(-50%)}
+
+/* blocked / done, centred in the viewfinder */
+.cc-card{position:absolute;left:50%;top:47%;z-index:6;display:flex;flex-direction:column;align-items:center;gap:var(--space-4);width:min(340px,80%);transform:translate(-50%,-50%);color:var(--text-inverse);text-align:center;animation:dc-float-in var(--dur-base) var(--ease-out)}
+.cc-card h2{margin:var(--space-2) 0 0;font:var(--type-panel-title)}
+.cc-card p{margin:0;font:var(--type-caption);color:var(--gray-400);text-wrap:pretty}
+.cc-card .cc-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-4);margin-top:var(--space-6)}
+.cc-card .gs-badge:not(.is-ok){background:rgba(255,255,255,.1)}
+
+@media (max-width:760px){
+  /* shorter viewfinder on a phone: a smaller frame, a touch lower, keeps the stickers clear of the top bar and the line */
+  .gs-capture{--frame-size:min(54%,26vh)}
+  .cc-frame,.cc-demo{top:53%}
+  .cc-vf [data-sc-name="StatusLine"]{bottom:var(--space-6)}
+}
+@media (prefers-reduced-motion:reduce){
+  .cc-frame.is-warn,.cc-flash.is-on,.cc-frame.is-snap .cc-scanline,.cc-pill.is-live i,.cc-corner,.cc-frame.is-snap .cc-grid b i{animation:none!important}
+  .cc-demo,.cc-vf video{transition:none}
+}
+</style>
+</helmet>
+
+<div class="gs-capture">
+  <dc-import name="CaptureHeader" mode="camera" hint-size="100%,38px"></dc-import>
+
+  <section class="cc-vf {{ vfMirror }}" data-scene="{{ scene }}" ref="{{ vfRef }}" aria-label="Camera">
+    <video ref="{{ videoRef }}" autoplay muted playsinline aria-hidden="true" style="{{ videoStyle }}"></video>
+    <sc-if value="{{ isDemo }}" hint-placeholder-val="{{ false }}">
+      <div class="cc-demo" aria-hidden="true">
+        <sc-for list="{{ demoCells }}" as="d" hint-placeholder-count="9"><i style="--c:{{ d.colour }}"></i></sc-for>
+      </div>
+    </sc-if>
+
+    <div class="cc-top">
+      <sc-if value="{{ hasPill }}" hint-placeholder-val="{{ false }}"><span class="cc-pill {{ pillCls }}"><i></i>{{ pillText }}</span></sc-if>
+      <span class="cc-sp"></span>
+      <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="{{ mirrorVariant }}" icon="flip-horizontal" pill="{{ yes }}" aria-pressed="{{ mirrorPressed }}" onClick="{{ toggleMirror }}" hint-size="130px,34px">Mirror view</x-import>
+    </div>
+
+    <div class="cc-frame {{ frameCls }}" ref="{{ frameRef }}" aria-hidden="true" style="--hold:{{ holdFrac }}">
+      <dc-import name="FaceChips" chips="{{ chips }}" surface="feed" hidden="{{ isDone }}" hint-size="100%,100%"></dc-import>
+      <div class="cc-grid">
+        <sc-for list="{{ readCells }}" as="c" hint-placeholder-count="9"><b><i style="--c:{{ c.colour }};--k:{{ c.k }}"></i></b></sc-for>
+      </div>
+      <span class="cc-corner tl"></span><span class="cc-corner tr"></span><span class="cc-corner bl"></span><span class="cc-corner br"></span>
+      <span class="cc-scanline"></span>
+      <sc-if value="{{ isTurn }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="TurnCue" kind="{{ turn.kind }}" faces="{{ turn.faces }}" loop="{{ yes }}" surface="feed" mirrored="{{ mirrored }}" hint-size="100%,100%"></dc-import>
+      </sc-if>
+    </div>
+
+    <div class="cc-flash" ref="{{ flashRef }}"></div>
+
+    <sc-if value="{{ isBlocked }}" hint-placeholder-val="{{ false }}">
+      <div class="cc-card" role="alert">
+        <span class="gs-badge"><i class="hgi-stroke hgi-camera-off-02" aria-hidden="true"></i></span>
+        <h2>{{ blocked.title }}</h2>
+        <p>{{ blocked.body }}</p>
+        <div class="cc-btns">
+          <sc-if value="{{ blocked.canRetry }}" hint-placeholder-val="{{ true }}">
+            <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="float" icon="reload" onClick="{{ retry }}" hint-size="110px,34px">Try again</x-import>
+          </sc-if>
+          <a class="gs-linkbtn" href="ManualEntry.dc.html"><i class="hgi-stroke hgi-paint-board" aria-hidden="true"></i>Enter colours</a>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+      <div class="cc-card"><span class="gs-badge is-ok"><i class="hgi-stroke hgi-tick-02" aria-hidden="true"></i></span></div>
+    </sc-if>
+
+    <sc-if value="{{ hasLine }}" hint-placeholder-val="{{ true }}">
+      <dc-import name="StatusLine" surface="glass" text="{{ line.text }}" lead="{{ line.lead }}" icon="{{ line.icon }}" dot="{{ line.dot }}" tone="{{ line.tone }}" progress="{{ holdPct }}" hint-size="240px,40px"></dc-import>
+    </sc-if>
+  </section>
+
+  <dc-import name="CubeProgress" faces="{{ faces }}" pose="{{ step }}" done="{{ isDone }}" mirrored="{{ mirrored }}" now-colour="{{ now.colour }}" now-title="{{ now.title }}" now-sub="{{ now.sub }}" strip="{{ strip }}" label="3D cube, filling in as each side is captured" restart-label="Scan again" on-restart="{{ restart }}" check-label="Check my cube" on-check="{{ check }}" hint-size="100%,100%"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900},"source":{"editor":"enum","options":["camera","demo"],"default":"camera","tsType":"&#39;camera&#39; | &#39;demo&#39;","section":"Flow"},"scene":{"editor":"enum","options":["auto","start","fit","show","closer","dark","glare","wrong","duplicate","hold","captured","turn","blocked","nocamera","done"],"default":"auto","tsType":"string","section":"Review a state"},"face":{"editor":"int","min":1,"max":6,"default":1,"tsType":"number","section":"Review a state"},"mirrored":{"editor":"boolean","default":true,"tsType":"boolean","section":"Review a state"}}'>
+// Camera capture: the user turns the cube, the page captures each side hands-free. A side is
+// taken when its centre is the one expected, the sticker seams are visible, the light is
+// good and the picture has held still for HOLD_MS. Faces, colours and validation live in
+// cube-capture.mjs; the header, status line, turn cue, chips and 3D panel are components.
+const HOLD_MS = 900, CHECK_EVERY_MS = 140, CAPTURED_MS = 760, TURN_MIN_MS = 1200;
+const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const BLOCKED = {
+  blocked: { title: 'Camera blocked', body: 'Allow camera access for this page, or enter the colours by hand.', canRetry: true },
+  nocamera: { title: 'No camera found', body: 'This device has no camera we can use. Enter the colours by hand instead.', canRetry: false }
+};
+// Hue and saturation thresholds for reading a sticker from an averaged RGB sample.
+function rgbToColour(r, g, b) {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
+  if ((max ? delta / max : 0) < 0.2 && max > 85) return 'W';
+  let hue = 0;
+  if (delta) {
+    hue = max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+    hue = (hue * 60 + 360) % 360;
+  }
+  return hue < 13 || hue >= 345 ? 'R' : hue < 43 ? 'O' : hue < 77 ? 'Y' : hue < 175 ? 'G' : 'B';
+}
+
+class Component extends DCLogic {
+  state = {
+    ready: false, live: false, scene: 'start', step: 0, blockedKind: 'blocked',
+    caps: Array(6).fill(null), capMirror: Array(6).fill(false),
+    mirrored: this.props.mirrored ?? true, hold: 0, read: null, seen: null
+  };
+
+  async componentDidMount() {
+    this.canvas = document.createElement('canvas');
+    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+    try {
+      this.cc = await import(new URL('./cube-capture.mjs', document.baseURI).href);
+    } catch (e) { console.error('[camera-capture] cube model', e); return; }
+    if (this.gone) return;
+    // Started from the lessons page: a new cube. A reload keeps the one in progress.
+    const url = new URL(location.href);
+    if (url.searchParams.has('fresh')) { this.cc.session.clear(); url.searchParams.delete('fresh'); history.replaceState(null, '', url); }
+    this.demo = url.searchParams.has('demo');
+    this.setState({ ready: true });
+    this.boot();
+  }
+  componentWillUnmount() { this.gone = true; this.halt(); this.stopCamera(); }
+  componentDidUpdate(prev) {
+    const p = this.props, S = this.state;
+    prev = prev || {};
+    if (S.ready && (prev.scene !== p.scene || prev.face !== p.face || prev.source !== p.source || prev.mirrored !== p.mirrored)) { this.halt(); this.stopCamera(); this.boot(); }
+    // Save every change of captured sides, as the camera saw them (unflipped).
+    if (!this.pinned && this._caps && (this._caps !== S.caps || this._capMirror !== S.capMirror)) {
+      this.cc.session.save(S.caps.map((c, i) => c ? (S.capMirror[i] ? this.cc.mirror(c) : c.slice()) : null));
+    }
+    this._caps = S.caps; this._capMirror = S.capMirror;
+  }
+
+  // ---------------------------------------------------------------- flow
+  halt() { this.run = (this.run || 0) + 1; clearTimeout(this.t); cancelAnimationFrame(this.raf); }
+  boot() {
+    const C = this.cc, p = this.props, pin = p.scene && p.scene !== 'auto';
+    this.pinned = !!pin;
+    if (pin) return this.pinScene(p.scene, Math.min(6, Math.max(1, p.face ?? 1)) - 1);
+    // Pick up any sides already entered in this tab, by camera or by hand.
+    const saved = C.session.load(), caps = saved ? saved.map(c => C.isComplete(c) ? c.slice() : null) : Array(6).fill(null);
+    const first = caps.findIndex(c => !c);
+    this.startStep = Math.max(0, first);
+    this.setState({ scene: first < 0 ? 'done' : 'start', step: first < 0 ? 5 : first, caps, capMirror: Array(6).fill(false), hold: 0, read: null, seen: null, mirrored: p.mirrored ?? true });
+    if (first < 0) return;
+    this.demoMode = this.demo || p.source === 'demo';
+    if (this.demoMode) this.startDemo(); else this.startCamera();
+  }
+  pinScene(scene, i) {
+    const C = this.cc;
+    const step = scene === 'turn' ? Math.max(1, i) : scene === 'done' ? 5 : i;
+    const upto = scene === 'done' ? 6 : scene === 'captured' ? step + 1 : step;
+    const blocked = scene === 'blocked' || scene === 'nocamera';
+    this.demoMode = true; // review states use the simulated feed
+    this.setState({
+      live: false, scene: blocked ? 'blocked' : scene, blockedKind: scene === 'nocamera' ? 'nocamera' : 'blocked',
+      step, hold: scene === 'hold' ? 0.62 : 0, mirrored: this.props.mirrored ?? true,
+      caps: C.DEMO_CAPTURES.map((c, n) => n < upto ? c : null), capMirror: Array(6).fill(false),
+      seen: scene === 'duplicate' ? 'R' : scene === 'wrong' ? 'Y' : null, read: null
+    });
+  }
+  restart = () => { this.halt(); this.stopCamera(); this.cc.session.clear(); this.boot(); };
+  retry = () => { this.halt(); this.setState({ scene: 'start' }); this.startCamera(); };
+  toggleMirror = () => this.setState(s => ({ mirrored: !s.mirrored, hold: 0 }));
+  // Check the finished cube: a possible cube goes on to the solve guide; one that can't
+  // exist opens manual entry, where the sides to look at are flagged and can be fixed.
+  check = () => {
+    const C = this.cc, S = this.state;
+    const caps = S.caps.map((c, i) => c ? (S.capMirror[i] ? C.mirror(c) : c) : null);
+    if (!caps.every(C.isComplete)) return;
+    C.session.save(caps);
+    location.href = C.checkCaptures(caps).ok ? 'SolveGuide.dc.html' : 'ManualEntry.dc.html';
+  };
+
+  // Simulated session (?demo or the source tweak): the same lines and motion a real scan
+  // goes through, with a few rough patches on the way.
+  startDemo() {
+    const C = this.cc, run = this.run, seq = [];
+    const rough = { 0: ['fit', 1300], 2: ['dark', 1700], 3: ['duplicate', 1700], 4: ['closer', 1400], 5: ['glare', 1500] };
+    const from = this.startStep || 0;
+    for (let i = from; i < 6; i++) {
+      if (i > from) seq.push({ scene: 'turn', step: i, ms: 2600 });
+      if (rough[i]) seq.push({ scene: rough[i][0], step: i, ms: rough[i][1], seen: rough[i][0] === 'duplicate' ? 'R' : null });
+      seq.push({ scene: 'show', step: i, ms: 650 });
+      seq.push({ scene: 'hold', step: i, ms: 1000, hold: true });
+      seq.push({ scene: 'captured', step: i, ms: CAPTURED_MS, capture: true });
+    }
+    seq.push({ scene: 'done', step: 5, ms: 0 });
+    this.setState({ live: false, scene: 'start' });
+    const next = k => {
+      if (run !== this.run || k >= seq.length) return;
+      const s = seq[k];
+      this.setState({ scene: s.scene, step: s.step, seen: s.seen || null, hold: 0 });
+      if (s.capture) this.capture(s.step, C.DEMO_CAPTURES[s.step], false);
+      if (s.hold) this.animateHold(s.ms, run);
+      if (s.ms) this.t = setTimeout(() => next(k + 1), s.ms);
+    };
+    this.t = setTimeout(() => next(0), 900);
+  }
+  animateHold(ms, run) {
+    const t0 = performance.now();
+    const f = now => { if (run !== this.run) return; const v = Math.min(1, (now - t0) / ms); this.setState({ hold: v }); if (v < 1) this.raf = requestAnimationFrame(f); };
+    this.raf = requestAnimationFrame(f);
+  }
+  capture(step, cells, mirrored) {
+    this.setState(s => {
+      const caps = s.caps.slice(); caps[step] = cells.slice();
+      const capMirror = s.capMirror.slice(); capMirror[step] = mirrored;
+      return { caps, capMirror };
+    });
+    const fl = this.flashEl;
+    if (fl) { fl.classList.remove('is-on'); void fl.offsetWidth; fl.classList.add('is-on'); }
+  }
+
+  // ---------------------------------------------------------------- live camera
+  async startCamera() {
+    const run = this.run;
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw Object.assign(new Error('no-media'), { name: 'NotFoundError' });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      if (run !== this.run) { stream.getTracks().forEach(t => t.stop()); return; }
+      this.stream = stream;
+      const v = this.videoEl; v.srcObject = stream; await v.play();
+      const facing = stream.getVideoTracks()[0]?.getSettings().facingMode;
+      // A selfie camera mirrors like a mirror would; the back camera shows the world as it is.
+      const mirrored = facing === 'user' || (!facing && !isMobile());
+      this.setState({ live: true, mirrored, scene: 'fit', step: this.startStep || 0 });
+      this.lastCheck = 0; this.holdStart = 0; this.lastProbe = null;
+      const loop = now => { if (run !== this.run) return; this.raf = requestAnimationFrame(loop); this.monitor(now); };
+      this.raf = requestAnimationFrame(loop);
+    } catch (e) {
+      if (run !== this.run) return;
+      // Refused or unavailable: say which, and offer the other way in. Never fall back to the
+      // demo here; that would "capture" a cube that isn't the user's.
+      const name = e && e.name;
+      console.warn('[camera-capture] camera unavailable:', name);
+      this.setState({ scene: 'blocked', blockedKind: name === 'NotFoundError' || name === 'OverconstrainedError' ? 'nocamera' : 'blocked' });
+    }
+  }
+  stopCamera() {
+    if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+    this.stream = null;
+    if (this.videoEl) this.videoEl.srcObject = null;
+  }
+  // Sample a 3×3 grid under the frame and judge whether it's a steady, readable side.
+  inspect() {
+    const video = this.videoEl, vf = this.vfEl, fr = this.frameEl;
+    if (!this.stream || !video || !video.videoWidth || !vf || !fr) return null;
+    const c = this.canvas, ctx = this.ctx;
+    const width = Math.min(640, video.videoWidth), height = Math.round(width * video.videoHeight / video.videoWidth);
+    if (c.width !== width || c.height !== height) { c.width = width; c.height = height; }
+    ctx.drawImage(video, 0, 0, width, height);
+    const view = vf.getBoundingClientRect(), frame = fr.getBoundingClientRect();
+    const scale = Math.max(view.width / width, view.height / height);
+    const cropX = (width * scale - view.width) / 2, cropY = (height * scale - view.height) / 2;
+    const mir = this.state.mirrored;
+    const sample = (u, v) => {
+      const dx = frame.left - view.left + u * frame.width, dy = frame.top - view.top + v * frame.height;
+      const x = Math.min(width - 4, Math.max(3, Math.round(((mir ? view.width - dx : dx) + cropX) / scale)));
+      const y = Math.min(height - 4, Math.max(3, Math.round((dy + cropY) / scale)));
+      const px = ctx.getImageData(x - 3, y - 3, 7, 7).data;
+      let r = 0, g = 0, b = 0;
+      for (let i = 0; i < px.length; i += 4) { r += px[i]; g += px[i + 1]; b += px[i + 2]; }
+      return [r / 49, g / 49, b / 49];
+    };
+    const rgb = Array.from({ length: 9 }, (_, k) => sample((k % 3 + 0.5) / 3, (Math.floor(k / 3) + 0.5) / 3));
+    const colours = rgb.map(([r, g, b]) => rgbToColour(r, g, b));
+    const light = ([r, g, b]) => (r + g + b) / 3;
+    const valid = rgb.filter(([r, g, b]) => { const mx = Math.max(r, g, b), mn = Math.min(r, g, b); return mx >= 70 && ((mx - mn) / mx >= 0.18 || mx >= 125); }).length;
+    let seams = 0;
+    for (let row = 0; row < 3; row++) for (let s = 1; s < 3; s++) {
+      const n = (light(rgb[row * 3 + s - 1]) + light(rgb[row * 3 + s])) / 2;
+      const gap = Math.min(...[-0.025, 0, 0.025].map(o => light(sample(s / 3 + o, (row + 0.5) / 3))));
+      if (gap < n * 0.78 && n - gap > 14) seams++;
+    }
+    for (let col = 0; col < 3; col++) for (let s = 1; s < 3; s++) {
+      const n = (light(rgb[(s - 1) * 3 + col]) + light(rgb[s * 3 + col])) / 2;
+      const gap = Math.min(...[-0.025, 0, 0.025].map(o => light(sample((col + 0.5) / 3, s / 3 + o))));
+      if (gap < n * 0.78 && n - gap > 14) seams++;
+    }
+    const center = colours[4], want = this.cc.FACES[this.state.step].key;
+    const brightness = rgb.reduce((sum, cell) => sum + light(cell), 0) / 9;
+    const glare = seams < 4 && rgb.filter(([r, g, b]) => Math.min(r, g, b) > 247).length >= 3;
+    const centered = center === want && valid >= 8 && seams >= 4 && brightness >= 65 && !glare;
+    colours[4] = want;
+    return { colours, rgb, centered, center, valid, seams, brightness, glare };
+  }
+  monitor(now) {
+    const S = this.state, C = this.cc;
+    if (S.scene === 'captured' || S.scene === 'done' || document.hidden || now - this.lastCheck < CHECK_EVERY_MS) return;
+    this.lastCheck = now;
+    const p = this.inspect(), want = C.FACES[S.step].key;
+    // After a capture the turn cue stays up until the next side's centre shows, and for at least TURN_MIN_MS.
+    if (S.scene === 'turn' && (now - this.turnAt < TURN_MIN_MS || !p || p.center !== want)) return;
+    if (!p || !p.centered) {
+      this.holdStart = 0; this.lastProbe = null;
+      const seenIdx = p ? C.stepOfColour(p.center) : -1;
+      const scene = !p ? 'fit' : p.brightness < 65 ? 'dark' : p.glare ? 'glare' : p.valid < 5 || p.seams < 4 ? 'fit'
+        : p.valid < 8 ? 'closer' : seenIdx >= 0 && p.center !== want ? (S.caps[seenIdx] ? 'duplicate' : 'wrong') : 'show';
+      if (scene !== S.scene || S.seen !== (p && p.center)) this.setState({ scene, seen: p ? p.center : null, hold: 0, read: null });
+      return;
+    }
+    const diff = this.lastProbe ? p.rgb.reduce((sum, c, i) => sum + c.reduce((n, v, ch) => n + Math.abs(v - this.lastProbe.rgb[i][ch]), 0), 0) / 27 : Infinity;
+    if (diff > 18 || !this.holdStart) this.holdStart = now;
+    this.lastProbe = p;
+    const hold = Math.min(1, (now - this.holdStart) / HOLD_MS);
+    this.setState({ scene: 'hold', hold, read: p.colours });
+    if (hold >= 1) {
+      const step = S.step, run = this.run;
+      this.setState({ scene: 'captured' });
+      this.capture(step, p.colours, S.mirrored);
+      this.t = setTimeout(() => {
+        if (run !== this.run) return;
+        if (step === 5) { this.setState({ scene: 'done' }); this.stopCamera(); return; }
+        this.turnAt = performance.now();
+        this.setState({ scene: 'turn', step: step + 1, hold: 0, read: null });
+      }, CAPTURED_MS);
+    }
+  }
+
+  // ---------------------------------------------------------------- view
+  lineFor(S) {
+    const C = this.cc, f = C.FACES[S.step], col = C.NAMES[f.key], seen = S.seen && C.NAMES[S.seen];
+    const icon = (icon, text, tone) => ({ lead: 'icon', icon, text, tone: tone || 'neutral', dot: '' });
+    const dot = (key, text) => ({ lead: 'dot', dot: C.colourVar(key), text, icon: '', tone: 'neutral' });
+    switch (S.scene) {
+      case 'start': return { lead: 'spinner', text: 'Starting camera', icon: '', dot: '', tone: 'neutral' };
+      case 'fit': return icon('focus-point', 'Fit one side in the frame');
+      case 'show': return dot(f.key, S.step === 0 ? 'Show green, white on top' : `Show ${col}`);
+      case 'closer': return icon('zoom-in-area', 'Move closer');
+      case 'dark': return icon('moon-02', 'Find more light', 'warn');
+      case 'glare': return icon('sun-02', 'Tilt to cut the glare', 'warn');
+      case 'wrong': return icon('alert-circle', `That’s ${seen}. Show ${col}`, 'warn');
+      case 'duplicate': return icon('alert-circle', `${C.titleCase(seen || 'that')} is done. Show ${col}`, 'warn');
+      case 'hold': return { lead: 'ring', text: 'Hold still', icon: '', dot: '', tone: 'neutral' };
+      case 'captured': return icon('tick-02', `${C.titleCase(col)} done`, 'ok');
+      case 'turn': return dot(f.key, S.step === 4 ? 'Tip white to the camera' : S.step === 5 ? 'Flip to yellow' : `Turn to ${col}`);
+      case 'done': return icon('tick-02', 'All 6 sides', 'ok');
+      default: return null;
+    }
+  }
+  // The 3D panel's faces change only when a side does, so it isn't repainted on every hold frame.
+  facesFor(S) {
+    if (this._facesFor !== S.caps || this._facesMirror !== S.capMirror) {
+      const C = this.cc;
+      this._facesFor = S.caps; this._facesMirror = S.capMirror;
+      this._faces = C.toPhysical(S.caps.map((c, i) => c || C.blankFace(i)), S.capMirror);
+    }
+    return this._faces;
+  }
+
+  renderVals() {
+    const S = this.state, C = this.cc;
+    const refs = {
+      vfRef: this._vf || (this._vf = el => { this.vfEl = el; }),
+      frameRef: this._fr || (this._fr = el => { this.frameEl = el; }),
+      videoRef: this._vd || (this._vd = el => { this.videoEl = el; }),
+      flashRef: this._fl || (this._fl = el => { this.flashEl = el; })
+    };
+    if (!S.ready || !C) return Object.assign({ scene: 'start', isDemo: false, chips: [], readCells: [], strip: [], hasLine: false, isTurn: false, isBlocked: false, isDone: false, videoStyle: 'display:none', now: {}, line: {}, turn: {}, blocked: {} }, refs);
+    const mir = !!S.mirrored, f = C.FACES[S.step], turn = S.scene === 'turn', isDone = S.scene === 'done';
+    // The sides around the frame belong to the cube as it's held now; during a turn that's still the previous side.
+    let [up, down, left, right] = C.NEIGHBOURS[turn ? S.step - 1 : S.step];
+    let target = turn ? (S.step <= 3 ? 'right' : S.step === 4 ? 'up' : '') : '';
+    if (mir) { [left, right] = [right, left]; if (target === 'right') target = 'left'; }
+    const chips = [['up', up], ['right', right], ['down', down], ['left', left]].map(([dir, key]) => ({ dir, colour: C.colourVar(key), target: dir === target }));
+    const prevFace = C.FACES[Math.max(0, S.step - 1)].key, prev = C.NEIGHBOURS[Math.max(0, S.step - 1)];
+    const turnVals = {
+      kind: S.step <= 3 ? 'yaw' : S.step === 4 ? 'tip' : 'flip',
+      faces: { front: C.colourVar(prevFace), back: C.colourVar(C.OPPOSITE[prevFace]), top: C.colourVar(prev[0]), down: C.colourVar(prev[1]), left: C.colourVar(prev[2]), right: C.colourVar(prev[3]) }
+    };
+    const D = C.DEMO_CAPTURES, disp = c => (mir ? C.mirror(c) : c);
+    const showCells = S.scene === 'duplicate' ? D[1] : S.scene === 'wrong' ? D[5] : turn ? D[S.step - 1] : D[S.step];
+    const snapCells = S.scene === 'captured' && S.caps[S.step] ? (S.live ? S.caps[S.step] : disp(S.caps[S.step])) : null;
+    const readSrc = snapCells || (S.read ? S.read : !S.live ? disp(D[S.step]) : Array(9).fill(f.key));
+    const warn = S.scene === 'wrong' || S.scene === 'duplicate';
+    const frameCls = [
+      S.scene === 'hold' ? 'is-ok' : '', S.scene === 'captured' ? 'is-ok is-snap' : '', warn ? 'is-warn' : '',
+      turn ? 'is-turn' : '', isDone ? 'is-done' : '', S.scene === 'blocked' || S.scene === 'start' ? 'is-off' : ''
+    ].join(' ');
+    const line = this.lineFor(S);
+    // Tiles land diagonally from the top left, 30ms apart (--k).
+    const ORDER = [0, 1, 2, 1, 2, 3, 2, 3, 4];
+    return Object.assign({
+      yes: true, ready: true,
+      scene: S.scene, step: S.step, mirrored: mir,
+      vfMirror: mir ? 'is-mirror' : '',
+      videoStyle: S.live ? '' : 'display:none',
+      isDemo: !S.live && !!this.demoMode && S.scene !== 'blocked',
+      hasPill: S.live || !!this.demoMode,
+      demoCells: disp(showCells).map(k => ({ colour: C.colourVar(k) })),
+      pillCls: S.live ? 'is-live' : '', pillText: S.live ? 'LIVE' : 'DEMO',
+      toggleMirror: this.toggleMirror, mirrorVariant: mir ? 'solid' : 'float', mirrorPressed: mir ? 'true' : 'false',
+      frameCls, chips, isTurn: turn, turn: turnVals,
+      readCells: readSrc.map((k, i) => ({ colour: C.colourVar(k), k: ORDER[i] })),
+      isBlocked: S.scene === 'blocked', blocked: BLOCKED[S.blockedKind] || BLOCKED.blocked,
+      isDone, retry: this.retry, restart: this.restart, check: this.check,
+      hasLine: !!line && S.scene !== 'blocked', line: line || { text: '' },
+      holdPct: Math.round(S.hold * 100), holdFrac: String(Math.round(S.hold * 100) / 100),
+      faces: this.facesFor(S),
+      now: isDone
+        ? { colour: C.colourVar('G'), title: 'Cube captured', sub: '6/6' }
+        : { colour: C.colourVar(f.key), title: f.name, sub: `${C.titleCase(C.NAMES[f.key])} centre · ${S.step + 1}/6` },
+      strip: C.FACES.map((x, i) => ({ colour: C.colourVar(x.key), done: !!S.caps[i], now: !isDone && i === S.step && !S.caps[i], light: C.isLight(x.key) }))
+    }, refs);
+  }
+}
+</script>
+</body>
+</html>
