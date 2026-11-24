@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GuidedSolveCard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/typography.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/radius.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/elevation.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/motion.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/interactions.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
+<script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
+<link rel="stylesheet" href="cube-tokens.css">
+<style>
+/* The guided solve's card in the sidebar. Variants:
+   idle    "Solve your cube": opens a menu to pick camera or enter colours. A beam of the
+           guided-solve gradient runs round the edge on hover or keyboard focus.
+   running the same card during a solve: title, progress and Start again. The beam keeps
+           running, so the card reads as the thing in progress.
+   The beam is a conic gradient spun round the card and masked down to a ring. */
+@property --gc-a{syntax:'<angle>';initial-value:0deg;inherits:false}
+@keyframes gc-beam{to{--gc-a:360deg}}
+.gc-wrap{position:relative;margin-top:var(--space-8)}
+/* The card is isolated so its beam can sit behind it; the menu is the card's sibling, so it
+   stacks over the stage instead of being trapped inside the card's stacking context. */
+.gc{position:relative;isolation:isolate;padding:var(--space-7);border-radius:var(--radius-lg);background:var(--surface-sunken);font-family:var(--font-sans);letter-spacing:var(--tracking-snug);color:var(--text-primary);transition:background-color var(--dur-fast) var(--ease-out)}
+.gc::before{content:"";position:absolute;inset:0;z-index:-1;padding:1.5px;border-radius:inherit;pointer-events:none;
+  background:conic-gradient(from var(--gc-a),var(--gc-track,transparent) 0deg,var(--gc-track,transparent) 220deg,var(--blue-500) 290deg,var(--teal-400) 335deg,var(--gc-track,transparent) 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+  animation:gc-beam 2.4s linear infinite}
+.gc[data-variant="idle"]{cursor:pointer}
+.gc[data-variant="idle"]:hover{background:var(--surface-hover)}
+.gc[data-variant="idle"]::before{opacity:0;animation-play-state:paused;transition:opacity var(--dur-base) var(--ease-out)}
+.gc[data-variant="idle"]:is(:hover,:focus-within,[data-open="true"])::before{opacity:1;animation-play-state:running}
+.gc[data-variant="running"]{--gc-track:var(--beam-track)}
+.gc[data-variant="running"]::before{padding:2px;animation-duration:3.2s}
+.gc-title{display:flex;align-items:center;gap:var(--space-4);margin:0;font:var(--type-label);font-weight:var(--weight-semibold)}
+.gc-title i{font-size:var(--icon-size-md);color:var(--icon-default)}
+.gc-copy{margin:var(--space-3) 0 var(--space-6);font:var(--type-caption);color:var(--text-secondary);text-wrap:pretty}
+.gc-trigger .dc-btn{width:100%}
+.gc-bar{height:4px;margin:var(--space-6) 0 var(--space-7);border-radius:var(--radius-full);background:var(--gray-200);overflow:hidden}
+.gc-bar i{display:block;height:100%;border-radius:inherit;background:var(--gradient-guided);transition:width var(--dur-slower) var(--ease-out)}
+.gc-again{display:inline-flex;align-items:center;gap:var(--space-3);height:30px;padding:0 var(--space-6);border-radius:var(--radius-md);background:var(--control-neutral);color:var(--text-primary);font:var(--weight-medium) var(--text-base)/1 var(--font-sans);transition:var(--transition-tint)}
+a.gc-again:is(:link,:visited,:hover,:active){color:var(--text-primary);text-decoration:none}
+.gc-again:hover{background:var(--control-neutral-hover)}
+.gc-again:focus-visible{outline:none;box-shadow:var(--shadow-focus)}
+
+/* the menu opens beside the card, over the stage; on a phone, under it */
+.gc-pop{position:absolute;left:calc(100% + var(--space-10));top:0;z-index:30;width:320px;padding:var(--space-3);box-sizing:border-box;border-radius:var(--radius-2xl);background:var(--surface-float);box-shadow:var(--shadow-pop);animation:gc-in var(--dur-base) var(--ease-out) backwards;cursor:default}
+@keyframes gc-in{from{opacity:0;transform:translateX(-6px) scale(.985)}}
+.gc-opt{display:flex;align-items:center;gap:var(--space-6);width:100%;box-sizing:border-box;padding:var(--space-5);border-radius:var(--radius-md);color:var(--text-primary);transition:background-color var(--dur-fast) var(--ease-out),transform var(--dur-slow) var(--ease-spring-out);animation:dc-mi-item-in var(--dur-base) var(--ease-out) backwards}
+.gc-opt + .gc-opt{animation-delay:40ms}
+a.gc-opt:is(:link,:visited,:hover,:active){color:var(--text-primary);text-decoration:none}
+.gc-opt:hover{background:var(--surface-hover)}
+.gc-opt:active{transform:scale(.985)}
+.gc-opt:focus-visible{outline:2px solid var(--border-focus);outline-offset:2px}
+.gc-chip{display:grid;place-items:center;width:36px;height:36px;flex:0 0 auto;border-radius:var(--radius-lg);background:var(--surface-sunken);color:var(--icon-default);font-size:var(--icon-size-md);transition:transform var(--dur-slow) var(--ease-spring-out)}
+.gc-opt:hover .gc-chip{transform:rotate(-6deg)}
+.gc-opt-title{display:block;font:var(--type-label);font-weight:var(--weight-semibold)}
+.gc-opt-sub{display:block;margin-top:2px;font:var(--type-caption);color:var(--text-secondary)}
+.gc-go{margin-left:auto;font-size:var(--icon-size-sm);color:var(--text-tertiary);transition:transform var(--dur-base) var(--ease-out)}
+.gc-opt:hover .gc-go,.gc-opt:focus-visible .gc-go{transform:translateX(2px)}
+@media (max-width:768px){.gc-pop{left:0;right:0;top:calc(100% + var(--space-4));width:auto}}
+@media (prefers-reduced-motion:reduce){
+  .gc::before,.gc[data-variant="idle"]:is(:hover,:focus-within,[data-open="true"])::before{animation:none;background:linear-gradient(120deg,var(--blue-500),var(--teal-400))}
+  .gc-pop,.gc-opt{animation:none}
+  .gc-opt,.gc-go,.gc-chip,.gc-bar i{transition:none}
+}
+</style>
+</helmet>
+
+<div class="gc-wrap ct-hide" ref="{{ rootRef }}">
+<section class="gc" data-variant="{{ variant }}" data-open="{{ openAttr }}" aria-labelledby="gc-title" onClick="{{ cardClick }}">
+  <sc-if value="{{ isIdle }}" hint-placeholder-val="{{ true }}">
+    <h2 class="gc-title" id="gc-title"><i class="hgi-stroke hgi-camera-add-02" aria-hidden="true"></i>Solve your cube, step by step</h2>
+    <p class="gc-copy">Match your cube, and we’ll show what to do next.</p>
+    <span class="gc-trigger">
+      <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="outline" icon-end="arrow-right-02" aria-expanded="{{ openAttr }}" aria-controls="gc-menu" onClick="{{ toggle }}" hint-size="100%,34px">Start guided solve</x-import>
+    </span>
+  </sc-if>
+  <sc-if value="{{ isRunning }}" hint-placeholder-val="{{ false }}">
+    <h2 class="gc-title" id="gc-title"><i class="hgi-stroke hgi-cube" aria-hidden="true"></i>{{ title }}</h2>
+    <div class="gc-bar" role="progressbar" aria-label="Solve progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ progress }}"><i style="width:{{ progressPct }}"></i></div>
+    <a class="gc-again" href="{{ restartHref }}"><i class="hgi-stroke hgi-reload" aria-hidden="true"></i>Start again</a>
+  </sc-if>
+</section>
+<sc-if value="{{ open }}" hint-placeholder-val="{{ false }}">
+  <div class="gc-pop" id="gc-menu" role="group" aria-label="How to enter your cube" ref="{{ popRef }}">
+    <a class="gc-opt" href="CameraCapture.dc.html?fresh=1">
+      <span class="gc-chip"><i class="hgi-stroke hgi-camera-01" aria-hidden="true"></i></span>
+      <span><span class="gc-opt-title">Use camera</span><span class="gc-opt-sub">Show each side to the camera</span></span>
+      <i class="gc-go hgi-stroke hgi-arrow-right-01" aria-hidden="true"></i>
+    </a>
+    <a class="gc-opt" href="ManualEntry.dc.html?fresh=1">
+      <span class="gc-chip"><i class="hgi-stroke hgi-paint-board" aria-hidden="true"></i></span>
+      <span><span class="gc-opt-title">Enter colours</span><span class="gc-opt-sub">Tap in each sticker by hand</span></span>
+      <i class="gc-go hgi-stroke hgi-arrow-right-01" aria-hidden="true"></i>
+    </a>
+  </div>
+</sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":288,"height":200},"variant":{"editor":"enum","options":["idle","running"],"default":"idle","tsType":"&#39;idle&#39; | &#39;running&#39;","section":"Variant"},"defaultOpen":{"editor":"boolean","default":false,"tsType":"boolean","section":"Variant"},"title":{"editor":"text","default":"Solving your cube","tsType":"string"},"progress":{"editor":"range","min":0,"max":100,"step":1,"default":35,"tsType":"number","section":"Variant"},"restartHref":{"editor":"text","default":"CubeTeacher.dc.html?guided","tsType":"string"}}'>
+class Component extends DCLogic {
+  state = { open: !!this.props.defaultOpen };
+
+  componentDidMount() {
+    // Escape closes and hands focus back to the trigger; a press outside the card closes.
+    this.onKey = e => { if (e.key === 'Escape' && this.state.open) { this.close(); this.focusTrigger(); } };
+    this.onDown = e => { if (this.state.open && this.root && !this.root.contains(e.target)) this.close(); };
+    window.addEventListener('keydown', this.onKey);
+    window.addEventListener('pointerdown', this.onDown);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); window.removeEventListener('pointerdown', this.onDown); }
+  componentDidUpdate(prev, prevState) {
+    // Opened from the keyboard or a click: move focus to the first way in.
+    if (this.state.open && !(prevState && prevState.open) && this.pop) {
+      const first = this.pop.querySelector('a');
+      if (first) requestAnimationFrame(() => first.focus({ preventScroll: true }));
+    }
+  }
+  close() { if (this.state.open) this.setState({ open: false }); }
+  focusTrigger() { const b = this.root && this.root.querySelector('.gc-trigger button'); if (b) b.focus(); }
+  toggle = () => this.setState(s => ({ open: !s.open }));
+  // The whole idle card opens the menu; clicks on the button or a menu link are theirs.
+  cardClick = e => {
+    if ((this.props.variant ?? 'idle') !== 'idle') return;
+    if (e.target.closest && (e.target.closest('button') || e.target.closest('a'))) return;
+    this.toggle();
+  };
+  renderVals() {
+    const p = this.props, variant = p.variant === 'running' ? 'running' : 'idle', open = variant === 'idle' && this.state.open;
+    const progress = Math.max(0, Math.min(100, Math.round(p.progress ?? 0)));
+    return {
+      variant, isIdle: variant === 'idle', isRunning: variant === 'running',
+      open, openAttr: open ? 'true' : 'false',
+      toggle: this.toggle, cardClick: this.cardClick,
+      title: p.title ?? 'Solving your cube', progress, progressPct: `${progress}%`,
+      restartHref: p.restartHref ?? 'CubeTeacher.dc.html?guided',
+      rootRef: this._r || (this._r = el => { this.root = el; }),
+      popRef: this._p || (this._p = el => { this.pop = el; })
+    };
+  }
+}
+</script>
+</body>
+</html>

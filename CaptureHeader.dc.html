@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CaptureHeader</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/typography.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/radius.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/elevation.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/motion.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/interactions.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="cube-tokens.css">
+<style>
+/* Header of the capture pages: the camera ⇄ enter-colours switch, centred over the stage,
+   and Close. The columns follow the page's own (--capture-cols), so the switch always sits
+   over the viewfinder or the entry face. The switch is the design system's segmented
+   control, drawn as links because each option is a page: the thumb squashes as it travels
+   and, arriving from the other page, slides over from that side. */
+[data-sc-name="CaptureHeader"]{grid-column:1 / -1}
+.ch{display:grid;grid-template-columns:var(--capture-cols,minmax(0,1.4fr) minmax(320px,1fr));gap:var(--panel-gap);align-items:center;font-family:var(--font-sans);letter-spacing:var(--tracking-snug)}
+.ch-switch{position:relative;justify-self:center;display:grid;grid-template-columns:1fr 1fr;gap:var(--space-1);padding:var(--space-1);border-radius:var(--radius-lg);background:var(--gray-200)}
+/* the system's track is --surface-sunken on a white panel; on the grey canvas it takes the next grey down to stay visible */
+.ch-thumb{position:absolute;top:var(--space-1);bottom:var(--space-1);left:var(--space-1);width:calc(50% - var(--space-1) - 1px);border-radius:var(--radius-md);background:var(--gray-0);box-shadow:var(--shadow-pill);transform-origin:center;transition:transform var(--dur-base) var(--ease-spring-out),scale var(--dur-fast) var(--ease-out)}
+.ch-switch[data-on="manual"] .ch-thumb{transform:translateX(calc(100% + var(--space-1)))}
+.ch-switch.is-moving .ch-thumb{scale:1 .86}
+.ch-item{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;gap:var(--space-4);height:var(--control-h-md);padding:0 var(--space-8);border-radius:var(--radius-md);font:var(--type-label);color:var(--text-tertiary);white-space:nowrap;transition:color var(--dur-fast) var(--ease-out),transform var(--dur-slow) var(--ease-spring-out)}
+a.ch-item:is(:link,:visited,:hover,:active){text-decoration:none}
+.ch-item i{font-size:var(--icon-size-md);transition:transform var(--dur-slow) var(--ease-spring-out)}
+.ch-item:hover{color:var(--text-secondary)}
+.ch-item:hover i{transform:rotate(-5deg)}
+.ch-item:active{transform:scale(var(--press-scale))}
+.ch-item:focus-visible{outline:none;box-shadow:var(--shadow-focus)}
+.ch-switch[data-on="camera"] .ch-item[data-mode="camera"],.ch-switch[data-on="manual"] .ch-item[data-mode="manual"]{color:var(--text-primary)}
+.ch-close{justify-self:end;display:inline-grid;place-items:center;width:var(--icon-btn-md);height:var(--icon-btn-md);border-radius:var(--radius-full);background:var(--surface-float);box-shadow:var(--shadow-pill);color:var(--icon-default);font-size:var(--icon-size-md);transition:var(--transition-tint),transform var(--dur-slow) var(--ease-spring-out)}
+a.ch-close:is(:link,:visited,:hover,:active){color:var(--icon-default);text-decoration:none}
+.ch-close:hover{background:var(--gray-50)}
+.ch-close i{transition:transform var(--dur-slow) var(--ease-spring-out)}
+.ch-close:hover i{transform:rotate(90deg)}
+.ch-close:active{transform:scale(var(--press-scale-sm));transition-duration:var(--dur-instant)}
+.ch-close:focus-visible{outline:none;box-shadow:var(--shadow-pill),var(--shadow-focus)}
+@media (max-width:760px){
+  .ch{grid-template-columns:var(--icon-btn-md) minmax(0,1fr) var(--icon-btn-md);gap:var(--space-4)}
+  .ch-switch{grid-column:2}
+  .ch-close{grid-column:3}
+  .ch-item{padding:0 var(--space-6)}
+}
+@media (prefers-reduced-motion:reduce){.ch-thumb,.ch-item,.ch-item i,.ch-close i{transition:none}}
+</style>
+</helmet>
+
+<header class="ch">
+  <nav class="ch-switch" data-on="{{ on }}" aria-label="How to enter your cube" ref="{{ switchRef }}">
+    <span class="ch-thumb" aria-hidden="true"></span>
+    <a class="ch-item" href="CameraCapture.dc.html" data-mode="camera" aria-current="{{ cameraCurrent }}" onClick="{{ pick }}"><i class="hgi-stroke hgi-camera-01" aria-hidden="true"></i>Use camera</a>
+    <a class="ch-item" href="ManualEntry.dc.html" data-mode="manual" aria-current="{{ manualCurrent }}" onClick="{{ pick }}"><i class="hgi-stroke hgi-paint-board" aria-hidden="true"></i>Enter colours</a>
+  </nav>
+  <a class="ch-close" href="{{ closeHref }}" aria-label="Close and go back to lessons"><i class="hgi-stroke hgi-cancel-01" aria-hidden="true"></i></a>
+</header>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":900,"height":56},"mode":{"editor":"enum","options":["camera","manual"],"default":"camera","tsType":"&#39;camera&#39; | &#39;manual&#39;","section":"Variant"},"closeHref":{"editor":"text","default":"CubeTeacher.dc.html","tsType":"string"}}'>
+// Which input the user just left, read once by the page they land on. Only this component
+// writes or reads it; a blocked storage just means the thumb appears in place.
+const FROM = 'cubeteacher.mode.from';
+function takeFrom() { try { const v = sessionStorage.getItem(FROM); sessionStorage.removeItem(FROM); return v; } catch (_) { return null; } }
+function markFrom(mode) { try { sessionStorage.setItem(FROM, mode); } catch (_) {} }
+const other = m => (m === 'camera' ? 'manual' : 'camera');
+
+class Component extends DCLogic {
+  state = { on: takeFrom() === other(this.props.mode ?? 'camera') ? other(this.props.mode ?? 'camera') : (this.props.mode ?? 'camera') };
+
+  componentDidMount() {
+    // Arrived from the other input: start the thumb there and slide it home.
+    if (this.state.on !== this.mode()) this.t = setTimeout(() => this.slideTo(this.mode()), 80);
+  }
+  componentWillUnmount() { clearTimeout(this.t); clearTimeout(this.t2); }
+  mode() { return this.props.mode ?? 'camera'; }
+  slideTo(on) {
+    if (this.el) this.el.classList.add('is-moving');
+    this.setState({ on });
+    clearTimeout(this.t2);
+    this.t2 = setTimeout(() => this.el && this.el.classList.remove('is-moving'), 220);
+  }
+  pick = e => {
+    const target = e.currentTarget && e.currentTarget.dataset.mode;
+    if (target === this.mode()) { e.preventDefault(); return; }
+    // The link navigates as usual; the thumb starts moving first so the hand-off reads as one motion.
+    markFrom(this.mode());
+    this.slideTo(target);
+  };
+  renderVals() {
+    const mode = this.mode();
+    return {
+      on: this.state.on, pick: this.pick,
+      cameraCurrent: mode === 'camera' ? 'page' : 'false',
+      manualCurrent: mode === 'manual' ? 'page' : 'false',
+      closeHref: this.props.closeHref ?? 'CubeTeacher.dc.html',
+      switchRef: this._s || (this._s = el => { this.el = el; })
+    };
+  }
+}
+</script>
+</body>
+</html>

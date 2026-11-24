@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FaceChips</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/radius.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/motion.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/interactions.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="cube-tokens.css">
+<style>
+/* The four sides around the face being entered, as slim stickers on each edge, so you can
+   tell up from down and left from right without a diagram. The one the cube turns to next
+   pulses. Variants: interactive = buttons that turn the cube to that side (manual entry) or
+   decoration (camera); surface = feed (dark shadow over video) | panel (light, on white);
+   hidden fades them out once every side is in. */
+[data-sc-name="FaceChips"]{position:absolute;inset:0;pointer-events:none}
+.fc{position:absolute;inset:0;transition:opacity var(--dur-base) var(--ease-out)}
+.fc[data-hidden="true"]{opacity:0}
+.fc-chip{--shadow:0 4px 10px -2px rgba(0,0,0,.18);position:absolute;padding:0;border:0;border-radius:var(--radius-xs);background:var(--c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12),var(--shadow);transition:background-color var(--dur-slow) var(--ease-out),scale var(--dur-slow) var(--ease-spring-out),box-shadow var(--dur-fast) var(--ease-out)}
+.fc[data-surface="feed"] .fc-chip{--shadow:0 6px 16px -2px rgba(0,0,0,.45)}
+.fc-chip.up{left:50%;top:-34px;width:36%;height:14px;margin-left:-18%}
+.fc-chip.down{left:50%;bottom:-34px;width:36%;height:14px;margin-left:-18%}
+.fc-chip.left{top:50%;left:-34px;width:14px;height:36%;margin-top:-18%}
+.fc-chip.right{top:50%;right:-34px;width:14px;height:36%;margin-top:-18%}
+/* the target stretches along its edge, so it reads as "this way" */
+.fc-chip.is-target{animation:fc-pulse-x 1.3s var(--ease-in-out) infinite}
+.fc-chip.up.is-target,.fc-chip.down.is-target{animation-name:fc-pulse-y}
+@keyframes fc-pulse-x{50%{transform:scale(1.35,1.12);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12),0 0 0 6px var(--pulse-ring,rgba(255,255,255,.22)),var(--shadow)}}
+@keyframes fc-pulse-y{50%{transform:scale(1.12,1.35);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12),0 0 0 6px var(--pulse-ring,rgba(255,255,255,.22)),var(--shadow)}}
+.fc[data-surface="panel"] .fc-chip.is-target{--pulse-ring:rgba(0,0,0,.06)}
+/* interactive: each chip is a door, with a hit area well past its 14px edge */
+button.fc-chip{pointer-events:auto;cursor:pointer}
+button.fc-chip::before{content:"";position:absolute;inset:-12px}
+button.fc-chip:not(:disabled):hover{scale:1.12;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12),0 0 0 4px color-mix(in srgb,var(--c) 22%,transparent),0 6px 14px -2px rgba(0,0,0,.22)}
+button.fc-chip:not(:disabled):active{scale:.94;transition-duration:var(--dur-instant)}
+button.fc-chip:focus-visible{outline:2px solid var(--border-focus);outline-offset:var(--ring-focus-offset)}
+button.fc-chip:disabled{cursor:default}
+@media (max-width:760px){.fc-chip.up{top:-28px}.fc-chip.down{bottom:-28px}.fc-chip.left{left:-28px}.fc-chip.right{right:-28px}}
+@media (prefers-reduced-motion:reduce){.fc-chip.is-target{animation:none;outline:2px solid var(--gray-0);outline-offset:2px}}
+</style>
+</helmet>
+
+<div class="fc" data-surface="{{ surface }}" data-hidden="{{ hidden }}">
+  <sc-if value="{{ interactive }}" hint-placeholder-val="{{ false }}">
+    <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+      <button type="button" class="fc-chip {{ c.cls }}" style="--c:{{ c.colour }}" aria-label="{{ c.label }}" disabled="{{ c.off }}" onClick="{{ c.go }}"></button>
+    </sc-for>
+  </sc-if>
+  <sc-if value="{{ decorative }}" hint-placeholder-val="{{ true }}">
+    <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+      <span class="fc-chip {{ c.cls }}" style="--c:{{ c.colour }}" aria-hidden="true"></span>
+    </sc-for>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":320,"height":320},"chips":{"editor":null,"tsType":"{ dir: &#39;up&#39; | &#39;right&#39; | &#39;down&#39; | &#39;left&#39;, colour: string, target?: boolean, label?: string, go?: () =&gt; void }[]"},"interactive":{"editor":"boolean","default":false,"tsType":"boolean","section":"Variant"},"surface":{"editor":"enum","options":["feed","panel"],"default":"panel","tsType":"&#39;feed&#39; | &#39;panel&#39;","section":"Variant"},"hidden":{"editor":"boolean","default":false,"tsType":"boolean","section":"Variant"},"disabled":{"editor":"boolean","default":false,"tsType":"boolean","section":"Variant"}}'>
+const SAMPLE = [
+  { dir: 'up', colour: 'var(--cube-white)' }, { dir: 'right', colour: 'var(--cube-red)', target: true },
+  { dir: 'down', colour: 'var(--cube-yellow)' }, { dir: 'left', colour: 'var(--cube-orange)' }
+];
+const noop = () => {};
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, interactive = !!p.interactive, hidden = !!p.hidden;
+    return {
+      interactive, decorative: !interactive,
+      surface: p.surface ?? 'panel', hidden: String(hidden),
+      chips: (p.chips || SAMPLE).map(c => ({
+        cls: c.dir + (c.target ? ' is-target' : ''), colour: c.colour,
+        label: c.label || '', off: hidden || !!p.disabled || !c.go, go: c.go || noop
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
