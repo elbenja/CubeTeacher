@@ -1,0 +1,48 @@
+/* CubeTeacher app tokens, layered on the 3DandCanvas design system (_ds/…/tokens).
+   The design system covers the interface; these name what's specific to a cube and to
+   the guided solve, so pages and components never hard-code a sticker colour or a
+   material shadow. HEX in cube-capture.mjs and FACE_COLORS in cube-engine.js must match
+   the six sticker colours below: cube-capture.test.mjs checks all three. */
+:root {
+  /* ---- Sticker colours ---- */
+  --cube-white: #ffffff;
+  --cube-yellow: #ffd500;
+  --cube-red: #ee2b2b;
+  --cube-orange: #ff7a18;
+  --cube-green: #16c464;
+  --cube-blue: #1e5fe0;
+  --cube-empty: #dcdcdc;            /* a sticker not entered yet, on the 3D cube */
+  --cube-body: var(--gray-950);     /* the plastic between stickers */
+
+  /* ---- Sticker material ---- */
+  --face-radius: 12%;
+  --sticker-radius: 20%;
+  --sticker-gloss: inset 0 3px 4px rgba(255, 255, 255, 0.35), inset 0 -4px 6px rgba(0, 0, 0, 0.18);
+  --sticker-edge: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  --sticker-edge-light: inset 0 0 0 1px rgba(0, 0, 0, 0.22);  /* white and yellow on white need a firmer edge */
+  --sticker-slot: inset 0 0 0 1.5px rgba(255, 255, 255, 0.22); /* an empty sticker on the dark face */
+  --face-lift: 0 24px 48px -16px rgba(0, 0, 0, 0.35), var(--ring-hairline);
+  --face-held: 0 30px 60px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+
+  /* ---- Selection rings: a gap in the surface colour, then the ring ---- */
+  --ring-selected: 0 0 0 2px var(--surface-float), 0 0 0 4px var(--gray-900);
+  --ring-flagged: 0 0 0 2px var(--surface-float), 0 0 0 4px var(--amber-400);
+  --ring-focus-offset: 3px;
+
+  /* ---- Guided solve accent: blue into teal, the thread through the whole flow ---- */
+  --teal-400: #1fd1c1;
+  --gradient-guided: linear-gradient(90deg, var(--blue-500), var(--teal-400));
+  --beam-track: rgba(47, 128, 255, 0.18);
+
+  /* ---- Camera viewfinder ---- */
+  --viewfinder-bg: radial-gradient(120% 90% at 50% 42%, var(--gray-700), var(--gray-900) 62%, var(--gray-950));
+  --viewfinder-vignette: linear-gradient(180deg, rgba(13, 13, 13, 0.42), transparent 22%, transparent 74%, rgba(13, 13, 13, 0.5));
+  --glass-dark: rgba(13, 13, 13, 0.42);
+  --scan-ok: var(--green-500);
+  --scan-warn: var(--amber-400);
+
+  /* ---- Motion specific to the flow ---- */
+  --dur-turn: 2600ms;   /* one whole-cube turn cue, camera (loops) */
+  --dur-turn-once: 2200ms; /* the same cue played once, manual entry */
+  --dur-reveal: 45ms;   /* stagger between stickers filling in */
+}
