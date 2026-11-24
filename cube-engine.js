@@ -234,6 +234,24 @@ function resetModel(model) {
   });
 }
 
+// A cube that was scanned rather than turned has no setup moves to replay. It
+// arrives as cubies in cubie-model.mjs's form (home, position, integer rotation
+// matrix) and is laid down directly; the matrix is the cubie's quaternion as
+// bake() builds it, so moves run on top of it exactly as on a turned cube.
+function placeCubies(model, state) {
+  const m4 = new THREE.Matrix4();
+  model.userData.cubies.forEach(c => {
+    const h = c.userData.home;
+    const s = state.find(p => p.home[0] === h[0] && p.home[1] === h[1] && p.home[2] === h[2]);
+    if (!s) return;
+    const m = s.m;
+    m4.set(m[0][0], m[0][1], m[0][2], 0, m[1][0], m[1][1], m[1][2], 0, m[2][0], m[2][1], m[2][2], 0, 0, 0, 0, 1);
+    c.position.set(s.pos[0], s.pos[1], s.pos[2]);
+    c.quaternion.setFromRotationMatrix(m4);
+    c.updateMatrix();
+  });
+}
+
 // Which cubies does this sequence actually touch? That set stays in colour.
 export function touchedIds(model, tokens) {
   const pos = new Map();
@@ -599,6 +617,7 @@ export class CubeEngine {
       this.moves = parseMoves(alg.moves);
       this.setup = parseMoves(alg.setup != null ? alg.setup : invertMoves(alg.moves));
       resetModel(this.model);
+      if (alg.state) placeCubies(this.model, alg.state);
       applyInstant(this.model, this.setup);
       this.home.theta = viewTheta(alg);
       this.want.theta = this.home.theta;
@@ -690,6 +709,7 @@ export class MiniPool {
     if (!canvas) return;
     const setup = spec.setup != null ? spec.setup : invertMoves(spec.moves);
     resetModel(this.model);
+    if (spec.state) placeCubies(this.model, spec.state);
     applyInstant(this.model, setup);
     // Resolved here, before any `thumb: 'end'` moves run, because `focus` names
     // slots as they stand in the case position. Ids survive the extra moves, so
