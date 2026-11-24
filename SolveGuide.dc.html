@@ -139,7 +139,7 @@
 .sv-it.is-now .sv-it-i{background:var(--blue-500);color:var(--gray-0);box-shadow:0 0 0 4px var(--blue-50)}
 .sv-it-t{flex:1 1 auto;min-width:0;font:var(--type-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sv-it.is-now .sv-it-t{font:var(--type-section-label);font-size:var(--text-lg)}
-.sv-it-m{font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary)}
+.sv-it-m{font:var(--type-mono);font-size:var(--text-2xs);color:var(--text-tertiary);white-space:nowrap}
 .sv-it.is-done .sv-it-t{color:var(--text-secondary)}
 .sv-it.is-later{opacity:.42}
 .sv-it.is-next .sv-it-m::before{content:"NEXT · ";color:var(--text-secondary)}
@@ -180,7 +180,7 @@
 
   <main class="sv-stage">
     <div class="sv-top">
-      <div class="sv-bar" role="progressbar" aria-label="Stages" aria-valuemin="0" aria-valuemax="7" aria-valuenow="{{ stagesDone }}">
+      <div class="sv-bar" role="progressbar" aria-label="Stages" aria-valuemin="0" aria-valuemax="{{ stageCount }}" aria-valuenow="{{ stagesDone }}">
         <span class="sv-tag"><i></i>GUIDED<span class="sv-tag-x">&nbsp;SOLVE</span></span>
         <span class="sv-segs">
           <sc-for list="{{ segs }}" as="g" hint-placeholder-count="7">
@@ -196,7 +196,7 @@
     </div>
 
     <div class="sv-cube">
-      <div class="sv-host" ref="{{ hostRef }}" role="img" aria-label="Your cube in 3D"></div>
+      <div class="sv-host" ref="{{ hostRef }}" role="img" aria-label="{{ cubeLabel }}"></div>
     </div>
 
     <div class="sv-dock">
@@ -299,7 +299,7 @@
     <div class="sv-rh">
       <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.ProgressRing" value="{{ pct }}" size="{{ ringSize }}" stroke-width="{{ ringStroke }}" hint-size="40px,40px"></x-import>
       <div>
-        <h1>Solve your cube</h1>
+        <h1>{{ panelTitle }}</h1>
         <small>{{ algCounter }}</small>
       </div>
     </div>
@@ -332,11 +332,18 @@
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900},"scene":{"editor":"enum","options":["auto","hold","do","check","help","stageDone","solved"],"default":"auto","tsType":"string","section":"Review a state"},"alg":{"editor":"int","min":1,"max":17,"default":1,"tsType":"number","section":"Review a state"}}'>
 // Orientation bookkeeping by centre colour. Colours and names come from cube-capture.mjs.
 const OPP = { W: 'Y', Y: 'W', R: 'O', O: 'R', G: 'B', B: 'G' };
+// What each whole-cube turn does to the colours you see on top, in front and on the right.
+const TURN_ORI = {
+  y: o => ({ U: o.U, F: o.R, R: OPP[o.F] }),
+  "y'": o => ({ U: o.U, F: OPP[o.R], R: o.F }),
+  y2: o => ({ U: o.U, F: OPP[o.F], R: OPP[o.R] }),
+  z2: o => ({ U: OPP[o.U], F: o.F, R: OPP[o.R] })
+};
 
-// The demo solve: real beginner algorithms from the library, in order, with the whole-cube turns between them.
-// PREVIEW: until a solver reads the scanned cube, the starting position is built backwards from these steps,
-// so every stage really completes on screen, but it is not the user's own cube yet. The lessons page keeps
-// the entry behind ?guided until that's true. [algorithm id, variation label, turn of the whole cube before it]
+// A scanned cube is planned by beginner-solver.mjs. Without one, this example solve plays instead: real
+// beginner algorithms from the library, in order, with the whole-cube turns between them, starting from a
+// position built backwards from these steps so every stage really completes on screen.
+// [algorithm id, variation label, turn of the whole cube before it]
 const PLAN = [
   ['b-first-layer-edges', 'Edge in the middle layer', null],
   ['b-first-layer-edges', 'Edge on the front face', 'y'],
@@ -378,7 +385,14 @@ class Component extends DCLogic {
       this.cc = cc;
       await new Promise((res, rej) => { const t0 = Date.now(); const p = () => window.THREE ? res() : Date.now() - t0 > 15000 ? rej(new Error('three')) : setTimeout(p, 40); p(); });
       this.eng = await import(url('./cube-engine.js'));
-      this.build(data);
+      // The solver reads moves through the engine, so it loads after it (and after three.js).
+      const caps = cc.session.load();
+      let own = null;
+      if (caps && cc.checkCaptures(caps).ok) {
+        try { own = (await import(url('./beginner-solver.mjs'))).solve(cc.toPhysical(caps)); }
+        catch (e) { console.error('[solve] falling back to the example', e); }
+      }
+      this.build(data, own);
       this.viewer = new this.eng.CubeEngine(this.host, { onIndex: (i, n) => this.onIndex(i, n) });
       // Closer than the engine's default fit: it's the user's own cube, it gets the room.
       this.viewer._zoomed = true; this.viewer.want.r = this.viewer.home.r * 0.72;
@@ -401,42 +415,52 @@ class Component extends DCLogic {
   }
 
   // ---------------------------------------------------------------- the plan
-  build(data) {
+  // `own` is the solver's answer for the scanned cube ({ state, steps }), or null for the example.
+  build(data, own) {
     const { parseMoves, invertMoves } = this.eng;
     const byId = Object.fromEntries(data.ALGORITHMS.map(a => [a.id, a]));
+    // Both plans arrive in the solver's step shape; the example's steps are the library variations as written.
+    const plan = own ? own.steps : PLAN.map(([id, label, turn]) => {
+      const v = byId[id].variations.find(x => x.label === label);
+      return { id, label, variation: label, turn: turn ? parseMoves(turn) : [], moves: v.moves, entries: v.entries, runMap: v.runMap, until: v.until, keep: v.keep, focus: v.focus, dim: v.dim };
+    });
+    this.example = !own;
     this.stages = [];
     let before = [], ori = { U: 'W', F: 'G', R: 'R' };
-    this.steps = PLAN.map(([id, label, turn], k) => {
-      const a = byId[id], v = a.variations.find(x => x.label === label);
-      let st = this.stages.find(s => s.id === id);
-      if (!st) { st = { id, name: a.name, steps: [] }; this.stages.push(st); }
+    const reorient = t => { if (TURN_ORI[t]) ori = TURN_ORI[t](ori); };
+    this.steps = plan.map((p, k) => {
+      const a = byId[p.id];
+      let st = this.stages.find(s => s.id === p.id);
+      if (!st) { st = { id: p.id, name: a.name, steps: [] }; this.stages.push(st); }
       st.steps.push(k);
-      const turnTok = turn ? parseMoves(turn) : [];
+      const turnTok = parseMoves(p.turn), moves = parseMoves(p.moves);
       const prevOri = { ...ori };
-      turnTok.forEach(t => {
-        if (t === 'y') ori = { U: ori.U, F: ori.R, R: OPP[ori.F] };
-        if (t === 'z2') ori = { U: OPP[ori.U], F: ori.F, R: OPP[ori.R] };
-      });
-      const moves = parseMoves(v.moves);
-      const s = { k, stage: this.stages.length - 1, name: a.name, label: v.label, turn: turnTok, moves, keep: v.keep, focus: v.focus, dim: v.dim,
-        entries: v.entries || moves.map(m => ({ kind: 'spacer', move: m })), runMap: v.runMap || moves.map((m, i) => ({ entry: i })), until: v.until || '',
+      turnTok.forEach(reorient);
+      const s = { k, stage: this.stages.length - 1, name: a.name, label: p.label, turn: turnTok, moves, keep: p.keep, focus: p.focus, dim: p.dim,
+        entries: p.entries || moves.map(m => ({ kind: 'spacer', move: m })), runMap: p.runMap || moves.map((m, i) => ({ entry: i })), until: p.until || '',
         beforeTurn: before.slice(), before: before.concat(turnTok), ori: { ...ori }, prevOri };
+      // Some lessons turn the whole cube between runs (the y2 in Dot), which changes what you hold next.
+      moves.forEach(reorient);
       before = before.concat(turnTok, moves);
       return s;
     });
-    // Start from a cube that these exact steps solve, held white up / green front like the scan.
-    const rotations = before.filter(t => /^[xyz]/.test(t));
-    this.scramble = rotations.concat(invertMoves(before));
+    // The 3D cube starts as the scan itself. The example starts from a cube these exact steps solve,
+    // held white up / green front like a scan.
+    this.start = own ? { state: own.state, setup: [] }
+      : { state: null, setup: before.filter(t => /^[xyz]/.test(t)).concat(invertMoves(before)) };
     this.total = this.steps.length;
   }
+  // The cube as it stands after `moves` from the start.
+  startPlus(moves) { return { state: this.start.state, setup: this.start.setup.concat(moves) }; }
   specFor(s, extra) {
-    return Object.assign({ setup: this.scramble.concat(s.before), moves: s.moves, keep: s.keep, focus: s.focus, dim: s.dim }, extra || {});
+    return Object.assign(this.startPlus(s.before), { moves: s.moves, keep: s.keep, focus: s.focus, dim: s.dim }, extra || {});
   }
 
   boot() {
     clearTimeout(this.t); clearTimeout(this.auto); clearInterval(this.spin);
     const scene = this.props.scene || 'auto', k = Math.min(this.total, Math.max(1, this.props.alg ?? 1)) - 1;
     clearInterval(this.clock);
+    if (!this.total) return this.finish(true);
     if (scene === 'auto') {
       this.setState({ toast: '' });
       return this.enter(0);
@@ -470,7 +494,7 @@ class Component extends DCLogic {
     else this.loadDo(s);
   }
   loadHold(s, play) {
-    this.viewer.load({ setup: this.scramble.concat(s.beforeTurn), moves: s.turn, dim: false });
+    this.viewer.load(Object.assign(this.startPlus(s.beforeTurn), { moves: s.turn, dim: false }));
     if (play) { clearTimeout(this.t); this.t = setTimeout(() => this.viewer.goTo(s.turn.length > 0 ? 1 : 0, true).then(() => s.turn.length > 1 && this.viewer.goTo(2, true)), 500); }
   }
   loadDo(s) { this.viewer.load(this.specFor(s)); }
@@ -525,8 +549,8 @@ class Component extends DCLogic {
   };
   finish(pinned) {
     const last = this.steps[this.total - 1];
-    this.viewer.load({ setup: this.scramble.concat(last.before, last.moves), moves: [], dim: false });
-    this.setState({ k: this.total, phase: 'solved', help: false, cardKey: Date.now(), toast: pinned ? '' : `${this.stages[last.stage].name} done` });
+    this.viewer.load(Object.assign(this.startPlus(last ? last.before.concat(last.moves) : []), { moves: [], dim: false }));
+    this.setState({ k: this.total, phase: 'solved', help: false, cardKey: Date.now(), toast: pinned || !last ? '' : `${this.stages[last.stage].name} done` });
     clearTimeout(this.tt); this.tt = setTimeout(() => this.setState({ toast: '' }), 2700);
     clearInterval(this.spin);
     this.spin = setInterval(() => { if (this.viewer) this.viewer.want.theta += 0.01; }, 16);
@@ -550,12 +574,13 @@ class Component extends DCLogic {
   // ---------------------------------------------------------------- view
   renderVals() {
     const S = this.state, ready = !!this.steps;
-    const steps = this.steps || [], stages = this.stages || [], total = this.total || PLAN.length;
-    const solved = S.phase === 'solved';
+    const steps = this.steps || [], stages = this.stages || [], total = ready ? this.total : PLAN.length;
+    const solved = S.phase === 'solved', example = ready && this.example;
     const k = Math.min(S.k, total - 1), s = steps[k];
     // Done = confirmed; the current one counts as done once it's being checked.
     const doneN = solved ? total : S.k + (S.phase === 'check' ? 1 : 0);
-    const pct = Math.round(doneN / total * 100);
+    // A scan that was already solved has no steps at all: that's 100%, not 0 of 0.
+    const pct = total ? Math.round(doneN / total * 100) : 100;
     const curStage = s ? s.stage : 0;
     const stageProg = i => {
       const st = stages[i]; if (!st) return 0;
@@ -564,6 +589,8 @@ class Component extends DCLogic {
     };
     const stagesDone = stages.filter((_, i) => stageProg(i) >= 1).length;
     const pretty = t => t.replace("'", '′');
+    // A scanned cube's plan can have a one-turn step (F2), so "1 moves" is reachable now.
+    const movesText = n => `${n} move${n === 1 ? '' : 's'}`;
     const idx = S.idx || 0;
     const describe = t => this.eng ? this.eng.describeMove(t) : t;
     const hasBlocks = s && s.entries.some(e => e.kind === 'block');
@@ -587,10 +614,12 @@ class Component extends DCLogic {
       };
     }) : [];
     const C = this.cc, name = k => C ? C.titleCase(C.NAMES[k]) : '', colour = k => C ? C.colourVar(k) : 'transparent';
+    // A flip may come with a quarter turn (z2 y); the headline names the flip, the swatches show both.
+    const flip = s && s.turn.includes('z2');
     const hold = s ? {
-      text: s.turn.join('') === 'z2' ? `Flip the cube: ${C.NAMES[s.ori.U]} on top` : `Turn the cube: ${C.NAMES[s.ori.F]} in front`,
+      text: flip ? `Flip the cube: ${C.NAMES[s.ori.U]} on top` : `Turn the cube: ${C.NAMES[s.ori.F]} in front`,
       upName: name(s.ori.U), frontName: name(s.ori.F), upHex: colour(s.ori.U), frontHex: colour(s.ori.F),
-      sayHex: s.turn.join('') === 'z2' ? colour(s.ori.U) : colour(s.ori.F)
+      sayHex: flip ? colour(s.ori.U) : colour(s.ori.F)
     } : { text: '', upName: '', frontName: '', upHex: '', frontHex: '', sayHex: '' };
     const groups = stages.map((st, gi) => {
       const p = stageProg(gi);
@@ -602,7 +631,7 @@ class Component extends DCLogic {
           const done = solved || x < S.k;
           const now = !solved && x === S.k;
           return {
-            k: x, label: it.label, meta: `${it.moves.length} moves`,
+            k: x, label: it.label, meta: movesText(it.moves.length),
             icon: done ? 'tick-02' : now ? 'arrow-right-01' : 'circle',
             cls: [done ? 'is-done' : '', now ? 'is-now' : '', !done && !now ? 'is-later' : '', x === S.k + 1 && !solved ? 'is-next' : ''].join(' '),
             mini: now ? it.moves.map((t, i) => ({ label: pretty(t), state: S.phase === 'check' || i < idx ? 'past' : i === idx && S.phase === 'do' ? 'current' : 'future' })) : []
@@ -613,10 +642,13 @@ class Component extends DCLogic {
     return {
       yes: true, no: false, ready,
       pct, pctText: `${pct}%`, ringSize: 40, ringStroke: 3,
-      runTitle: solved ? 'Cube solved' : 'Solving your cube',
-      algCounter: solved ? `${total} of ${total} · solved` : `Algorithm ${Math.min(S.k + 1, total)} of ${total}`,
+      // Without a saved scan the page plays an example cube, and says so wherever it would say "your cube".
+      runTitle: solved ? 'Cube solved' : example ? 'Example solve' : 'Solving your cube',
+      panelTitle: example ? 'Example solve' : 'Solve your cube',
+      cubeLabel: example ? 'An example cube in 3D' : 'Your cube in 3D',
+      algCounter: !total ? 'Already solved' : solved ? `${total} of ${total} · solved` : example ? `No scan saved · ${Math.min(S.k + 1, total)} of ${total}` : `Algorithm ${Math.min(S.k + 1, total)} of ${total}`,
       segs: stages.map((st, i) => ({ name: st.name, p: `${Math.round(stageProg(i) * 100)}%`, d: `${i * 60}ms`, cls: [stageProg(i) >= 1 ? 'is-done' : '', i === curStage && !solved ? 'is-now' : ''].join(' ') })),
-      stagesDone, stageName: solved ? 'All stages' : (stages[curStage] || {}).name || '', stageNum: `${solved ? stages.length : curStage + 1}/${stages.length || 7}`,
+      stagesDone, stageCount: stages.length || 7, stageName: solved ? 'All stages' : (stages[curStage] || {}).name || '', stageNum: `${solved ? stages.length : curStage + 1}/${stages.length || 7}`,
       toast: S.toast,
       isHold: S.phase === 'hold', isDo: S.phase === 'do' || S.phase === 'boot', isCheck: S.phase === 'check', isSolved: solved,
       cardNew: 'is-new', hold,
@@ -625,10 +657,10 @@ class Component extends DCLogic {
       counter: s ? `${Math.min(idx, s.moves.length)} / ${s.moves.length}` : '0 / 0',
       atStart: idx === 0,
       nextMove: this.nextMove, prevMove: this.prevMove, restartAlg: this.restartAlg, showTurn: this.showTurn, ready: this.ready,
-      checkSub: s ? `${s.label} · ${s.moves.length} moves done` : '',
+      checkSub: s ? `${s.label} · ${movesText(s.moves.length)} done` : '',
       yesLabel: S.k >= total - 1 ? 'Yes, finish' : 'Yes, next',
       notQuite: this.notQuite, confirm: this.confirm, helpOpen: S.help, again: this.again,
-      winSub: `${total} algorithms, ${stages.length} stages`,
+      winSub: !total ? 'It was solved when you scanned it' : `${example ? 'Example cube · ' : ''}${total} algorithms, ${stages.length} stages`,
       groups,
       hostRef: this._h || (this._h = el => { this.host = el; }),
       listRef: this._l || (this._l = el => { this.listEl = el; })
