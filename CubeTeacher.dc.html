@@ -575,7 +575,12 @@ main.ct-stage>[data-sc-name="TeachCard"]{width:100%;max-width:660px;flex:0 0 aut
   .ct-right{left:12px!important}
   .ct-side{position:fixed!important;z-index:55;transform:translateX(calc(-100% - 28px));transition:transform calc(280ms*var(--m)) var(--ease-out)}
   .ct-side[data-drawer="open"]{transform:none}
-  .ct-burger{display:grid!important}
+  .ct-burger{display:grid!important;transition:opacity calc(160ms*var(--m)) var(--ease-out),visibility 0s}
+  /* Open, the drawer covers the spot the burger sits on, so the button would
+     float over the panel's own header. It steps aside; the panel's header
+     button, a tap on the scrim or Escape closes the menu. Hidden rather than
+     faded only, so it takes no tap, no focus and shows no tooltip. */
+  .ct-burger[aria-expanded="true"]{opacity:0;visibility:hidden;pointer-events:none;transition:opacity calc(160ms*var(--m)) var(--ease-out),visibility 0s linear calc(160ms*var(--m))}
   /* Start the stage below the burger so it stops sitting on the group label.
      The room comes out of the dead gap above the cube, which is centred in the
      window rather than in the stage, so nothing moves to pay for it. */
@@ -1596,8 +1601,10 @@ class Component extends DCLogic {
 
       tintState: this.props.chipTint ? 'true' : 'false',
       sideCollapsed: S.sideCollapsed ? 'true' : 'false',
-      sidebarTip: S.sideCollapsed ? 'Expand sidebar' : 'Collapse sidebar',
-      toggleSidebar: () => this.setState(s => ({ sideCollapsed: !s.sideCollapsed })),
+      sidebarTip: S.drawer ? 'Close menu' : S.sideCollapsed ? 'Expand sidebar' : 'Collapse sidebar',
+      // As a drawer the panel has no rail to collapse into, and the burger that
+      // opened it is hidden, so the header button closes it instead.
+      toggleSidebar: () => this.setState(s => s.drawer ? { drawer: false } : { sideCollapsed: !s.sideCollapsed }),
       rightCollapsed: S.rightCollapsed ? 'true' : 'false',
       rightTip: S.rightCollapsed ? 'Expand variations' : 'Collapse variations',
       toggleRight: () => this.setState(s => ({ rightCollapsed: !s.rightCollapsed })),
