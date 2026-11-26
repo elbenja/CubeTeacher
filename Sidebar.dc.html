@@ -27,9 +27,7 @@ aside.ct-side>[data-sc-name="GuidedSolveCard"]{flex-shrink:0}
     <dc-import name="SidebarHeader" title="Silverdesk" badge="Lab" subtitle="CubeTeacher" tip="{{ sidebarTip }}" on-toggle="{{ toggleSidebar }}" hint-size="100%,72px"></dc-import>
   </div>
 
-  <sc-if value="{{ guided }}" hint-placeholder-val="{{ false }}">
-    <dc-import name="GuidedSolveCard" variant="idle" hint-size="100%,132px"></dc-import>
-  </sc-if>
+  <dc-import name="GuidedSolveCard" variant="idle" hint-size="100%,132px"></dc-import>
 
   <dc-import name="SidebarContent" groups="{{ groups }}" start-beginner="{{ startBeginner }}" style="flex:1 1 auto;min-height:0;width:100%" hint-size="100%,100%"></dc-import>
 
@@ -37,13 +35,12 @@ aside.ct-side>[data-sc-name="GuidedSolveCard"]{flex-shrink:0}
 </aside>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;drawerState&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;guided&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;sidebarTip&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Collapse sidebar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;toggleSidebar&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;GroupData[]&quot;},&quot;startBeginner&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;legendOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;toggleLegend&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;drawerState&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;sidebarTip&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Collapse sidebar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;toggleSidebar&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;GroupData[]&quot;},&quot;startBeginner&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;legendOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;toggleLegend&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
 class Component extends DCLogic {
   renderVals() {
     return {
       drawerState: this.props.drawerState,
       collapsed: this.props.collapsed,
-      guided: !!this.props.guided,
       sidebarTip: this.props.sidebarTip,
       toggleSidebar: this.props.toggleSidebar ?? (() => {}),
       groups: this.props.groups ?? [],

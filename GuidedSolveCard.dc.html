@@ -112,7 +112,7 @@ a.gc-opt:is(:link,:visited,:hover,:active){color:var(--text-primary);text-decora
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":288,"height":200},"variant":{"editor":"enum","options":["idle","running"],"default":"idle","tsType":"&#39;idle&#39; | &#39;running&#39;","section":"Variant"},"defaultOpen":{"editor":"boolean","default":false,"tsType":"boolean","section":"Variant"},"title":{"editor":"text","default":"Solving your cube","tsType":"string"},"progress":{"editor":"range","min":0,"max":100,"step":1,"default":35,"tsType":"number","section":"Variant"},"restartHref":{"editor":"text","default":"CubeTeacher.dc.html?guided","tsType":"string"}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":288,"height":200},"variant":{"editor":"enum","options":["idle","running"],"default":"idle","tsType":"&#39;idle&#39; | &#39;running&#39;","section":"Variant"},"defaultOpen":{"editor":"boolean","default":false,"tsType":"boolean","section":"Variant"},"title":{"editor":"text","default":"Solving your cube","tsType":"string"},"progress":{"editor":"range","min":0,"max":100,"step":1,"default":35,"tsType":"number","section":"Variant"},"restartHref":{"editor":"text","default":"CubeTeacher.dc.html","tsType":"string"}}'>
 class Component extends DCLogic {
   state = { open: !!this.props.defaultOpen };
 
@@ -148,7 +148,7 @@ class Component extends DCLogic {
       open, openAttr: open ? 'true' : 'false',
       toggle: this.toggle, cardClick: this.cardClick,
       title: p.title ?? 'Solving your cube', progress, progressPct: `${progress}%`,
-      restartHref: p.restartHref ?? 'CubeTeacher.dc.html?guided',
+      restartHref: p.restartHref ?? 'CubeTeacher.dc.html',
       rootRef: this._r || (this._r = el => { this.root = el; }),
       popRef: this._p || (this._p = el => { this.pop = el; })
     };
