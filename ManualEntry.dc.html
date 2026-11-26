@@ -138,7 +138,7 @@
     </div>
   </section>
 
-  <dc-import name="CubeProgress" faces="{{ faces }}" pose="{{ step }}" done="{{ isDone }}" now-colour="{{ now.colour }}" now-title="{{ now.title }}" now-sub="{{ now.sub }}" strip="{{ strip }}" strip-interactive="{{ yes }}" label="3D cube, filling in as you enter each side" restart-label="Start over" on-restart="{{ restart }}" check-label="Check my cube" on-check="{{ check }}" hint-size="100%,100%"></dc-import>
+  <dc-import name="CubeProgress" faces="{{ faces }}" pose="{{ step }}" done="{{ isDone }}" now-colour="{{ now.colour }}" now-title="{{ now.title }}" now-sub="{{ now.sub }}" strip="{{ strip }}" strip-interactive="{{ yes }}" label="3D cube, filling in as you enter each side" restart-label="Start over" on-restart="{{ restart }}" check-label="Solve my cube" on-check="{{ check }}" notice="{{ notice }}" hint-size="100%,100%"></dc-import>
 </div>
 
 </x-dc>
@@ -345,6 +345,11 @@ class Component extends DCLogic {
   back = () => { const S = this.state; if (S.step > 0) this.go(S.step - 1); };
 
   // ---------------------------------------------------------------- view
+  noticeFor(S) {
+    const key = S.scene === 'done' ? 'ok' : S.scene === 'invalid' || (S.scene === 'turn' && S.suspects.length) ? S.suspects : null;
+    if (key !== this._noticeKey) { this._noticeKey = key; this._notice = key && this.cc.verdictNotice(key === 'ok' ? { ok: true } : { ok: false, suspects: key }); }
+    return this._notice;
+  }
   lineFor(S, left, eraser) {
     const C = this.cc, f = C.FACES[S.step], col = C.NAMES[f.key];
     const icon = (icon, text, tone) => ({ lead: 'icon', icon, text, tone: tone || 'neutral', dot: '' });
@@ -356,8 +361,6 @@ class Component extends DCLogic {
         return dot(f.key, k === 'tip' ? `Tip ${col} toward you` : k === 'tipr' ? `Tip ${col} up toward you` : k === 'flip' ? `Flip to ${col}` : `Turn to ${col}`);
       }
       case 'done': return icon('tick-02', 'All 6 sides', 'ok');
-      // Short enough to fit beside Back and Check on a laptop; the flagged pips say which sides.
-      case 'invalid': return icon('alert-circle', S.suspects.length ? 'Check the marked sides' : 'Stickers don’t fit. Check each side', 'warn');
     }
     if (eraser) return icon('eraser', `All 9 ${C.NAMES[S.sel]} placed · tap to clear`);
     if (left === 0) return icon('tick-02', `${C.titleCase(col)} done`, 'ok');
@@ -421,6 +424,8 @@ class Component extends DCLogic {
       nextText: allFull ? 'Check cube' : 'Next side',
       next: this.next, back: this.back, restart: this.restart, check: this.check,
       step: S.step, faces: this.facesFor(S.caps),
+      // The verdict lives in the cube panel, the same place the camera page shows it.
+      notice: this.noticeFor(S),
       now: isDone
         ? { colour: C.colourVar('G'), title: 'Cube entered', sub: '6/6' }
         : { colour: C.colourVar(f.key), title: f.name, sub: `${C.titleCase(C.NAMES[f.key])} centre · ${S.step + 1}/6` },

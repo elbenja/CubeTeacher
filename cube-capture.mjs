@@ -32,6 +32,8 @@ const edgePieces = ['UR', 'UF', 'UL', 'UB', 'DR', 'DF', 'DL', 'DB', 'FR', 'FL', 
 const parity = permutation => permutation.reduce((count, value, i) => count + permutation.slice(i + 1).filter(other => value > other).length, 0) % 2;
 const slotFaces = slot => [...new Set(slot.map(index => ['U', 'R', 'F', 'D', 'L', 'B'][Math.floor(index / 9)]))];
 const fail = (message, suspects = []) => ({ ok: false, message, suspects });
+// The sides touched by any piece that shows up more than once.
+const twins = (pieces, slots) => [...new Set(slots.filter((_, i) => pieces.indexOf(pieces[i]) !== pieces.lastIndexOf(pieces[i])).flatMap(slotFaces))];
 function localSuspects(stickers) {
   for (const slot of cornerSlots) {
     const colors = slot.map(index => stickers[index]), twist = colors.findIndex(color => color === 'U' || color === 'D');
@@ -66,7 +68,7 @@ export function validateCube(faces) {
     if (piece < 0) return fail('A corner has colors that cannot meet on this cube. Check the captured faces.', slotFaces(slot));
     corners.push(piece); cornerTwists.push(twist);
   }
-  if (new Set(corners).size !== 8) return fail('A corner piece appears twice or is missing. Check the captured faces.');
+  if (new Set(corners).size !== 8) return fail('A corner piece appears twice or is missing. Check the captured faces.', twins(corners, cornerSlots));
 
   const edges = [], edgeFlips = [];
   for (const slot of edgeSlots) {
@@ -76,7 +78,7 @@ export function validateCube(faces) {
     if (flipped < 0) return fail('An edge has colors that cannot meet on this cube. Check the captured faces.', slotFaces(slot));
     edges.push(flipped); edgeFlips.push(piece < 0 ? 1 : 0);
   }
-  if (new Set(edges).size !== 12) return fail('An edge piece appears twice or is missing. Check the captured faces.');
+  if (new Set(edges).size !== 12) return fail('An edge piece appears twice or is missing. Check the captured faces.', twins(edges, edgeSlots));
   if (cornerTwists.reduce((sum, value) => sum + value, 0) % 3) return fail('The corner orientations do not form a possible cube. Check sticker directions, especially the up and down faces.');
   if (edgeFlips.reduce((sum, value) => sum + value, 0) % 2) return fail('The edge orientations do not form a possible cube. Check sticker directions.');
   if (parity(corners) !== parity(edges)) return fail('The corner and edge positions disagree. Check for a face captured in the wrong direction.');
@@ -132,6 +134,65 @@ export function checkCaptures(captures) {
   const result = validateCube(toPhysical(captures));
   return { ok: result.ok, message: result.message, suspects: (result.suspects || []).map(l => STEP_OF_LETTER[l]) };
 }
+
+// Re-read a finished scan against its own six centres. A centre's colour is known (it never
+// moves), so the six centres are a colour chart shot in the user's own light; every other
+// sticker takes the colour of the centre it looks most like. That separates red from orange
+// under warm bulbs, where fixed hue cut-offs slide. A cube has nine of each colour, so when
+// one colour comes out over, its least certain stickers go to the colour that's short.
+// Counting can't see two stickers that traded colours (a red read as orange and an orange as
+// red), but the cube can: almost no trade leaves a cube that could exist. So if the result is
+// impossible, the cheapest one or two trades that make it possible are taken back.
+// samples: six sides in capture order, each nine [r, g, b] readings, as previewed (mirrored
+// says which sides were read from a mirrored preview). Returns six sides of keys.
+export function classifyByCentres(samples, mirrored = UNMIRRORED) {
+  const chroma = ([r, g, b]) => { const s = r + g + b || 1; return [r / s, g / s, b / s]; };
+  const keys = FACES.map(f => f.key), refs = samples.map(side => chroma(side[4]));
+  const cells = [];
+  samples.forEach((side, s) => side.forEach((rgb, i) => {
+    if (i === 4) return;
+    const c = chroma(rgb), d = refs.map(ref => Math.hypot(c[0] - ref[0], c[1] - ref[1], c[2] - ref[2]));
+    cells.push({ s, i, d, at: d.indexOf(Math.min(...d)) });
+  }));
+  const count = keys.map((_, k) => cells.filter(c => c.at === k).length);
+  for (let guard = 0; guard < cells.length && count.some(n => n > 8); guard++) {
+    let best = null;
+    for (const c of cells) if (count[c.at] > 8) count.forEach((n, k) => {
+      if (n < 8 && (!best || c.d[k] - c.d[c.at] < best.cost)) best = { c, k, cost: c.d[k] - c.d[c.at] };
+    });
+    if (!best) break;
+    count[best.c.at]--; count[best.k]++; best.c.at = best.k;
+  }
+  const build = () => {
+    const out = samples.map((_, s) => Array(9).fill(keys[s]));
+    cells.forEach(c => { out[c.s][c.i] = keys[c.at]; });
+    return out;
+  };
+  const possible = () => validateCube(normalizeCaptured(build(), mirrored)).ok;
+  if (possible()) return build();
+  const trade = ({ a, b }) => { [a.at, b.at] = [b.at, a.at]; };
+  const trades = [];
+  cells.forEach((a, n) => cells.slice(n + 1).forEach(b => {
+    if (a.at !== b.at) trades.push({ a, b, cost: a.d[b.at] - a.d[a.at] + b.d[a.at] - b.d[b.at] });
+  }));
+  trades.sort((x, y) => x.cost - y.cost);
+  for (const t of trades) { trade(t); if (possible()) return build(); trade(t); }
+  const near = trades.slice(0, 60);
+  let best = null;
+  near.forEach((x, n) => near.slice(n + 1).forEach(y => {
+    if ((best && x.cost + y.cost >= best.cost) || [y.a, y.b].some(c => c === x.a || c === x.b)) return;
+    trade(x); trade(y);
+    if (possible()) best = { x, y, cost: x.cost + y.cost };
+    trade(y); trade(x);
+  }));
+  if (best) { trade(best.x); trade(best.y); }
+  return build();
+}
+
+// The verdict on a finished cube, worded once for every way of entering it.
+export const verdictNotice = check => check.ok
+  ? { tone: 'ok', icon: 'tick-02', text: 'Every sticker fits' }
+  : { tone: 'warn', icon: 'alert-circle', text: check.suspects.length ? 'Check the marked sides' : 'Stickers don’t fit. Check each side' };
 
 // A legal scramble (R U F' L2 D B), one face per capture step, written as a mirrored preview
 // shows it and flipped once here into the camera's own view. Drives the demo feed and the

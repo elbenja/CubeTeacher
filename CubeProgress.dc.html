@@ -27,7 +27,11 @@
    entered now, and six progress pips. Shared by camera capture and manual entry, which
    both hand it the faces entered so far and which side is current.
    Variants: mirrored (camera preview flipped); stripInteractive (pips reopen a side);
-   done (the cube spins, can be dragged, and the next actions appear). */
+   done (the cube spins, can be dragged, and the next actions appear). A done cube is never
+   mirrored: it turns round to the way the cube really is, so it can be checked against it.
+   notice is the verdict on the cube (stickers fit, or don't): it always sits here, under the
+   pips, however the cube was entered. checkDisabled holds the main action back until the cube
+   is possible; onFix adds a way to go and correct it. */
 [data-sc-name="CubeProgress"]{display:flex;min-width:0;min-height:0}
 .cp{position:relative;flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0;padding:var(--panel-pad);border-radius:var(--radius-3xl);background:var(--surface-float);box-shadow:var(--shadow-panel);font-family:var(--font-sans);letter-spacing:var(--tracking-snug);color:var(--text-primary)}
 .cp-head{display:flex;align-items:center;gap:var(--space-5);padding-left:var(--space-2)}
@@ -60,8 +64,13 @@ button.cp-pip{cursor:default}
 button.cp-pip:not(:disabled){cursor:pointer}
 button.cp-pip:not(:disabled):hover{transform:translateY(-2px)}
 button.cp-pip:focus-visible{outline:2px solid var(--border-focus);outline-offset:var(--ring-focus-offset)}
-.cp-acts{display:flex;flex-direction:column-reverse;gap:var(--space-4);margin-top:var(--space-8);animation:dc-float-in var(--dur-base) var(--ease-out)}
+.cp-notice{display:flex;margin-top:var(--space-6);animation:dc-float-in var(--dur-base) var(--ease-out)}
+.cp-notice [data-sc-name="StatusLine"]{display:flex;flex:1 1 auto;min-width:0}
+.cp-notice .sl{flex:1 1 auto}
+.cp-acts{display:flex;flex-direction:column;gap:var(--space-4);margin-top:var(--space-6);animation:dc-float-in var(--dur-base) var(--ease-out)}
 .cp-acts .dc-btn{width:100%}
+.cp-acts-2{display:flex;gap:var(--space-4)}
+.cp-acts-2 .dc-btn{flex:1 1 0;width:auto}
 @media (max-width:760px){
   .cp{padding:var(--space-6)}
   .cp-well{margin:var(--space-4) 0}
@@ -73,11 +82,12 @@ button.cp-pip:focus-visible{outline:2px solid var(--border-focus);outline-offset
   .cp-now-s{white-space:nowrap}
   .cp-strip{margin:0 0 0 auto;padding:0;border-top:0;gap:var(--space-2)}
   .cp-pip{width:22px;height:22px;border-radius:6px}
-  .cp-acts{flex-direction:row;align-items:center;margin-top:var(--space-6)}
+  .cp-acts{flex-flow:row-reverse wrap;align-items:center}
+  .cp-acts-2{display:contents}
   .cp-acts .dc-btn{width:auto;flex:0 0 auto}
   .cp-acts .dc-btn--accent{flex:1 1 auto}
 }
-@media (prefers-reduced-motion:reduce){.cp-pip.is-flag,.cp-acts,.cp-hint{animation:none}.cp-host{transition:none}}
+@media (prefers-reduced-motion:reduce){.cp-pip.is-flag,.cp-acts,.cp-notice,.cp-hint{animation:none}.cp-host{transition:none}}
 </style>
 </helmet>
 
@@ -115,16 +125,24 @@ button.cp-pip:focus-visible{outline:2px solid var(--border-focus);outline-offset
       </div>
     </sc-if>
   </div>
+  <sc-if value="{{ hasNotice }}" hint-placeholder-val="{{ false }}">
+    <div class="cp-notice"><dc-import name="StatusLine" surface="sunken" lead="icon" text="{{ notice.text }}" icon="{{ notice.icon }}" tone="{{ notice.tone }}" hint-size="100%,40px"></dc-import></div>
+  </sc-if>
   <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
     <div class="cp-acts">
-      <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="quiet" icon="reload" onClick="{{ onRestart }}" hint-size="120px,34px">{{ restartLabel }}</x-import>
-      <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="accent" size="lg" icon-end="arrow-right-02" magnetic="{{ yes }}" onClick="{{ onCheck }}" hint-size="100%,40px">{{ checkLabel }}</x-import>
+      <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="accent" size="lg" icon-end="arrow-right-02" magnetic="{{ yes }}" disabled="{{ checkOff }}" onClick="{{ onCheck }}" hint-size="100%,40px">{{ checkLabel }}</x-import>
+      <div class="cp-acts-2">
+        <sc-if value="{{ hasFix }}" hint-placeholder-val="{{ false }}">
+          <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="outline" icon="paint-board" onClick="{{ onFix }}" hint-size="120px,34px">{{ fixLabel }}</x-import>
+        </sc-if>
+        <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="quiet" icon="reload" onClick="{{ onRestart }}" hint-size="120px,34px">{{ restartLabel }}</x-import>
+      </div>
     </div>
   </sc-if>
 </aside>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":420,"height":620},"faces":{"editor":null,"tsType":"{ U, R, F, D, L, B: (string | null)[] | null }"},"pose":{"editor":"int","min":0,"max":5,"default":0,"tsType":"number","section":"State"},"done":{"editor":"boolean","default":false,"tsType":"boolean","section":"State"},"mirrored":{"editor":"boolean","default":false,"tsType":"boolean","section":"Variant"},"stripInteractive":{"editor":"boolean","default":false,"tsType":"boolean","section":"Variant"},"nowColour":{"editor":null,"tsType":"string"},"nowTitle":{"editor":null,"tsType":"string"},"nowSub":{"editor":null,"tsType":"string"},"strip":{"editor":null,"tsType":"{ colour: string, done?: boolean, now?: boolean, flagged?: boolean, light?: boolean, label?: string, open?: () =&gt; void }[]"},"label":{"editor":null,"tsType":"string"},"restartLabel":{"editor":null,"tsType":"string"},"onRestart":{"editor":null,"tsType":"() =&gt; void"},"checkLabel":{"editor":null,"tsType":"string"},"onCheck":{"editor":null,"tsType":"() =&gt; void"}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":420,"height":620},"faces":{"editor":null,"tsType":"{ U, R, F, D, L, B: (string | null)[] | null }"},"pose":{"editor":"int","min":0,"max":5,"default":0,"tsType":"number","section":"State"},"done":{"editor":"boolean","default":false,"tsType":"boolean","section":"State"},"mirrored":{"editor":"boolean","default":false,"tsType":"boolean","section":"Variant"},"stripInteractive":{"editor":"boolean","default":false,"tsType":"boolean","section":"Variant"},"nowColour":{"editor":null,"tsType":"string"},"nowTitle":{"editor":null,"tsType":"string"},"nowSub":{"editor":null,"tsType":"string"},"strip":{"editor":null,"tsType":"{ colour: string, done?: boolean, now?: boolean, flagged?: boolean, light?: boolean, label?: string, open?: () =&gt; void }[]"},"label":{"editor":null,"tsType":"string"},"restartLabel":{"editor":null,"tsType":"string"},"onRestart":{"editor":null,"tsType":"() =&gt; void"},"checkLabel":{"editor":null,"tsType":"string"},"checkDisabled":{"editor":"boolean","default":false,"tsType":"boolean","section":"State"},"notice":{"editor":null,"tsType":"{ tone: &#39;warn&#39; | &#39;ok&#39;, icon: string, text: string } | null"},"fixLabel":{"editor":null,"tsType":"string"},"onFix":{"editor":null,"tsType":"() =&gt; void"},"onCheck":{"editor":null,"tsType":"() =&gt; void"}}'>
 const reducedMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const noop = () => {};
 const SAMPLE_STRIP = ['var(--cube-green)', 'var(--cube-red)', 'var(--cube-blue)', 'var(--cube-orange)', 'var(--cube-white)', 'var(--cube-yellow)']
@@ -237,17 +255,19 @@ class Component extends DCLogic {
       this.userDragged = true; clearInterval(this.spin);
       if (this.well) this.well.classList.add('is-drag');
     });
-    cv.addEventListener('pointermove', e => { if (d && this.props.mirrored) this.viewer.want.theta = d.t + (e.clientX - d.x) * 0.0085; });
+    cv.addEventListener('pointermove', e => { if (d && this.flipped()) this.viewer.want.theta = d.t + (e.clientX - d.x) * 0.0085; });
     const end = () => { d = null; if (this.well) this.well.classList.remove('is-drag'); };
     cv.addEventListener('pointerup', end);
     cv.addEventListener('pointercancel', end);
   }
 
+  flipped() { return !!this.props.mirrored && !this.props.done; }
+
   renderVals() {
     const p = this.props, interactive = !!p.stripInteractive;
     return {
       yes: true,
-      mirrored: String(!!p.mirrored), done: !!p.done, waiting: !this.state.engineReady,
+      mirrored: String(this.flipped()), done: !!p.done, waiting: !this.state.engineReady,
       label: p.label ?? '3D cube, filling in as each side is entered',
       nowColour: p.nowColour ?? 'var(--cube-green)', nowTitle: p.nowTitle ?? 'Front', nowSub: p.nowSub ?? 'Green centre · 1/6',
       stripInteractive: interactive, stripStatic: !interactive,
@@ -256,7 +276,9 @@ class Component extends DCLogic {
         cls: [f.done ? 'is-done' : '', f.now ? 'is-now' : '', f.flagged ? 'is-flag' : '', f.light ? 'is-light' : ''].join(' ')
       })),
       restartLabel: p.restartLabel ?? 'Start over', onRestart: p.onRestart ?? noop,
-      checkLabel: p.checkLabel ?? 'Check my cube', onCheck: p.onCheck ?? noop,
+      checkLabel: p.checkLabel ?? 'Solve my cube', onCheck: p.onCheck ?? noop, checkOff: !!p.checkDisabled,
+      hasNotice: !!p.notice, notice: p.notice || { text: '' },
+      hasFix: !!p.onFix, fixLabel: p.fixLabel ?? 'Fix colours', onFix: p.onFix ?? noop,
       hostRef: this._h || (this._h = el => { this.host = el; }),
       wellRef: this._w || (this._w = el => { this.well = el; })
     };

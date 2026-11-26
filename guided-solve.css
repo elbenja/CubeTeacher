@@ -25,6 +25,7 @@ html, body { margin: 0; height: 100%; background: var(--surface-canvas); overflo
   border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--icon-default);
   font-size: var(--icon-size-xl);
 }
+.gs-badge.is-warn { background: var(--amber-50); color: var(--gray-900); }
 .gs-badge.is-ok { background: var(--green-500); color: var(--gray-0); animation: gs-pop var(--dur-slower) var(--ease-spring-out); }
 @keyframes gs-pop { from { transform: scale(0.4); opacity: 0; } }
 

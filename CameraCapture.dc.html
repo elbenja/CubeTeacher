@@ -93,7 +93,7 @@
 .cc-card h2{margin:var(--space-2) 0 0;font:var(--type-panel-title)}
 .cc-card p{margin:0;font:var(--type-caption);color:var(--gray-400);text-wrap:pretty}
 .cc-card .cc-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-4);margin-top:var(--space-6)}
-.cc-card .gs-badge:not(.is-ok){background:rgba(255,255,255,.1)}
+.cc-card .gs-badge:not(.is-ok,.is-warn){background:rgba(255,255,255,.1)}
 
 @media (max-width:760px){
   /* shorter viewfinder on a phone: a smaller frame, a touch lower, keeps the stickers clear of the top bar and the line */
@@ -153,7 +153,7 @@
       </div>
     </sc-if>
     <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
-      <div class="cc-card"><span class="gs-badge is-ok"><i class="hgi-stroke hgi-tick-02" aria-hidden="true"></i></span></div>
+      <div class="cc-card"><span class="gs-badge {{ doneCls }}"><i class="hgi-stroke hgi-{{ doneIcon }}" aria-hidden="true"></i></span></div>
     </sc-if>
 
     <sc-if value="{{ hasLine }}" hint-placeholder-val="{{ true }}">
@@ -161,7 +161,7 @@
     </sc-if>
   </section>
 
-  <dc-import name="CubeProgress" faces="{{ faces }}" pose="{{ step }}" done="{{ isDone }}" mirrored="{{ mirrored }}" now-colour="{{ now.colour }}" now-title="{{ now.title }}" now-sub="{{ now.sub }}" strip="{{ strip }}" label="3D cube, filling in as each side is captured" restart-label="Scan again" on-restart="{{ restart }}" check-label="Check my cube" on-check="{{ check }}" hint-size="100%,100%"></dc-import>
+  <dc-import name="CubeProgress" faces="{{ faces }}" pose="{{ step }}" done="{{ isDone }}" mirrored="{{ mirrored }}" now-colour="{{ now.colour }}" now-title="{{ now.title }}" now-sub="{{ now.sub }}" strip="{{ strip }}" label="3D cube, filling in as each side is captured" restart-label="Scan again" on-restart="{{ restart }}" check-label="Solve my cube" on-check="{{ check }}" check-disabled="{{ checkOff }}" notice="{{ notice }}" fix-label="Fix colours" on-fix="{{ fix }}" hint-size="100%,100%"></dc-import>
 </div>
 
 </x-dc>
@@ -231,7 +231,7 @@ class Component extends DCLogic {
     const saved = C.session.load(), caps = saved ? saved.map(c => C.isComplete(c) ? c.slice() : null) : Array(6).fill(null);
     const first = caps.findIndex(c => !c);
     this.startStep = Math.max(0, first);
-    this.setState({ scene: first < 0 ? 'done' : 'start', step: first < 0 ? 5 : first, caps, capMirror: Array(6).fill(false), hold: 0, read: null, seen: null, mirrored: p.mirrored ?? true });
+    this.setState({ scene: first < 0 ? 'done' : 'start', step: first < 0 ? 5 : first, caps, rgbs: Array(6).fill(null), capMirror: Array(6).fill(false), hold: 0, read: null, seen: null, mirrored: p.mirrored ?? true });
     if (first < 0) return;
     this.demoMode = this.demo || p.source === 'demo';
     if (this.demoMode) this.startDemo(); else this.startCamera();
@@ -252,15 +252,27 @@ class Component extends DCLogic {
   restart = () => { this.halt(); this.stopCamera(); this.cc.session.clear(); this.boot(); };
   retry = () => { this.halt(); this.setState({ scene: 'start' }); this.startCamera(); };
   toggleMirror = () => this.setState(s => ({ mirrored: !s.mirrored, hold: 0 }));
-  // Check the finished cube: a possible cube goes on to the solve guide; one that can't
-  // exist opens manual entry, where the sides to look at are flagged and can be fixed.
-  check = () => {
-    const C = this.cc, S = this.state;
-    const caps = S.caps.map((c, i) => c ? (S.capMirror[i] ? C.mirror(c) : c) : null);
-    if (!caps.every(C.isComplete)) return;
-    C.session.save(caps);
-    location.href = C.checkCaptures(caps).ok ? 'SolveGuide.dc.html' : 'ManualEntry.dc.html';
-  };
+  // The finished scan is checked as soon as the sixth side lands. A possible cube can go on
+  // to the solve guide; one that can't exist (a misread sticker, usually) holds Solve back
+  // and offers manual entry, where the sides to look at are flagged and can be fixed.
+  verdictFor(S) {
+    if (this._vFor !== S.caps || this._vMirror !== S.capMirror) {
+      const C = this.cc;
+      this._vFor = S.caps; this._vMirror = S.capMirror;
+      const caps = S.caps.map((c, i) => c ? (S.capMirror[i] ? C.mirror(c) : c) : null);
+      const full = caps.every(C.isComplete);
+      this._v = { caps, check: full ? C.checkCaptures(caps) : null };
+    }
+    return this._v;
+  }
+  leave(href, needOk) {
+    const v = this.verdictFor(this.state);
+    if (!v.check || (needOk && !v.check.ok)) return;
+    this.cc.session.save(v.caps);
+    location.href = href;
+  }
+  check = () => this.leave('SolveGuide.dc.html', true);
+  fix = () => this.leave('ManualEntry.dc.html', false);
 
   // Simulated session (?demo or the source tweak): the same lines and motion a real scan
   // goes through, with a few rough patches on the way.
@@ -292,11 +304,12 @@ class Component extends DCLogic {
     const f = now => { if (run !== this.run) return; const v = Math.min(1, (now - t0) / ms); this.setState({ hold: v }); if (v < 1) this.raf = requestAnimationFrame(f); };
     this.raf = requestAnimationFrame(f);
   }
-  capture(step, cells, mirrored) {
+  capture(step, cells, mirrored, rgb) {
     this.setState(s => {
       const caps = s.caps.slice(); caps[step] = cells.slice();
       const capMirror = s.capMirror.slice(); capMirror[step] = mirrored;
-      return { caps, capMirror };
+      const rgbs = (s.rgbs || Array(6).fill(null)).slice(); rgbs[step] = rgb || null;
+      return { caps, capMirror, rgbs };
     });
     const fl = this.flashEl;
     if (fl) { fl.classList.remove('is-on'); void fl.offsetWidth; fl.classList.add('is-on'); }
@@ -398,10 +411,14 @@ class Component extends DCLogic {
     if (hold >= 1) {
       const step = S.step, run = this.run;
       this.setState({ scene: 'captured' });
-      this.capture(step, p.colours, S.mirrored);
+      this.capture(step, p.colours, S.mirrored, p.rgb);
       this.t = setTimeout(() => {
         if (run !== this.run) return;
-        if (step === 5) { this.setState({ scene: 'done' }); this.stopCamera(); return; }
+        if (step === 5) {
+          // With all six centres seen, re-read every sticker against them (see classifyByCentres).
+          this.setState(s => s.rgbs && s.rgbs.every(Boolean) ? { scene: 'done', caps: C.classifyByCentres(s.rgbs, s.capMirror) } : { scene: 'done' });
+          this.stopCamera(); return;
+        }
         this.turnAt = performance.now();
         this.setState({ scene: 'turn', step: step + 1, hold: 0, read: null });
       }, CAPTURED_MS);
@@ -425,7 +442,7 @@ class Component extends DCLogic {
       case 'hold': return { lead: 'ring', text: 'Hold still', icon: '', dot: '', tone: 'neutral' };
       case 'captured': return icon('tick-02', `${C.titleCase(col)} done`, 'ok');
       case 'turn': return dot(f.key, S.step === 4 ? 'Tip white to the camera' : S.step === 5 ? 'Flip to yellow' : `Turn to ${col}`);
-      case 'done': return icon('tick-02', 'All 6 sides', 'ok');
+      case 'done': return this.verdictFor(S).check?.ok === false ? icon('alert-circle', 'Colours need a check', 'warn') : icon('tick-02', 'All 6 sides', 'ok');
       default: return null;
     }
   }
@@ -469,6 +486,8 @@ class Component extends DCLogic {
       turn ? 'is-turn' : '', isDone ? 'is-done' : '', S.scene === 'blocked' || S.scene === 'start' ? 'is-off' : ''
     ].join(' ');
     const line = this.lineFor(S);
+    const verdict = isDone ? this.verdictFor(S).check : null, bad = !!verdict && !verdict.ok;
+    if (verdict !== this._noticeOf) { this._noticeOf = verdict; this._notice = verdict && C.verdictNotice(verdict); }
     // Tiles land diagonally from the top left, 30ms apart (--k).
     const ORDER = [0, 1, 2, 1, 2, 3, 2, 3, 4];
     return Object.assign({
@@ -485,13 +504,15 @@ class Component extends DCLogic {
       readCells: readSrc.map((k, i) => ({ colour: C.colourVar(k), k: ORDER[i] })),
       isBlocked: S.scene === 'blocked', blocked: BLOCKED[S.blockedKind] || BLOCKED.blocked,
       isDone, retry: this.retry, restart: this.restart, check: this.check,
+      checkOff: bad, fix: bad ? this.fix : null, notice: this._notice,
+      doneCls: bad ? 'is-warn' : 'is-ok', doneIcon: bad ? 'alert-circle' : 'tick-02',
       hasLine: !!line && S.scene !== 'blocked', line: line || { text: '' },
       holdPct: Math.round(S.hold * 100), holdFrac: String(Math.round(S.hold * 100) / 100),
       faces: this.facesFor(S),
       now: isDone
         ? { colour: C.colourVar('G'), title: 'Cube captured', sub: '6/6' }
         : { colour: C.colourVar(f.key), title: f.name, sub: `${C.titleCase(C.NAMES[f.key])} centre · ${S.step + 1}/6` },
-      strip: C.FACES.map((x, i) => ({ colour: C.colourVar(x.key), done: !!S.caps[i], now: !isDone && i === S.step && !S.caps[i], light: C.isLight(x.key) }))
+      strip: C.FACES.map((x, i) => ({ colour: C.colourVar(x.key), done: !!S.caps[i], now: !isDone && i === S.step && !S.caps[i], flagged: bad && verdict.suspects.includes(i), light: C.isLight(x.key) }))
     }, refs);
   }
 }

@@ -112,3 +112,51 @@ test('session hand-off round-trips', () => {
   session.clear();
   assert.equal(session.load(), null);
 });
+
+test('the verdict is worded once: fits, marked sides, or every side', async () => {
+  const { verdictNotice } = await import('./cube-capture.mjs');
+  assert.equal(verdictNotice(checkCaptures(DEMO_CAPTURES)).tone, 'ok');
+  assert.match(verdictNotice({ ok: false, suspects: [1, 4] }).text, /marked sides/);
+  assert.match(verdictNotice({ ok: false, suspects: [] }).text, /each side/);
+});
+
+test('a scan is re-read against its own centres, so warm light does not turn red into orange', async () => {
+  const { classifyByCentres } = await import('./cube-capture.mjs');
+  const base = { W: [230, 230, 222], Y: [232, 208, 32], R: [200, 32, 42], O: [240, 112, 32], G: [16, 160, 80], B: [24, 72, 192] };
+  // A warm bulb: red lifts toward orange, and each side sits in slightly different light.
+  const warm = ([r, g, b], side, i) => { const k = 0.8 + 0.06 * side + 0.01 * i; return [Math.min(255, r * 1.1 * k), g * 1.25 * k + 14, b * 0.7 * k]; };
+  const samples = DEMO_CAPTURES.map((cells, s) => cells.map((key, i) => warm(base[key], s, i)));
+  assert.deepEqual(classifyByCentres(samples), DEMO_CAPTURES);
+  // One sticker read badly enough to sit nearer the wrong centre: the nine-of-each rule pulls it back.
+  const redAt = DEMO_CAPTURES[2].findIndex((k, i) => k === 'R' && i !== 4);
+  samples[2][redAt] = warm([236, 96, 34], 2, redAt);
+  assert.deepEqual(classifyByCentres(samples), DEMO_CAPTURES);
+});
+
+test('stickers that traded colours are traded back, because the cube they make cannot exist', async () => {
+  const { classifyByCentres } = await import('./cube-capture.mjs');
+  const base = { W: [230, 230, 222], Y: [232, 208, 32], R: [200, 32, 42], O: [240, 112, 32], G: [16, 160, 80], B: [24, 72, 192] };
+  const spots = key => DEMO_CAPTURES.flatMap((cells, s) => cells.map((k, i) => [s, i, k])).filter(([, i, k]) => k === key && i !== 4);
+  const make = () => DEMO_CAPTURES.map(cells => cells.map(key => base[key].slice()));
+  // one trade: a red looks orange and an orange looks red
+  let samples = make();
+  const [r1, r2] = spots('R'), [o1, o2] = spots('O');
+  samples[r1[0]][r1[1]] = [236, 104, 34]; samples[o1[0]][o1[1]] = [206, 44, 40];
+  assert.deepEqual(classifyByCentres(samples), DEMO_CAPTURES);
+  // two trades at once
+  samples[r2[0]][r2[1]] = [234, 100, 36]; samples[o2[0]][o2[1]] = [208, 48, 40];
+  assert.deepEqual(classifyByCentres(samples), DEMO_CAPTURES);
+  // read from a mirrored preview, the same holds
+  const flip = side => [2, 1, 0, 5, 4, 3, 8, 7, 6].map(i => side[i]);
+  assert.deepEqual(classifyByCentres(samples.map(flip), Array(6).fill(true)), DEMO_CAPTURES.map(flip));
+});
+
+test('a piece entered twice names the sides it sits on', () => {
+  const caps = DEMO_CAPTURES.map(c => c.slice());
+  const r = caps.flatMap((cells, s) => cells.map((k, i) => [s, i, k])).filter(([, i, k]) => i % 2 === 1 && k === 'R')[0];
+  const o = caps.flatMap((cells, s) => cells.map((k, i) => [s, i, k])).filter(([, i, k]) => i % 2 === 1 && k === 'O')[0];
+  caps[r[0]][r[1]] = 'O'; caps[o[0]][o[1]] = 'R';
+  const v = checkCaptures(caps);
+  assert.equal(v.ok, false);
+  assert.ok(v.suspects.length > 0);
+});
