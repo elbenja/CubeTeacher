@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guided solve: enter colours</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/typography.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/radius.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/elevation.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/motion.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/interactions.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
+<script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
+<link rel="stylesheet" href="cube-tokens.css">
+<link rel="stylesheet" href="guided-solve.css">
+<style>
+/* ---------- entry stage ---------- */
+.me-stage{position:relative;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-14);padding:var(--space-12) var(--space-9) 88px;box-sizing:border-box;border-radius:var(--radius-3xl);background:var(--surface-float);box-shadow:var(--shadow-panel)}
+/* once the cube is in, the palette and side controls step back; the 3D panel carries the next action */
+.me-stage.is-done .me-pal{opacity:0;pointer-events:none;transition:opacity var(--dur-base) var(--ease-out)}
+.me-stage.is-done .me-bottom .dc-btn{visibility:hidden}
+
+/* the face being filled: a real cube face, centre fixed */
+.me-frame{position:relative;width:min(52%,42vh,360px);aspect-ratio:1;flex:0 0 auto}
+.me-face{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));border-radius:var(--face-radius);background:var(--cube-body);box-shadow:var(--face-lift);touch-action:none;user-select:none;-webkit-user-select:none;cursor:var(--cur),pointer;transition:opacity var(--dur-base) var(--ease-out),transform var(--dur-slow) var(--ease-out)}
+.me-cell{position:relative;margin:8%;padding:0;border:0;border-radius:var(--sticker-radius);background:var(--c);cursor:inherit;box-shadow:var(--sticker-gloss);transition:background-color var(--dur-fast) var(--ease-out),transform var(--dur-slow) var(--ease-spring-out)}
+.me-cell:focus-visible{outline:2px solid var(--border-focus);outline-offset:2px}
+.me-cell.is-empty{background:transparent;box-shadow:var(--sticker-slot)}
+/* hovering an empty sticker previews the colour you'd lay down */
+.me-cell.is-empty:hover{background:color-mix(in srgb,var(--sel) 42%,transparent);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--sel) 80%,transparent)}
+.me-cell.is-fill:hover{transform:scale(.96)}
+.me-cell.is-centre{cursor:default}
+.me-cell.is-pop{animation:me-pop 320ms var(--ease-spring-out)}
+@keyframes me-pop{0%{transform:scale(.72)}}
+/* a side completes: the stickers ripple once, corner to corner, and light sweeps across */
+.me-face::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.55) 48%,transparent 66%);background-size:250% 100%;background-position:120% 0;opacity:0}
+.me-face.is-complete::after{animation:me-sheen 760ms var(--ease-out)}
+@keyframes me-sheen{0%{opacity:1;background-position:120% 0}100%{opacity:1;background-position:-120% 0}}
+.me-face.is-complete .me-cell{animation:me-wave 520ms var(--ease-spring-out) backwards;animation-delay:calc(var(--k) * 50ms)}
+@keyframes me-wave{40%{transform:scale(.86)}}
+.me-frame:is(.is-turn,.is-done) .me-face{opacity:0;transform:scale(.9)}
+.me-frame.is-new .me-face{animation:me-in 360ms var(--ease-out)}
+@keyframes me-in{from{opacity:0;transform:scale(.94)}}
+.me-frame .gs-badge{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px}
+
+/* palette: pick a colour, see how many are left. A used-up colour becomes the eraser. */
+.me-pal{display:flex;gap:var(--space-6);flex:0 0 auto}
+.me-sw{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);padding:0;border:0;background:none;cursor:pointer;font:var(--type-mono);color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.me-sw-c{display:grid;place-items:center;width:44px;height:44px;border-radius:var(--radius-lg);background:var(--c);box-shadow:var(--sticker-edge),var(--shadow-pill);transition:transform var(--dur-slow) var(--ease-spring-out),box-shadow var(--dur-fast) var(--ease-out),opacity var(--dur-base) var(--ease-out)}
+.me-sw.is-light .me-sw-c{box-shadow:var(--sticker-edge-light),var(--shadow-pill)}
+.me-sw:hover .me-sw-c{transform:translateY(-2px)}
+.me-sw:active .me-sw-c{transform:scale(var(--press-scale-sm));transition-duration:var(--dur-instant)}
+.me-sw:focus-visible{outline:none}
+.me-sw:focus-visible .me-sw-c{box-shadow:var(--sticker-edge),var(--shadow-focus)}
+.me-sw.is-sel{color:var(--text-primary)}
+.me-sw.is-sel .me-sw-c{transform:translateY(-4px);box-shadow:var(--sticker-edge),var(--ring-selected),0 8px 16px -6px rgba(0,0,0,.3);animation:dc-mi-pop var(--dur-slow) var(--ease-spring-out)}
+.me-sw-c i{font-size:var(--icon-size-md);color:var(--gray-0);opacity:0;transform:scale(.5);transition:opacity var(--dur-fast) var(--ease-out),transform var(--dur-slow) var(--ease-spring-out)}
+.me-sw.is-light .me-sw-c i{color:var(--gray-900)}
+.me-sw.is-out{color:var(--text-disabled)}
+.me-sw.is-out .me-sw-c{opacity:.4}
+.me-sw.is-out .me-sw-c i{opacity:1;transform:none}
+.me-sw.is-sel.is-out .me-sw-c{opacity:1}
+/* counts roll as stickers go down */
+.me-sw-n{display:block;transition:color var(--dur-fast) var(--ease-out)}
+.me-sw-n.is-tick{animation:me-roll 260ms var(--ease-out)}
+@keyframes me-roll{from{opacity:0;transform:translateY(-6px)}}
+
+/* bottom bar: back, the status line, next */
+.me-bottom{position:absolute;left:var(--space-9);right:var(--space-9);bottom:var(--space-9);display:flex;align-items:center;justify-content:space-between;gap:var(--space-6)}
+.me-bottom .me-sp{flex:1}
+.me-bottom [data-sc-name="StatusLine"]{min-width:0}
+/* Next side, once it unlocks: one ring goes out, then it waits */
+.me-next{position:relative;display:inline-flex;border-radius:var(--radius-md)}
+.me-next .dc-btn:disabled{background:var(--gray-150);color:var(--gray-600)}
+.me-next.is-ready::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 2px var(--blue-500);pointer-events:none;animation:me-ready 900ms var(--ease-out) 120ms both}
+@keyframes me-ready{from{opacity:.7;transform:scale(1)}to{opacity:0;transform:scale(1.18,1.5)}}
+
+@media (max-width:760px){
+  /* phone: the status line gets its own row above Back / Next, so an instruction is never cut off */
+  .me-stage{gap:36px;padding:var(--space-10) var(--space-6) 104px}
+  .me-bottom{left:var(--space-6);right:var(--space-6);bottom:var(--space-6);flex-wrap:wrap;gap:var(--space-4)}
+  .me-bottom .me-sp{display:none}
+  .me-bottom [data-sc-name="StatusLine"]{order:-1;flex:1 0 100%;display:flex;justify-content:center}
+  .me-frame{width:min(48%,26vh)}
+  .me-pal{gap:var(--space-4)}
+  .me-sw-c{width:38px;height:38px}
+}
+@media (prefers-reduced-motion:reduce){
+  .me-cell.is-pop,.me-frame.is-new .me-face,.me-face.is-complete .me-cell,.me-face.is-complete::after,.me-sw.is-sel .me-sw-c,.me-sw-n.is-tick,.me-next.is-ready::after{animation:none}
+}
+</style>
+</helmet>
+
+<div class="gs-capture">
+  <dc-import name="CaptureHeader" mode="manual" hint-size="100%,38px"></dc-import>
+
+  <section class="me-stage {{ stageCls }}" aria-label="Enter colours" ref="{{ stageRef }}">
+    <div class="me-frame {{ frameCls }}">
+      <dc-import name="FaceChips" chips="{{ chips }}" interactive="{{ yes }}" surface="panel" hidden="{{ isDone }}" disabled="{{ isTurn }}" hint-size="100%,100%"></dc-import>
+      <div class="me-face" role="group" aria-label="{{ faceLabel }}" aria-describedby="me-help" style="--sel:{{ selColour }};--cur:{{ cursor }}" ref="{{ faceRef }}" onPointerDown="{{ down }}" onPointerMove="{{ move }}" onKeyDown="{{ key }}">
+        <sc-for list="{{ cells }}" as="c" hint-placeholder-count="9">
+          <button type="button" class="me-cell {{ c.cls }}" style="--c:{{ c.colour }};--k:{{ c.k }}" data-cell="{{ c.i }}" aria-label="{{ c.label }}"></button>
+        </sc-for>
+      </div>
+      <sc-if value="{{ isTurn }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="TurnCue" kind="{{ turn.kind }}" faces="{{ turn.faces }}" loop="{{ no }}" surface="panel" hint-size="100%,100%"></dc-import>
+      </sc-if>
+      <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+        <span class="gs-badge is-ok"><i class="hgi-stroke hgi-tick-02" aria-hidden="true"></i></span>
+      </sc-if>
+    </div>
+    <p id="me-help" class="gs-sr">Pick a colour, then tap or drag across stickers. Tapping a sticker that already has the colour clears it. Number keys 1 to 6 pick colours; arrow keys move between stickers.</p>
+
+    <div class="me-pal" role="radiogroup" aria-label="Sticker colour">
+      <sc-for list="{{ swatches }}" as="w" hint-placeholder-count="6">
+        <button type="button" class="me-sw {{ w.cls }}" role="radio" aria-checked="{{ w.checked }}" aria-label="{{ w.label }}" data-key="{{ w.key }}" onClick="{{ w.pick }}">
+          <span class="me-sw-c" style="--c:{{ w.colour }}"><i class="hgi-stroke hgi-tick-02" aria-hidden="true"></i></span>
+          <span class="me-sw-n" aria-hidden="true">{{ w.left }}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div class="me-bottom">
+      <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="quiet" icon="arrow-left-02" disabled="{{ backOff }}" onClick="{{ back }}" hint-size="80px,34px">Back</x-import>
+      <span class="me-sp"></span>
+      <dc-import name="StatusLine" surface="sunken" text="{{ line.text }}" lead="{{ line.lead }}" icon="{{ line.icon }}" dot="{{ line.dot }}" tone="{{ line.tone }}" hint-size="200px,40px"></dc-import>
+      <span class="me-sp"></span>
+      <span class="me-next {{ readyCls }}"><x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Button" variant="accent" icon-end="arrow-right-02" disabled="{{ nextOff }}" onClick="{{ next }}" hint-size="120px,34px">{{ nextText }}</x-import></span>
+    </div>
+  </section>
+
+  <dc-import name="CubeProgress" faces="{{ faces }}" pose="{{ step }}" done="{{ isDone }}" now-colour="{{ now.colour }}" now-title="{{ now.title }}" now-sub="{{ now.sub }}" strip="{{ strip }}" strip-interactive="{{ yes }}" label="3D cube, filling in as you enter each side" restart-label="Start over" on-restart="{{ restart }}" check-label="Solve my cube" on-check="{{ check }}" notice="{{ notice }}" hint-size="100%,100%"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900},"scene":{"editor":"enum","options":["auto","empty","partial","full","limit","turn","invalid","done"],"default":"auto","tsType":"string","section":"Review a state"},"face":{"editor":"int","min":1,"max":6,"default":1,"tsType":"number","section":"Review a state"}}'>
+// Manual entry: pick a colour, paint the eight stickers of each side (centres are fixed),
+// and turn the cube side by side. Uses the same model as the camera (cube-capture.mjs), so
+// both inputs make the same cube, and the same header, status line, chips, turn cue and 3D panel.
+const TURN_MS = 2300;
+// How a side is seen: which colour is at the top. Sides are stored in their standard capture
+// orientation; turning to a side by its floating sticker can land it rotated, so cells are
+// mapped both ways.
+const ring = (C, i) => [C.NEIGHBOURS[i][0], C.NEIGHBOURS[i][3], C.NEIGHBOURS[i][1], C.NEIGHBOURS[i][2]]; // up, right, down, left
+const turnsOf = (C, i, up) => Math.max(0, ring(C, i).indexOf(up));
+const viewMap = (C, k) => { let m = [0, 1, 2, 3, 4, 5, 6, 7, 8]; for (let n = 0; n < k; n++) m = C.counterclockwise(m); return m; }; // view cell -> stored cell
+const chipsOf = (C, i, up) => { const r = ring(C, i), k = turnsOf(C, i, up); return { up: r[k], right: r[(k + 1) % 4], down: r[(k + 2) % 4], left: r[(k + 3) % 4] }; };
+const KIND = { right: 'yaw', left: 'yawr', up: 'tip', down: 'tipr', back: 'flip' };
+// The pointer becomes a dot of the picked colour (dashed when the brush is an eraser).
+const cursorFor = (hex, eraser) => `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='14' cy='14' r='10' fill='none' stroke='rgba(0,0,0,0.3)' stroke-width='1'/%3E%3Ccircle cx='14' cy='14' r='8.5' fill='${eraser ? 'white' : '%23' + hex.slice(1)}' stroke='${eraser ? '%23757575' : 'white'}' stroke-width='3' ${eraser ? "stroke-dasharray='3 2.4'" : ''}/%3E%3C/svg%3E") 14 14`;
+const WAVE = [0, 1, 2, 1, 2, 3, 2, 3, 4];
+
+class Component extends DCLogic {
+  state = { ready: false, step: 0, up: 'W', caps: null, sel: 'G', scene: 'edit', warn: null, suspects: [], fresh: 0, move: null };
+
+  async componentDidMount() {
+    try {
+      this.cc = await import(new URL('./cube-capture.mjs', document.baseURI).href);
+    } catch (e) { console.error('[enter-colours] cube model', e); return; }
+    if (this.gone) return;
+    const url = new URL(location.href);
+    if (url.searchParams.has('fresh')) { this.cc.session.clear(); url.searchParams.delete('fresh'); history.replaceState(null, '', url); }
+    this.onUp = () => { this.painting = null; };
+    window.addEventListener('pointerup', this.onUp);
+    window.addEventListener('pointercancel', this.onUp);
+    // 1–6 pick a colour from anywhere on the page.
+    this.onKey = e => {
+      const n = '123456'.indexOf(e.key);
+      if (n >= 0 && !e.metaKey && !e.ctrlKey && !e.altKey && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) this.pick(this.cc.PALETTE[n]);
+    };
+    window.addEventListener('keydown', this.onKey);
+    this.boot();
+  }
+  componentWillUnmount() {
+    this.gone = true;
+    window.removeEventListener('pointerup', this.onUp); window.removeEventListener('pointercancel', this.onUp);
+    window.removeEventListener('keydown', this.onKey);
+    clearTimeout(this.t); clearTimeout(this.wt); clearTimeout(this.ct);
+  }
+  componentDidUpdate(prev) {
+    prev = prev || {};
+    const p = this.props, S = this.state, o = this._ps || {}, C = this.cc;
+    if (!S.ready) return;
+    if (prev.scene !== p.scene || prev.face !== p.face) return this.boot();
+    const full = C.isComplete(S.caps[S.step]), n = C.countColours(S.caps);
+    if (!this.pinned && o.caps && o.caps !== S.caps) C.session.save(S.caps);
+    // Same side, and it just became complete: ripple + sheen.
+    if (o.step === S.step && o.full === false && full && this.faceEl) {
+      const f = this.faceEl; f.classList.remove('is-complete'); void f.offsetWidth; f.classList.add('is-complete');
+      clearTimeout(this.ct); this.ct = setTimeout(() => f.classList.remove('is-complete'), 900);
+    }
+    // Counts that changed roll in.
+    if (o.n && this.stageEl) C.PALETTE.forEach(k => {
+      if (o.n[k] === n[k]) return;
+      const el = this.stageEl.querySelector(`.me-sw[data-key="${k}"] .me-sw-n`);
+      if (el) { el.classList.remove('is-tick'); void el.offsetWidth; el.classList.add('is-tick'); }
+    });
+    this._ps = { step: S.step, caps: S.caps, full, n };
+  }
+
+  // ---------------------------------------------------------------- states
+  boot() {
+    const C = this.cc;
+    clearTimeout(this.t); clearTimeout(this.wt);
+    const scene = this.props.scene || 'auto', i = Math.min(6, Math.max(1, this.props.face ?? 1)) - 1;
+    const fill = n => C.FACES.map((_, k) => k < n ? C.DEMO_CAPTURES[k].slice() : C.blankFace(k));
+    this.pinned = scene !== 'auto';
+    let s = { ready: true, step: 0, up: C.NEIGHBOURS[0][0], caps: fill(0), sel: 'G', scene: 'edit', warn: null, suspects: [], move: null };
+    const at = (k, extra) => ({ ...s, step: k, up: C.NEIGHBOURS[k][0], ...extra });
+    if (scene === 'auto') {
+      // Pick up whatever was entered in this tab, by camera or by hand; centres are always fixed.
+      const saved = C.session.load();
+      if (saved) {
+        const caps = C.FACES.map((x, k) => saved[k] ? saved[k].map((v, j) => j === 4 ? x.key : (v || null)) : C.blankFace(k));
+        const first = caps.findIndex(c => !C.isComplete(c));
+        s = at(first < 0 ? 5 : first, { caps, sel: first < 0 ? 'G' : C.FACES[first].key });
+        if (first < 0) {
+          const v = C.checkCaptures(caps);
+          s = v.ok ? { ...s, scene: 'done' } : { ...s, scene: 'invalid', suspects: v.suspects, step: v.suspects.length ? v.suspects[0] : 5, up: C.NEIGHBOURS[v.suspects.length ? v.suspects[0] : 5][0] };
+        }
+      }
+    }
+    if (scene === 'empty') s = at(i, { caps: fill(i), sel: C.FACES[i].key });
+    if (scene === 'partial') {
+      const caps = fill(i); caps[i] = C.DEMO_CAPTURES[i].map((x, k) => k <= 4 ? x : null);
+      s = at(i, { caps, sel: C.DEMO_CAPTURES[i][5] });
+    }
+    // Every sticker placed, yellow picked: the brush has become an eraser.
+    if (scene === 'limit') s = at(i, { caps: fill(6), sel: 'Y' });
+    if (scene === 'full') s = at(i, { caps: fill(i + 1) });
+    if (scene === 'turn') { const k = Math.max(1, i); s = at(k, { caps: fill(k), scene: 'turn', move: this.plan(k - 1, C.NEIGHBOURS[k - 1][0], k) }); }
+    if (scene === 'invalid') {
+      const caps = fill(6); [caps[2][1], caps[2][3]] = [caps[2][3], caps[2][1]];
+      s = at(5, { caps, scene: 'invalid', suspects: C.checkCaptures(caps).suspects });
+    }
+    if (scene === 'done') s = at(5, { caps: fill(6), scene: 'done' });
+    this.setState(s);
+  }
+  restart = () => {
+    const C = this.cc;
+    C.session.clear();
+    this.setState({ step: 0, up: C.NEIGHBOURS[0][0], caps: C.FACES.map((_, i) => C.blankFace(i)), sel: 'G', scene: 'edit', warn: null, suspects: [], move: null });
+  };
+  check = () => { const C = this.cc; if (C.checkCaptures(this.state.caps).ok) { C.session.save(this.state.caps); location.href = 'SolveGuide.dc.html'; } };
+
+  flash(warn, ms) { clearTimeout(this.wt); this.setState({ warn }); this.wt = setTimeout(() => this.setState({ warn: null }), ms || 1800); }
+  pop(i) { const el = this.faceEl && this.faceEl.querySelector(`[data-cell="${i}"]`); if (el) { el.classList.remove('is-pop'); void el.offsetWidth; el.classList.add('is-pop'); } }
+  // Any colour can be picked. One with all 9 placed turns the brush into an eraser, so placed stickers can be corrected.
+  pick = key => { const S = this.state; if (!S.ready || S.scene === 'turn' || S.scene === 'done') return; this.setState({ sel: key, warn: null }); };
+
+  // Tap paints; tapping a sticker that already has the colour clears it; with a used-up colour every tap clears.
+  // Dragging keeps doing what the first tap did. `i` is a cell as seen; it's stored in standard orientation.
+  apply(i, mode) {
+    const S = this.state, C = this.cc;
+    if (S.scene === 'turn' || S.scene === 'done') return false;
+    if (i === 4) { if (mode === 'start') this.flash({ kind: 'centre' }, 1400); return false; }
+    const at = viewMap(C, turnsOf(C, S.step, S.up))[i];
+    const cur = S.caps[S.step][at];
+    const used = C.countColours(S.caps)[S.sel] >= 9;
+    if (mode === 'start') mode = used || cur === S.sel ? 'erase' : 'paint';
+    if (mode === 'erase' && !cur) return mode;
+    if (mode === 'paint' && cur === S.sel) return mode;
+    if (mode === 'paint' && used) return false;
+    const caps = S.caps.slice(); caps[S.step] = caps[S.step].slice(); caps[S.step][at] = mode === 'erase' ? null : S.sel;
+    // The first change after a failed check clears the flags: the cube is being fixed.
+    const next = S.scene === 'invalid' ? { caps, scene: 'edit', suspects: [] } : { caps };
+    // When the last of a colour goes down, move the brush on to a colour that still has stickers.
+    if (mode === 'paint' && C.countColours(caps)[S.sel] >= 9) {
+      const n = C.countColours(caps), alt = C.PALETTE.find(k => n[k] < 9);
+      if (alt) next.sel = alt;
+    }
+    this.setState(next);
+    if (mode === 'paint') this.pop(i);
+    return mode;
+  }
+  cellAt(e) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const c = el && el.closest && el.closest('[data-cell]');
+    return c && this.faceEl && this.faceEl.contains(c) ? Number(c.dataset.cell) : -1;
+  }
+  down = e => {
+    const i = this.cellAt(e); if (i < 0) return;
+    if (e.target.releasePointerCapture) try { e.target.releasePointerCapture(e.pointerId); } catch (_) {}
+    const mode = this.apply(i, 'start');
+    this.painting = mode ? { mode, last: i } : null;
+  };
+  move = e => {
+    if (!this.painting) return;
+    const i = this.cellAt(e);
+    if (i < 0 || i === this.painting.last) return;
+    this.painting.last = i;
+    if (this.apply(i, this.painting.mode) === false && i !== 4) this.painting = null;
+  };
+  // Enter/Space paint the focused sticker; arrow keys move between stickers, like a grid.
+  key = e => {
+    const t = e.target, i = t && t.dataset && t.dataset.cell != null ? Number(t.dataset.cell) : -1;
+    if (i < 0) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.apply(i, 'start'); return; }
+    const d = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const r = Math.min(2, Math.max(0, Math.floor(i / 3) + d[0])), c = Math.min(2, Math.max(0, (i % 3) + d[1]));
+    const el = this.faceEl && this.faceEl.querySelector(`[data-cell="${r * 3 + c}"]`);
+    if (el) el.focus();
+  };
+
+  // ---------------------------------------------------------------- turning the cube
+  // From side `s` seen with `up` on top, the whole-cube turn that brings side `t` to the front, and what's on top after.
+  plan(s, up, t) {
+    const C = this.cc, F = C.FACES[s].key, T = C.FACES[t].key, ch = chipsOf(C, s, up);
+    const dir = ['up', 'right', 'down', 'left'].find(d => ch[d] === T) || 'back';
+    const newUp = dir === 'up' ? C.OPPOSITE[F] : dir === 'down' ? F : dir === 'back' ? C.OPPOSITE[up] : up;
+    return { from: s, to: t, dir, kind: KIND[dir], newUp, front: F, chips: ch };
+  }
+  go(t) {
+    const S = this.state;
+    if (S.scene === 'turn' || t === S.step || t < 0) return;
+    const m = this.plan(S.step, S.up, t);
+    this.setState({ scene: 'turn', move: m, step: t, up: m.newUp, warn: null });
+    clearTimeout(this.t);
+    // After the turn, a cube still waiting on fixes keeps its flagged sides; otherwise back to editing.
+    this.t = setTimeout(() => this.setState(s2 => ({ scene: s2.scene !== 'turn' ? s2.scene : s2.suspects.length ? 'invalid' : 'edit', fresh: Date.now() })), TURN_MS);
+  }
+  next = () => {
+    const S = this.state, C = this.cc;
+    if (!C.isComplete(S.caps[S.step])) return;
+    if (S.caps.every(C.isComplete)) {
+      const v = C.checkCaptures(S.caps);
+      this.setState(v.ok ? { scene: 'done', suspects: [], warn: null } : { scene: 'invalid', suspects: v.suspects, warn: null });
+      return;
+    }
+    // The next side still to fill, in the usual order.
+    let t = S.step; do { t = (t + 1) % 6; } while (C.isComplete(S.caps[t]));
+    this.go(t);
+  };
+  back = () => { const S = this.state; if (S.step > 0) this.go(S.step - 1); };
+
+  // ---------------------------------------------------------------- view
+  noticeFor(S) {
+    const key = S.scene === 'done' ? 'ok' : S.scene === 'invalid' || (S.scene === 'turn' && S.suspects.length) ? S.suspects : null;
+    if (key !== this._noticeKey) { this._noticeKey = key; this._notice = key && this.cc.verdictNotice(key === 'ok' ? { ok: true } : { ok: false, suspects: key }); }
+    return this._notice;
+  }
+  lineFor(S, left, eraser) {
+    const C = this.cc, f = C.FACES[S.step], col = C.NAMES[f.key];
+    const icon = (icon, text, tone) => ({ lead: 'icon', icon, text, tone: tone || 'neutral', dot: '' });
+    const dot = (key, text) => ({ lead: 'dot', dot: C.colourVar(key), text, icon: '', tone: 'neutral' });
+    if (S.warn && S.warn.kind === 'centre') return icon('information-circle', 'Centres stay fixed');
+    switch (S.scene) {
+      case 'turn': {
+        const k = (S.move || {}).kind;
+        return dot(f.key, k === 'tip' ? `Tip ${col} toward you` : k === 'tipr' ? `Tip ${col} up toward you` : k === 'flip' ? `Flip to ${col}` : `Turn to ${col}`);
+      }
+      case 'done': return icon('tick-02', 'All 6 sides', 'ok');
+    }
+    if (eraser) return icon('eraser', `All 9 ${C.NAMES[S.sel]} placed · tap to clear`);
+    if (left === 0) return icon('tick-02', `${C.titleCase(col)} done`, 'ok');
+    if (left === 8) return dot(f.key, S.step === 0 && S.up === 'W' ? 'Fill green, white on top' : `Fill ${col}`);
+    return dot(S.sel, `${left} to go`);
+  }
+  facesFor(caps) {
+    if (this._facesFor !== caps) { this._facesFor = caps; this._faces = this.cc.toPhysical(caps); }
+    return this._faces;
+  }
+
+  renderVals() {
+    const S = this.state, C = this.cc;
+    const refs = {
+      yes: true, no: false,
+      stageRef: this._st || (this._st = el => { this.stageEl = el; }),
+      faceRef: this._fc || (this._fc = el => { this.faceEl = el; })
+    };
+    if (!S.ready || !C) return Object.assign({ cells: [], swatches: [], chips: [], strip: [], line: { text: '' }, now: {}, turn: {}, isTurn: false, isDone: false, backOff: true, nextOff: true, nextText: 'Next side' }, refs);
+    const f = C.FACES[S.step], turn = S.scene === 'turn', isDone = S.scene === 'done';
+    const map = viewMap(C, turnsOf(C, S.step, S.up));
+    const cur = map.map(j => S.caps[S.step][j]);             // the side as you see it
+    const left = cur.filter(x => !x).length;
+    const n = C.countColours(S.caps), eraser = n[S.sel] >= 9;
+    const m = S.move;
+    // During a turn the stickers around the face belong to the cube as it was held; the one it's turning to pulses.
+    const ch = turn && m ? m.chips : chipsOf(C, S.step, S.up);
+    const allFull = S.caps.every(C.isComplete);
+    return Object.assign({
+      stageCls: isDone ? 'is-done' : '',
+      frameCls: [turn ? 'is-turn' : '', isDone ? 'is-done' : '', S.fresh && !turn ? 'is-new' : ''].join(' '),
+      chips: ['up', 'right', 'down', 'left'].map(d => ({
+        dir: d, colour: C.colourVar(ch[d]), target: turn && m && m.dir === d,
+        label: `Turn to ${C.NAMES[ch[d]]}`, go: () => this.go(C.stepOfColour(ch[d]))
+      })),
+      isTurn: turn, isDone,
+      turn: m ? {
+        kind: m.kind,
+        faces: { front: C.colourVar(m.front), back: C.colourVar(C.OPPOSITE[m.front]), top: C.colourVar(m.chips.up), right: C.colourVar(m.chips.right), down: C.colourVar(m.chips.down), left: C.colourVar(m.chips.left) }
+      } : { kind: 'yaw', faces: {} },
+      faceLabel: `${f.name} side, ${C.NAMES[f.key]} centre`,
+      selColour: C.colourVar(S.sel),
+      cursor: cursorFor(C.HEX[S.sel], eraser),
+      readyCls: C.isComplete(cur) && !turn && !isDone ? 'is-ready' : '',
+      cells: cur.map((k, i) => ({
+        i, k: WAVE[i], colour: k ? C.colourVar(k) : 'transparent',
+        cls: i === 4 ? 'is-centre is-fill' : k ? 'is-fill' : 'is-empty',
+        label: i === 4 ? `Centre, ${C.NAMES[k]}, fixed` : `Sticker ${i + 1}, ${k ? C.NAMES[k] : 'empty'}`
+      })),
+      down: this.down, move: this.move, key: this.key,
+      swatches: C.PALETTE.map((k, idx) => ({
+        key: k, colour: C.colourVar(k), left: Math.max(0, 9 - n[k]),
+        label: `${C.titleCase(C.NAMES[k])}, ${Math.max(0, 9 - n[k])} left${n[k] >= 9 ? ', picks the eraser' : ''} (key ${idx + 1})`,
+        checked: S.sel === k ? 'true' : 'false',
+        cls: [S.sel === k ? 'is-sel' : '', n[k] >= 9 ? 'is-out' : '', C.isLight(k) ? 'is-light' : ''].join(' '),
+        pick: () => this.pick(k)
+      })),
+      line: this.lineFor(S, left, eraser),
+      backOff: S.step === 0 || turn,
+      nextOff: !C.isComplete(cur) || turn || isDone,
+      nextText: allFull ? 'Check cube' : 'Next side',
+      next: this.next, back: this.back, restart: this.restart, check: this.check,
+      step: S.step, faces: this.facesFor(S.caps),
+      // The verdict lives in the cube panel, the same place the camera page shows it.
+      notice: this.noticeFor(S),
+      now: isDone
+        ? { colour: C.colourVar('G'), title: 'Cube entered', sub: '6/6' }
+        : { colour: C.colourVar(f.key), title: f.name, sub: `${C.titleCase(C.NAMES[f.key])} centre · ${S.step + 1}/6` },
+      strip: C.FACES.map((x, i) => ({
+        colour: C.colourVar(x.key), label: `${x.name} side${C.isComplete(S.caps[i]) ? '' : ', not finished'}${S.scene === 'invalid' && S.suspects.includes(i) ? ', check this side' : ''}`,
+        open: C.isComplete(S.caps[i]) && !turn ? () => this.go(i) : null,
+        done: C.isComplete(S.caps[i]), now: !isDone && i === S.step,
+        flagged: S.scene === 'invalid' && S.suspects.includes(i), light: C.isLight(x.key)
+      }))
+    }, refs);
+  }
+}
+</script>
+</body>
+</html>

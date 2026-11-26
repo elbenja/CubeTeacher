@@ -1,4 +1,4 @@
-import { captureFromPhysical, normalizeCaptured, validateCube } from './cube-state.mjs';
+import { captureFromPhysical, normalizeCaptured, validateCube } from '../../cube-capture.mjs';
 
 const COLORS = {
   W: { name: 'White', hex: '#f6f5ef' }, Y: { name: 'Yellow', hex: '#f4cd37' },

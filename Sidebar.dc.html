@@ -17,6 +17,7 @@
 <style>
 aside.ct-side>[data-sc-name="SidebarContent"]{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 aside.ct-side>[data-sc-name="SidebarFooter"]{flex-shrink:0}
+aside.ct-side>[data-sc-name="GuidedSolveCard"]{flex-shrink:0}
 </style>
 </helmet>
 
@@ -25,6 +26,8 @@ aside.ct-side>[data-sc-name="SidebarFooter"]{flex-shrink:0}
   <div style="padding:2px 2px 0">
     <dc-import name="SidebarHeader" title="Silverdesk" badge="Lab" subtitle="CubeTeacher" tip="{{ sidebarTip }}" on-toggle="{{ toggleSidebar }}" hint-size="100%,72px"></dc-import>
   </div>
+
+  <dc-import name="GuidedSolveCard" variant="idle" hint-size="100%,132px"></dc-import>
 
   <dc-import name="SidebarContent" groups="{{ groups }}" start-beginner="{{ startBeginner }}" style="flex:1 1 auto;min-height:0;width:100%" hint-size="100%,100%"></dc-import>
 

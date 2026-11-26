@@ -17,53 +17,18 @@ globalThis.window = {
   matchMedia: () => ({ matches: false })
 };
 
-const { parseMoves, invertMoves, moveSpec } = await import('./cube-engine.js');
+const { parseMoves, invertMoves } = await import('./cube-engine.js');
 const { ALGORITHMS, expandRun } = await import('./algorithms.js');
 
 // --------------------------------------------------------------- cubie model
-// A cubie is a position vector plus an integer rotation matrix. `bake()` in the
-// engine does position.applyQuaternion(q) and quaternion.premultiply(q), so the
-// matrix update here is M <- R * M, matching it exactly.
-
-const HALF = Math.PI / 2;
-const FACE_VEC = { U: [0, 1, 0], D: [0, -1, 0], R: [1, 0, 0], L: [-1, 0, 0], F: [0, 0, 1], B: [0, 0, -1] };
-const FACE_ORDER = ['U', 'D', 'R', 'L', 'F', 'B'];
-// Sticker colours are keyed by the face a cubie is at home on. Matches FACE_COLORS.
-const HOME_COLOR = { U: 'W', D: 'Y', R: 'R', L: 'O', F: 'G', B: 'B' };
-const ID = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-
-const COS = [1, 0, -1, 0], SIN = [0, 1, 0, -1];
-
-function rot(axis, k) {
-  const c = COS[k], s = SIN[k];
-  if (axis === 'x') return [[1, 0, 0], [0, c, -s], [0, s, c]];
-  if (axis === 'y') return [[c, 0, s], [0, 1, 0], [-s, 0, c]];
-  return [[c, -s, 0], [s, c, 0], [0, 0, 1]];
-}
-const mulVec = (M, v) => [0, 1, 2].map(i => M[i][0] * v[0] + M[i][1] * v[1] + M[i][2] * v[2]);
-const mulMat = (A, B) => [0, 1, 2].map(i => [0, 1, 2].map(j => A[i][0] * B[0][j] + A[i][1] * B[1][j] + A[i][2] * B[2][j]));
-
-export function solvedCube() {
-  const out = [];
-  for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) for (let z = -1; z <= 1; z++)
-    out.push({ home: [x, y, z], pos: [x, y, z], m: ID.map(r => r.slice()) });
-  return out;
-}
-
-export function applyMoves(cube, tokens) {
-  for (const tok of parseMoves(tokens)) {
-    const sp = moveSpec(tok);
-    const k = ((Math.round(sp.angle / HALF) % 4) + 4) % 4;
-    const R = rot(sp.axis, k);
-    const ai = sp.axis === 'x' ? 0 : sp.axis === 'y' ? 1 : 2;
-    for (const c of cube) {
-      if (sp.layers.indexOf(c.pos[ai]) === -1) continue;
-      c.pos = mulVec(R, c.pos);
-      c.m = mulMat(R, c.m);
-    }
-  }
-  return cube;
-}
+// A cubie is a position vector plus an integer rotation matrix. The model lives
+// in cubie-model.mjs, shared with the solve guide's solver; it reads moves
+// through moveSpec from cube-engine.js, so it is still the engine's opinion of a
+// move that gets checked here. Re-exported so existing imports keep working.
+const {
+  FACE_VEC, FACE_ORDER, mulVec, mulMat, solvedCube, applyMoves, sticker, centre, vecOf, tokOf
+} = await import('./cubie-model.mjs');
+export { solvedCube, applyMoves, sticker, centre, vecOf };
 
 // "Home" is judged on stickers, not on the raw matrix: a centre cubie spun about
 // its own axis is visually identical, and counting that twist inflates every
@@ -89,34 +54,9 @@ export function order(seq, cap = 2000) {
 // ------------------------------------------------------------ state readers
 // Everything below is expressed relative to the *current* centre colours, so it
 // stays correct after a whole-cube rotation in the setup (steps 3-7 use z2 y).
+// sticker, centre, vecOf and tokOf come from cubie-model.mjs.
 
-const at = (cube, p) => cube.find(c => c.pos[0] === p[0] && c.pos[1] === p[1] && c.pos[2] === p[2]);
-
-export function sticker(cube, p, face) {
-  const c = at(cube, p);
-  if (!c) return null;
-  const n = FACE_VEC[face];
-  for (const f of FACE_ORDER) {
-    const h = FACE_VEC[f];
-    if (h[0] * c.home[0] + h[1] * c.home[1] + h[2] * c.home[2] !== 1) continue;
-    const cur = mulVec(c.m, h);
-    if (cur[0] === n[0] && cur[1] === n[1] && cur[2] === n[2]) return HOME_COLOR[f];
-  }
-  return null;
-}
-
-export const centre = (cube, f) => sticker(cube, FACE_VEC[f], f);
-
-export function vecOf(tok) {
-  const v = [0, 0, 0];
-  for (const ch of tok) { const a = FACE_VEC[ch]; if (a) { v[0] += a[0]; v[1] += a[1]; v[2] += a[2]; } }
-  return v;
-}
 const facesOf = tok => tok.split('').filter(ch => FACE_VEC[ch]);
-const tokOf = p => FACE_ORDER.filter(f => {
-  const v = FACE_VEC[f];
-  return v[0] * p[0] + v[1] * p[1] + v[2] * p[2] === 1;
-}).join('');
 
 // right piece, right slot, right way up
 export const placed = (cube, tok) =>

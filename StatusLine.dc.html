@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StatusLine</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/typography.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/radius.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/elevation.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/motion.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/tokens/base.css">
+<link rel="stylesheet" href="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/styles.css">
+<script src="_ds/3dandcanvas-design-system-39c2f27a-19b5-4e24-81e1-72229778b310/_ds_bundle.js"></script>
+<link rel="stylesheet" href="cube-tokens.css">
+<style>
+/* One line of guidance, always in the same place. It says one thing at a time; a new
+   message slides in so the eye notices the change without reading the old one again.
+   Variants: surface = glass (over the camera feed) | sunken (on a white panel);
+   tone = neutral | warn | ok; lead = none | icon | dot | ring | spinner. */
+.sl{display:inline-flex;align-items:center;gap:var(--space-5);min-height:var(--control-h-lg);max-width:100%;box-sizing:border-box;padding:var(--space-3) var(--space-8) var(--space-3) var(--space-3);border-radius:var(--radius-full);font:var(--weight-medium) var(--text-md)/var(--leading-snug) var(--font-sans);letter-spacing:var(--tracking-snug);color:var(--text-primary);white-space:nowrap}
+.sl[data-surface="glass"]{background:var(--surface-glass);-webkit-backdrop-filter:var(--blur-glass);backdrop-filter:var(--blur-glass);box-shadow:var(--shadow-float)}
+.sl[data-surface="sunken"]{background:var(--surface-sunken)}
+.sl.is-new{animation:sl-in var(--dur-base) var(--ease-out)}
+@keyframes sl-in{from{opacity:0;transform:translateY(6px) scale(.985)}}
+.sl-text{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.sl-lead{display:grid;place-items:center;width:28px;height:28px;flex:0 0 auto;border-radius:var(--radius-full);background:var(--surface-float);color:var(--icon-default);font-size:var(--icon-size-md);transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
+.sl[data-surface="sunken"] .sl-lead{box-shadow:var(--shadow-pill)}
+.sl-lead[data-tone="warn"]{background:var(--amber-50);color:var(--gray-900)}
+.sl-lead[data-tone="ok"]{background:var(--green-500);color:var(--gray-0)}
+.sl-lead[data-tone="ok"] i{animation:dc-mi-pop var(--dur-slow) var(--ease-spring-out)}
+.sl-dot{width:16px;height:16px;border-radius:5px;background:var(--c);box-shadow:var(--sticker-edge-light)}
+@media (prefers-reduced-motion:reduce){.sl.is-new,.sl-lead[data-tone="ok"] i{animation:none}}
+</style>
+</helmet>
+
+<div class="sl" data-surface="{{ surface }}" role="status" aria-live="polite" ref="{{ rootRef }}">
+  <sc-if value="{{ isRing }}" hint-placeholder-val="{{ false }}">
+    <x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.ProgressRing" value="{{ progress }}" size="{{ ringSize }}" stroke-width="{{ ringStroke }}" color="var(--scan-ok)" hint-size="28px,28px"></x-import>
+  </sc-if>
+  <sc-if value="{{ isSpinner }}" hint-placeholder-val="{{ false }}">
+    <span class="sl-lead"><x-import component-from-global-scope="Ds3DandCanvasDesignSystem_39c2f2.Spinner" size="{{ spinSize }}" hint-size="16px,16px"></x-import></span>
+  </sc-if>
+  <sc-if value="{{ isIcon }}" hint-placeholder-val="{{ true }}">
+    <span class="sl-lead" data-tone="{{ tone }}"><i class="hgi-stroke hgi-{{ icon }}" aria-hidden="true"></i></span>
+  </sc-if>
+  <sc-if value="{{ isDot }}" hint-placeholder-val="{{ false }}">
+    <span class="sl-lead"><span class="sl-dot" style="--c:{{ dot }}"></span></span>
+  </sc-if>
+  <span class="sl-text" title="{{ text }}">{{ text }}</span>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":64},"text":{"editor":"text","default":"Fit one side in the frame","tsType":"string"},"surface":{"editor":"enum","options":["glass","sunken"],"default":"sunken","tsType":"&#39;glass&#39; | &#39;sunken&#39;","section":"Variant"},"tone":{"editor":"enum","options":["neutral","warn","ok"],"default":"neutral","tsType":"&#39;neutral&#39; | &#39;warn&#39; | &#39;ok&#39;","section":"Variant"},"lead":{"editor":"enum","options":["none","icon","dot","ring","spinner"],"default":"icon","tsType":"&#39;none&#39; | &#39;icon&#39; | &#39;dot&#39; | &#39;ring&#39; | &#39;spinner&#39;","section":"Variant"},"icon":{"editor":"text","default":"focus-point","tsType":"string","section":"Variant"},"dot":{"editor":null,"tsType":"string"},"progress":{"editor":"range","min":0,"max":100,"step":1,"default":60,"tsType":"number","section":"Variant"}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) {
+    // A new message (not a new hold percentage) slides in.
+    if (prev && prev.text !== this.props.text && this.el) {
+      this.el.classList.remove('is-new'); void this.el.offsetWidth; this.el.classList.add('is-new');
+    }
+  }
+  renderVals() {
+    const p = this.props, lead = p.lead ?? 'icon';
+    return {
+      text: p.text ?? '',
+      surface: p.surface ?? 'sunken',
+      tone: p.tone ?? 'neutral',
+      icon: p.icon ?? 'focus-point',
+      dot: p.dot ?? 'var(--cube-green)',
+      progress: Math.max(0, Math.min(100, Math.round(p.progress ?? 0))),
+      isRing: lead === 'ring', isSpinner: lead === 'spinner', isIcon: lead === 'icon', isDot: lead === 'dot',
+      ringSize: 28, ringStroke: 3, spinSize: 16,
+      rootRef: this._r || (this._r = el => { this.el = el; })
+    };
+  }
+}
+</script>
+</body>
+</html>
